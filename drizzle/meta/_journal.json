@@ -57,6 +57,20 @@
       "when": 1795100884164,
       "tag": "0007_master_version_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795101282398,
+      "tag": "0008_audit_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795101290150,
+      "tag": "0009_audit_rls_immutability",
+      "breakpoints": true
     }
   ]
 }

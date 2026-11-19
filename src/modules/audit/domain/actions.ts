@@ -1,0 +1,52 @@
+export const AUDIT_ACTIONS = [
+  'sale.void',
+  'discount.override',
+  'price.changed',
+  'availability.changed',
+  'return.created',
+  'role.changed',
+  'permission.changed',
+  'pin.reset',
+  'pin.locked',
+  'member.invited',
+  'member.invite_canceled',
+  'member.invite_reissued',
+  'member.accepted',
+  'member.removed',
+  'member.reset_issued',
+  'member.password_reset',
+  'device.enrolled',
+  'device.revoked',
+  'register.created',
+  'register.recovered',
+  'gr.posted',
+  'gr.reversed',
+  'transfer.sent',
+  'transfer.received',
+  'stocktake.posted',
+  'shift.force_closed',
+  'shift.variance',
+  'cash.movement',
+  'gap.explained',
+  'tax_rate.changed',
+  'outlet.changed',
+  'invoice_prefix.changed',
+  'feature_flag.changed',
+  'release_policy.changed',
+  'pending.exported',
+  'drawer.opened',
+  'attention.resolved',
+  'user.changed',
+  'screen.unlock_override',
+  'tenant.created',
+  'tenant.status_changed',
+  'tenant.renamed',
+] as const
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[number]
+
+const ACTION_SET = new Set<string>(AUDIT_ACTIONS)
+
+export function isAuditAction(value: string): value is AuditAction {
+  return ACTION_SET.has(value)
+}
