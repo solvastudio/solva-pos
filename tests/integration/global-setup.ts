@@ -36,6 +36,9 @@ export default async function setup(): Promise<void> {
   process.env.DATABASE_URL = appUrl
   process.env.DATABASE_OWNER_URL = ownerUrl
   process.env.APP_ENV = process.env.APP_ENV || 'development'
+  process.env.BETTER_AUTH_SECRET =
+    process.env.BETTER_AUTH_SECRET || 'test-integration-better-auth-secret-32chars'
+  process.env.AUTH_COOKIE_SECURE = process.env.AUTH_COOKIE_SECURE || 'false'
 
   await runMigrations(ownerUrl)
 }

@@ -21,6 +21,7 @@ describe('server/env', () => {
       DATABASE_URL: undefined,
       DATABASE_OWNER_URL: undefined,
       BETTER_AUTH_SECRET: undefined,
+      AUTH_COOKIE_SECURE: undefined,
       TRUSTED_PROXY_CIDR: undefined,
     })
 

@@ -23,6 +23,7 @@
     "logs:find": "tsx scripts/logs-find.ts",
     "audit:verify": "node scripts/local.mjs tsx scripts/ops/verify-audit-chain.ts",
     "seed:dev-tenant": "node scripts/local.mjs tsx scripts/seed/dev-tenant.ts",
+    "seed:dev-owner": "node scripts/local.mjs tsx scripts/seed/dev-owner.ts",
     "test:e2e": "echo \"test:e2e diisi di Fase 30\""
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-router-ssr-query": "1.167.3",
     "@tanstack/react-start": "1.169.4",
+    "better-auth": "1.7.25",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "decimal.js": "10.6.0",

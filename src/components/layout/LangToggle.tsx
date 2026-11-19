@@ -2,9 +2,20 @@ import { useTranslation } from 'react-i18next'
 import { useLang } from '~/hooks/use-lang'
 import { cn } from '~/lib/cn'
 
-export function LangToggle() {
+export interface LangToggleProps {
+  onLocaleChange?: (locale: 'id-ID' | 'en-US') => void | Promise<void>
+}
+
+export function LangToggle({ onLocaleChange }: LangToggleProps = {}) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLang()
+
+  function handleSelect(nextLocale: 'id-ID' | 'en-US') {
+    void setLocale(nextLocale)
+    if (onLocaleChange) {
+      void onLocaleChange(nextLocale)
+    }
+  }
 
   return (
     <div
@@ -14,7 +25,7 @@ export function LangToggle() {
     >
       <button
         type="button"
-        onClick={() => void setLocale('id-ID')}
+        onClick={() => handleSelect('id-ID')}
         aria-pressed={locale === 'id-ID'}
         className={cn(
           'rounded-xs px-1.5 py-0.5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
@@ -28,7 +39,7 @@ export function LangToggle() {
       <span aria-hidden="true" className="h-3 w-px bg-line" />
       <button
         type="button"
-        onClick={() => void setLocale('en-US')}
+        onClick={() => handleSelect('en-US')}
         aria-pressed={locale === 'en-US'}
         className={cn(
           'rounded-xs px-1.5 py-0.5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',

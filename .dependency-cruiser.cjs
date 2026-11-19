@@ -10,7 +10,7 @@ module.exports = {
     {
       name: 'pos-no-server',
       severity: 'error',
-      from: { path: '^src/(pos|components|hooks|queries|routes/(?!api))' },
+      from: { path: '^src/(pos|components|hooks|queries|routes/(?!api|[^/]+/admin/api))' },
       to: { path: '^src/(server|modules/[^/]+/server)' },
     },
     {
@@ -37,7 +37,7 @@ module.exports = {
     {
       name: 'module-public-only',
       severity: 'error',
-      from: { path: '^src/(functions|routes/api|server)' },
+      from: { path: '^src/(functions|routes/(?:api|[^/]+/admin/api)|server)' },
       to: { path: '^src/modules/[^/]+/(?!public\\.ts|shared\\.ts)' },
     },
     {

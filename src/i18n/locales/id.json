@@ -13,8 +13,40 @@
   },
   "auth": {
     "login": {
-      "invalid": "Email atau kata sandi salah"
+      "invalid": "Email atau kata sandi salah",
+      "emailLabel": "Email",
+      "emailPlaceholder": "nama@bisnis.id",
+      "passwordLabel": "Kata sandi",
+      "passwordPlaceholder": "Masukkan kata sandi",
+      "showPassword": "Tampilkan kata sandi",
+      "hidePassword": "Sembunyikan kata sandi",
+      "submit": "Masuk",
+      "forgotHint": "Lupa kata sandi? Minta kode atur ulang dari Owner bisnis Anda. Bila akun Anda dipakai di beberapa bisnis, hubungi dukungan Solva.",
+      "suspended": "Layanan untuk tenant ini sedang tidak tersedia."
     }
+  },
+  "account": {
+    "title": "Akun saya",
+    "profileTitle": "Profil akun",
+    "nameLabel": "Nama",
+    "emailLabel": "Email",
+    "rolesLabel": "Peran",
+    "languageTitle": "Bahasa",
+    "languageDesc": "Pilih bahasa antarmuka untuk akun admin Anda.",
+    "languageSaved": "Preferensi bahasa disimpan.",
+    "passwordTitle": "Ubah kata sandi",
+    "password": {
+      "current": "Kata sandi saat ini",
+      "new": "Kata sandi baru",
+      "repeat": "Ulangi kata sandi",
+      "submit": "Simpan kata sandi",
+      "minLength": "Kata sandi baru minimal 8 karakter.",
+      "mismatch": "Konfirmasi kata sandi baru tidak cocok.",
+      "wrongCurrent": "Kata sandi saat ini salah.",
+      "updated": "Kata sandi diperbarui. Sesi aktif lainnya telah dikeluarkan.",
+      "failed": "Tidak dapat mengubah kata sandi. Coba lagi."
+    },
+    "signOut": "Keluar"
   },
   "banner": {
     "offline": "Offline. Penjualan tetap tersimpan di perangkat ini.",
@@ -111,7 +143,30 @@
     }
   },
   "tenant": {
-    "badgeLabel": "Tenant: {{name}}"
+    "badgeLabel": "Tenant: {{name}}",
+    "login": {
+      "title": "Masuk ke {{tenant}}",
+      "notYours": "Bukan {{tenant}}? Periksa alamat."
+    }
+  },
+  "admin": {
+    "shell": {
+      "menuOpen": "Buka menu navigasi",
+      "menuClose": "Tutup menu navigasi",
+      "navLabel": "Navigasi back-office",
+      "accountLink": "Pengaturan akun",
+      "backToPicker": "Pindah aplikasi"
+    },
+    "nav": {
+      "dashboard": "Beranda",
+      "account": "Akun"
+    },
+    "dashboard": {
+      "title": "Beranda Back-office",
+      "welcome": "Masuk sebagai {{name}}",
+      "rolesSummary": "Peran aktif",
+      "accountHint": "Kelola kata sandi, pilihan bahasa, dan sesi aktif dari halaman akun Anda."
+    }
   },
   "sys": {
     "lang": {

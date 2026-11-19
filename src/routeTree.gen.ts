@@ -13,6 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantRouteImport } from './routes/$tenant'
 import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
 import { Route as DevUiRouteImport } from './routes/_dev/ui'
+import { Route as TenantAdminAuthedRouteImport } from './routes/$tenant/admin/_authed'
+import { Route as TenantAdminLoginRouteImport } from './routes/$tenant/admin/login'
+import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/admin/_authed/index'
+import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
+import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,17 +39,52 @@ const DevUiRoute = DevUiRouteImport.update({
   path: '/ui',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TenantAdminAuthedRoute = TenantAdminAuthedRouteImport.update({
+  id: '/admin/_authed',
+  path: '/admin',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantAdminLoginRoute = TenantAdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantAdminAuthedIndexRoute = TenantAdminAuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantAdminAuthedRoute,
+} as any)
+const TenantAdminAuthedAccountRoute =
+  TenantAdminAuthedAccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
+  id: '/admin/api/auth/$',
+  path: '/admin/api/auth/$',
+  getParentRoute: () => TenantRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$tenant': typeof TenantRouteWithChildren
   '/ui': typeof DevUiRoute
   '/$tenant/': typeof TenantIndexRoute
+  '/$tenant/admin': typeof TenantAdminAuthedRouteWithChildren
+  '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ui': typeof DevUiRoute
   '/$tenant': typeof TenantIndexRoute
+  '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -52,13 +92,44 @@ export interface FileRoutesById {
   '/$tenant': typeof TenantRouteWithChildren
   '/_dev/ui': typeof DevUiRoute
   '/$tenant/': typeof TenantIndexRoute
+  '/$tenant/admin/_authed': typeof TenantAdminAuthedRouteWithChildren
+  '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$tenant' | '/ui' | '/$tenant/'
+  fullPaths:
+    | '/'
+    | '/$tenant'
+    | '/ui'
+    | '/$tenant/'
+    | '/$tenant/admin'
+    | '/$tenant/admin/login'
+    | '/$tenant/admin/account'
+    | '/$tenant/admin/'
+    | '/$tenant/admin/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ui' | '/$tenant'
-  id: '__root__' | '/' | '/$tenant' | '/_dev/ui' | '/$tenant/'
+  to:
+    | '/'
+    | '/ui'
+    | '/$tenant'
+    | '/$tenant/admin/login'
+    | '/$tenant/admin/account'
+    | '/$tenant/admin'
+    | '/$tenant/admin/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/$tenant'
+    | '/_dev/ui'
+    | '/$tenant/'
+    | '/$tenant/admin/_authed'
+    | '/$tenant/admin/login'
+    | '/$tenant/admin/_authed/account'
+    | '/$tenant/admin/_authed/'
+    | '/$tenant/admin/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,15 +168,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevUiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$tenant/admin/_authed': {
+      id: '/$tenant/admin/_authed'
+      path: '/admin'
+      fullPath: '/$tenant/admin'
+      preLoaderRoute: typeof TenantAdminAuthedRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/$tenant/admin/login': {
+      id: '/$tenant/admin/login'
+      path: '/admin/login'
+      fullPath: '/$tenant/admin/login'
+      preLoaderRoute: typeof TenantAdminLoginRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/$tenant/admin/_authed/': {
+      id: '/$tenant/admin/_authed/'
+      path: '/'
+      fullPath: '/$tenant/admin/'
+      preLoaderRoute: typeof TenantAdminAuthedIndexRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/account': {
+      id: '/$tenant/admin/_authed/account'
+      path: '/account'
+      fullPath: '/$tenant/admin/account'
+      preLoaderRoute: typeof TenantAdminAuthedAccountRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/api/auth/$': {
+      id: '/$tenant/admin/api/auth/$'
+      path: '/admin/api/auth/$'
+      fullPath: '/$tenant/admin/api/auth/$'
+      preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
+      parentRoute: typeof TenantRoute
+    }
   }
 }
 
+interface TenantAdminAuthedRouteChildren {
+  TenantAdminAuthedAccountRoute: typeof TenantAdminAuthedAccountRoute
+  TenantAdminAuthedIndexRoute: typeof TenantAdminAuthedIndexRoute
+}
+
+const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
+  TenantAdminAuthedAccountRoute: TenantAdminAuthedAccountRoute,
+  TenantAdminAuthedIndexRoute: TenantAdminAuthedIndexRoute,
+}
+
+const TenantAdminAuthedRouteWithChildren =
+  TenantAdminAuthedRoute._addFileChildren(TenantAdminAuthedRouteChildren)
+
 interface TenantRouteChildren {
   TenantIndexRoute: typeof TenantIndexRoute
+  TenantAdminAuthedRoute: typeof TenantAdminAuthedRouteWithChildren
+  TenantAdminLoginRoute: typeof TenantAdminLoginRoute
+  TenantAdminApiAuthSplatRoute: typeof TenantAdminApiAuthSplatRoute
 }
 
 const TenantRouteChildren: TenantRouteChildren = {
   TenantIndexRoute: TenantIndexRoute,
+  TenantAdminAuthedRoute: TenantAdminAuthedRouteWithChildren,
+  TenantAdminLoginRoute: TenantAdminLoginRoute,
+  TenantAdminApiAuthSplatRoute: TenantAdminApiAuthSplatRoute,
 }
 
 const TenantRouteWithChildren =
@@ -121,10 +246,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

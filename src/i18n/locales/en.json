@@ -13,8 +13,40 @@
   },
   "auth": {
     "login": {
-      "invalid": "Incorrect email or password"
+      "invalid": "Incorrect email or password",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@business.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Sign in",
+      "forgotHint": "Forgot your password? Ask your business Owner for a reset code. If your account is used for several businesses, contact Solva support.",
+      "suspended": "Service for this tenant is currently unavailable."
     }
+  },
+  "account": {
+    "title": "My account",
+    "profileTitle": "Account profile",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "rolesLabel": "Roles",
+    "languageTitle": "Language",
+    "languageDesc": "Choose the interface language for your admin account.",
+    "languageSaved": "Language preference saved.",
+    "passwordTitle": "Change password",
+    "password": {
+      "current": "Current password",
+      "new": "New password",
+      "repeat": "Repeat password",
+      "submit": "Save password",
+      "minLength": "New password must be at least 8 characters.",
+      "mismatch": "New password confirmation does not match.",
+      "wrongCurrent": "The current password is incorrect.",
+      "updated": "Password updated. Other active sessions have been signed out.",
+      "failed": "Could not update password. Try again."
+    },
+    "signOut": "Sign out"
   },
   "banner": {
     "offline": "Offline. Sales are still saved on this device.",
@@ -111,7 +143,30 @@
     }
   },
   "tenant": {
-    "badgeLabel": "Tenant: {{name}}"
+    "badgeLabel": "Tenant: {{name}}",
+    "login": {
+      "title": "Sign in to {{tenant}}",
+      "notYours": "Not {{tenant}}? Check the address."
+    }
+  },
+  "admin": {
+    "shell": {
+      "menuOpen": "Open navigation menu",
+      "menuClose": "Close navigation menu",
+      "navLabel": "Back-office navigation",
+      "accountLink": "Account settings",
+      "backToPicker": "Switch app"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "account": "Account"
+    },
+    "dashboard": {
+      "title": "Back-office Dashboard",
+      "welcome": "Signed in as {{name}}",
+      "rolesSummary": "Active roles",
+      "accountHint": "Manage your password, language preference, and active session from your account page."
+    }
   },
   "sys": {
     "lang": {

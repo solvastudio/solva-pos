@@ -71,6 +71,20 @@
       "when": 1795101290150,
       "tag": "0009_audit_rls_immutability",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795125927442,
+      "tag": "0010_auth_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795125928654,
+      "tag": "0011_auth_grants",
+      "breakpoints": true
     }
   ]
 }

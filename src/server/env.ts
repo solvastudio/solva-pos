@@ -28,6 +28,10 @@ export const envSchema = z.object({
   DATABASE_URL: optionalUrlSchema,
   DATABASE_OWNER_URL: optionalUrlSchema,
   BETTER_AUTH_SECRET: optionalNonEmpty,
+  AUTH_COOKIE_SECURE: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v === 'true' || v === true ? true : v === 'false' || v === false ? false : v),
+    z.boolean().optional(),
+  ),
   TRUSTED_PROXY_CIDR: optionalNonEmpty,
 })
 
@@ -70,6 +74,26 @@ export function requireDbEnv(): { DATABASE_URL: string; DATABASE_OWNER_URL?: str
   return {
     DATABASE_URL: env.DATABASE_URL,
     ...(env.DATABASE_OWNER_URL ? { DATABASE_OWNER_URL: env.DATABASE_OWNER_URL } : {}),
+  }
+}
+
+export function requireAuthEnv(): {
+  BETTER_AUTH_SECRET: string
+  AUTH_COOKIE_SECURE: boolean
+} {
+  const env = getEnv()
+  if (!env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32) {
+    throw new Error(
+      'Missing or weak BETTER_AUTH_SECRET: must be set to at least 32 characters',
+    )
+  }
+  const secure =
+    env.AUTH_COOKIE_SECURE !== undefined
+      ? env.AUTH_COOKIE_SECURE
+      : env.APP_ENV === 'production' || env.APP_ENV === 'staging'
+  return {
+    BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET,
+    AUTH_COOKIE_SECURE: secure,
   }
 }
 
