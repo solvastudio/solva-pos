@@ -1,3 +1,4 @@
+import '~/i18n'
 import type { ReactNode } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { BRAND_NAME } from '~/lib/brand'

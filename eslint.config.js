@@ -71,6 +71,41 @@ const NO_ENUM_SELECTOR = {
   message: 'Enum dilarang; gunakan union literal (CLAUDE.md)',
 }
 
+const ALLOWED_JSX_STRINGS = new Set(['·', '/', '-', '—', '…', '%', '(', ')'])
+const solvaPlugin = {
+  rules: {
+    'jsx-no-literals': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Larang string UI literal dalam JSX (FR-I18N-001)' },
+        schema: [],
+      },
+      create(context) {
+        function checkText(node, raw) {
+          const trimmed = raw.trim()
+          if (trimmed.length === 0 || ALLOWED_JSX_STRINGS.has(trimmed)) return
+          context.report({
+            node,
+            message: 'Teks UI literal dilarang dalam JSX; gunakan kunci i18n t(...)',
+          })
+        }
+        return {
+          JSXText(node) {
+            checkText(node, node.value)
+          },
+          'JSXElement > JSXExpressionContainer > Literal, JSXFragment > JSXExpressionContainer > Literal'(
+            node,
+          ) {
+            if (typeof node.value === 'string') {
+              checkText(node, node.value)
+            }
+          },
+        }
+      },
+    },
+  },
+}
+
 export default defineConfig(
   globalIgnores([
     'dist/**',
@@ -251,6 +286,18 @@ export default defineConfig(
           ],
         },
       ],
+    },
+  },
+
+  // 11. i18n no literal UI strings in JSX components/routes
+  {
+    files: ['src/components/**/*.tsx', 'src/routes/**/*.tsx'],
+    ignores: ['src/routes/api/**', '**/*.test.tsx'],
+    plugins: {
+      solva: solvaPlugin,
+    },
+    rules: {
+      'solva/jsx-no-literals': 'error',
     },
   },
 )

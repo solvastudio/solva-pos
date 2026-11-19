@@ -1,0 +1,113 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Retry",
+    "copy": "Copy",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "loading": "Loading…",
+    "search": "Search",
+    "undo": "Undo"
+  },
+  "auth": {
+    "login": {
+      "invalid": "Incorrect email or password"
+    }
+  },
+  "banner": {
+    "offline": "Offline. Sales are still saved on this device.",
+    "pending_one": "{{count}} transaction hasn't been sent for {{durasi}}.",
+    "pending_other": "{{count}} transactions haven't been sent for {{durasi}}.",
+    "leaseWarning_one": "Connect to the internet within {{count}} hour so this device doesn't lock.",
+    "leaseWarning_other": "Connect to the internet within {{count}} hours so this device doesn't lock.",
+    "updateAvailable": "An update is available.",
+    "updateRequired": "Update required. You can't open a new shift until you update."
+  },
+  "status": {
+    "sync": {
+      "synced": "Synced {{jam}}",
+      "serverBusy": "Server busy — retrying"
+    }
+  },
+  "device": {
+    "locked": {
+      "title": "Device locked",
+      "body": "It has been 7 days without syncing. Connect to the internet to unlock. Unsent transactions are safe and can be exported."
+    }
+  },
+  "error": {
+    "notFound": {
+      "title": "Page not found",
+      "body": "Check the page address you opened."
+    },
+    "UNAUTHORIZED": {
+      "action": "Session expired. Sign in again."
+    },
+    "FORBIDDEN": {
+      "action": "You don't have permission for this action. Contact a manager."
+    },
+    "VALIDATION_FAILED": {
+      "action": "Invalid data. Check your entries and try again."
+    },
+    "DB_UNAVAILABLE": {
+      "action": "Service is busy. Try again in a moment."
+    },
+    "TIMEOUT": {
+      "action": "Request took too long. Check your connection and try again."
+    },
+    "INTERNAL_ERROR": {
+      "action": "System error occurred. Copy this code and contact support."
+    },
+    "PRINT_FAILED": {
+      "action": "Receipt wasn't printed. Check the printer and paper, then tap Reprint."
+    },
+    "PIN_LOCKED": {
+      "action": "PIN is temporarily locked. Wait {{menit}} minutes or ask a manager to reset it."
+    },
+    "DEVICE_REVOKED": {
+      "action": "This device has been revoked. Export pending transactions, then contact a manager."
+    },
+    "CREDENTIAL_EXPIRED": {
+      "action": "Device credentials expired. Pair the device again."
+    },
+    "LEASE_EXPIRED": {
+      "action": "Device locked after 7 days without syncing. Connect to the internet."
+    },
+    "UPDATE_REQUIRED": {
+      "action": "App update required. Finish your shift, then reload when prompted."
+    },
+    "SYNC_HELD": {
+      "action": "Some transactions are held waiting for an update or the server. No data was lost."
+    },
+    "TENANT_SUSPENDED": {
+      "action": "Service for this tenant is currently unavailable. Contact your service provider."
+    },
+    "STORAGE_LOW": {
+      "action": "Device storage is almost full. Sync and free up space; pending transactions aren't deleted."
+    },
+    "STORAGE_FULL": {
+      "action": "Storage is full, transactions can't be saved. Export pending transactions then free up space."
+    },
+    "LOCAL_DB_FAILED": {
+      "action": "Local data couldn't be opened. Export pending transactions then contact support."
+    },
+    "APP_ERROR": {
+      "action": "This screen ran into a problem. Tap Retry; your draft is safe."
+    },
+    "HANDOVER_NOT_PENDING": {
+      "action": "Bill was already accepted or canceled. Reload the bill list."
+    },
+    "EVENTS_PENDING": {
+      "action": "There are still unsent bill changes. Wait for syncing to finish."
+    },
+    "RATE_LIMITED": {
+      "action": "Too many attempts. Wait a few minutes.",
+      "actionMinutes": "Try again in about {{menit}} minutes."
+    },
+    "FEATURE_DISABLED": {
+      "action": "This feature isn't enabled for your tenant."
+    }
+  }
+}

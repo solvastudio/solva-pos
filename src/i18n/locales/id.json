@@ -1,0 +1,113 @@
+{
+  "common": {
+    "cancel": "Batal",
+    "save": "Simpan",
+    "retry": "Coba lagi",
+    "copy": "Salin",
+    "close": "Tutup",
+    "confirm": "Konfirmasi",
+    "back": "Kembali",
+    "loading": "Memuat…",
+    "search": "Cari",
+    "undo": "Urungkan"
+  },
+  "auth": {
+    "login": {
+      "invalid": "Email atau kata sandi salah"
+    }
+  },
+  "banner": {
+    "offline": "Offline. Penjualan tetap tersimpan di perangkat ini.",
+    "pending_one": "Ada {{count}} transaksi belum terkirim sejak {{durasi}}.",
+    "pending_other": "Ada {{count}} transaksi belum terkirim sejak {{durasi}}.",
+    "leaseWarning_one": "Sambungkan ke internet dalam {{count}} jam agar perangkat tidak terkunci.",
+    "leaseWarning_other": "Sambungkan ke internet dalam {{count}} jam agar perangkat tidak terkunci.",
+    "updateAvailable": "Pembaruan tersedia.",
+    "updateRequired": "Pembaruan wajib. Shift baru tidak dapat dibuka sebelum diperbarui."
+  },
+  "status": {
+    "sync": {
+      "synced": "Tersinkron {{jam}}",
+      "serverBusy": "Server sibuk — mencoba lagi"
+    }
+  },
+  "device": {
+    "locked": {
+      "title": "Perangkat terkunci",
+      "body": "Sudah 7 hari tanpa sinkronisasi. Sambungkan ke internet untuk membuka kunci. Transaksi yang belum terkirim tetap aman dan dapat diekspor."
+    }
+  },
+  "error": {
+    "notFound": {
+      "title": "Halaman tidak ditemukan",
+      "body": "Periksa kembali alamat halaman yang Anda buka."
+    },
+    "UNAUTHORIZED": {
+      "action": "Sesi berakhir. Masuk kembali."
+    },
+    "FORBIDDEN": {
+      "action": "Anda tidak punya izin untuk tindakan ini. Hubungi manager."
+    },
+    "VALIDATION_FAILED": {
+      "action": "Data tidak valid. Periksa isian lalu coba lagi."
+    },
+    "DB_UNAVAILABLE": {
+      "action": "Layanan sedang sibuk. Coba lagi sebentar lagi."
+    },
+    "TIMEOUT": {
+      "action": "Permintaan terlalu lama. Periksa koneksi lalu coba lagi."
+    },
+    "INTERNAL_ERROR": {
+      "action": "Terjadi kesalahan sistem. Salin kode ini dan hubungi pengembang."
+    },
+    "PRINT_FAILED": {
+      "action": "Struk belum tercetak. Periksa printer dan kertas, lalu ketuk Cetak ulang."
+    },
+    "PIN_LOCKED": {
+      "action": "PIN terkunci sementara. Tunggu {{menit}} menit atau minta manager mereset."
+    },
+    "DEVICE_REVOKED": {
+      "action": "Perangkat ini sudah dicabut. Ekspor transaksi tertunda, lalu hubungi manager."
+    },
+    "CREDENTIAL_EXPIRED": {
+      "action": "Kredensial perangkat kedaluwarsa. Pasangkan ulang perangkat."
+    },
+    "LEASE_EXPIRED": {
+      "action": "Perangkat terkunci karena 7 hari tanpa sinkron. Hubungkan ke internet."
+    },
+    "UPDATE_REQUIRED": {
+      "action": "Aplikasi perlu diperbarui. Selesaikan shift, lalu muat ulang saat diminta."
+    },
+    "SYNC_HELD": {
+      "action": "Sebagian transaksi ditahan menunggu pembaruan atau server. Tidak ada data yang hilang."
+    },
+    "TENANT_SUSPENDED": {
+      "action": "Layanan untuk tenant ini sedang tidak tersedia. Hubungi penyedia layanan."
+    },
+    "STORAGE_LOW": {
+      "action": "Penyimpanan perangkat hampir penuh. Sinkronkan dan bebaskan ruang; transaksi tertunda tidak dihapus."
+    },
+    "STORAGE_FULL": {
+      "action": "Penyimpanan penuh, transaksi tidak tersimpan. Ekspor transaksi tertunda lalu bebaskan ruang."
+    },
+    "LOCAL_DB_FAILED": {
+      "action": "Data lokal tidak dapat dibuka. Ekspor transaksi tertunda lalu hubungi pengembang."
+    },
+    "APP_ERROR": {
+      "action": "Layar ini mengalami masalah. Ketuk Coba lagi; draf Anda aman."
+    },
+    "HANDOVER_NOT_PENDING": {
+      "action": "Bill sudah diterima atau dibatalkan. Muat ulang daftar bill."
+    },
+    "EVENTS_PENDING": {
+      "action": "Masih ada perubahan bill yang belum terkirim. Tunggu sinkron selesai."
+    },
+    "RATE_LIMITED": {
+      "action": "Terlalu banyak percobaan. Tunggu beberapa menit.",
+      "actionMinutes": "Coba lagi dalam sekitar {{menit}} menit."
+    },
+    "FEATURE_DISABLED": {
+      "action": "Fitur ini tidak aktif untuk tenant Anda."
+    }
+  }
+}
