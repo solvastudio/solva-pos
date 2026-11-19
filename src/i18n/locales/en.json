@@ -110,6 +110,41 @@
       "action": "This feature isn't enabled for your tenant."
     }
   },
+  "tenant": {
+    "badgeLabel": "Tenant: {{name}}"
+  },
+  "sys": {
+    "lang": {
+      "label": "Choose language",
+      "id": "ID",
+      "en": "EN"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "The address you opened isn't available. Check it again, or ask your business administrator for the right address."
+    },
+    "unavailable": {
+      "title": "Service unavailable",
+      "body": "Service for this address is currently unavailable. Contact your service provider."
+    },
+    "picker": {
+      "title": "Choose an app",
+      "pos": {
+        "title": "Point of Sale",
+        "desc": "For cashiers and waiters at the outlet"
+      },
+      "admin": {
+        "title": "Back office",
+        "desc": "For owners and managers"
+      }
+    },
+    "sessionMismatch": {
+      "title": "This session isn't valid for this address",
+      "body": "Sign in again to continue.",
+      "signIn": "Sign in",
+      "refLabel": "Error reference"
+    }
+  },
   "dev": {
     "ui": {
       "title": "UI Component Gallery",

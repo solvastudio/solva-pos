@@ -110,6 +110,41 @@
       "action": "Fitur ini tidak aktif untuk tenant Anda."
     }
   },
+  "tenant": {
+    "badgeLabel": "Tenant: {{name}}"
+  },
+  "sys": {
+    "lang": {
+      "label": "Pilih bahasa",
+      "id": "ID",
+      "en": "EN"
+    },
+    "notFound": {
+      "title": "Halaman tidak ditemukan",
+      "body": "Alamat yang Anda buka tidak tersedia. Periksa kembali alamat, atau minta alamat yang benar dari administrator bisnis Anda."
+    },
+    "unavailable": {
+      "title": "Layanan tidak tersedia",
+      "body": "Layanan untuk alamat ini sedang tidak tersedia. Hubungi penyedia layanan."
+    },
+    "picker": {
+      "title": "Pilih aplikasi",
+      "pos": {
+        "title": "Terminal Kasir",
+        "desc": "Untuk kasir dan waiter di outlet"
+      },
+      "admin": {
+        "title": "Back-office",
+        "desc": "Untuk pemilik dan manager"
+      }
+    },
+    "sessionMismatch": {
+      "title": "Sesi ini tidak berlaku untuk alamat ini",
+      "body": "Masuk lagi untuk melanjutkan.",
+      "signIn": "Masuk",
+      "refLabel": "Referensi galat"
+    }
+  },
   "dev": {
     "ui": {
       "title": "Galeri Komponen UI",

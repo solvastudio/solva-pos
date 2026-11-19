@@ -117,6 +117,7 @@ export default defineConfig(
     'tests/arch/fixtures/**',
     'tests/arch/fixtures-token/**',
     'tests/arch/fixtures-sql/**',
+    'tests/arch/fixtures-routes/**',
     'playwright-report/**',
   ]),
 

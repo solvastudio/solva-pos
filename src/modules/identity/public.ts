@@ -1,2 +1,6 @@
-// Public server use-case interface for the Identity module (populated in Fase 16+).
-export {}
+export {
+  __clearTenantCacheForTests,
+  resolveTenantBySlug,
+  type ResolveTenantDeps,
+  type TenantResolution,
+} from './server/tenant-resolver.service'

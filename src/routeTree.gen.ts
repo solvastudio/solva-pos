@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TenantRouteImport } from './routes/$tenant'
+import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
 import { Route as DevUiRouteImport } from './routes/_dev/ui'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TenantRoute = TenantRouteImport.update({
+  id: '/$tenant',
+  path: '/$tenant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantIndexRoute = TenantIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantRoute,
 } as any)
 const DevUiRoute = DevUiRouteImport.update({
   id: '/_dev/ui',
@@ -25,27 +37,33 @@ const DevUiRoute = DevUiRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$tenant': typeof TenantRouteWithChildren
   '/ui': typeof DevUiRoute
+  '/$tenant/': typeof TenantIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ui': typeof DevUiRoute
+  '/$tenant': typeof TenantIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$tenant': typeof TenantRouteWithChildren
   '/_dev/ui': typeof DevUiRoute
+  '/$tenant/': typeof TenantIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ui'
+  fullPaths: '/' | '/$tenant' | '/ui' | '/$tenant/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ui'
-  id: '__root__' | '/' | '/_dev/ui'
+  to: '/' | '/ui' | '/$tenant'
+  id: '__root__' | '/' | '/$tenant' | '/_dev/ui' | '/$tenant/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  TenantRoute: typeof TenantRouteWithChildren
   DevUiRoute: typeof DevUiRoute
 }
 
@@ -58,6 +76,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$tenant': {
+      id: '/$tenant'
+      path: '/$tenant'
+      fullPath: '/$tenant'
+      preLoaderRoute: typeof TenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$tenant/': {
+      id: '/$tenant/'
+      path: '/'
+      fullPath: '/$tenant/'
+      preLoaderRoute: typeof TenantIndexRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/_dev/ui': {
       id: '/_dev/ui'
       path: '/ui'
@@ -68,8 +100,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface TenantRouteChildren {
+  TenantIndexRoute: typeof TenantIndexRoute
+}
+
+const TenantRouteChildren: TenantRouteChildren = {
+  TenantIndexRoute: TenantIndexRoute,
+}
+
+const TenantRouteWithChildren =
+  TenantRoute._addFileChildren(TenantRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  TenantRoute: TenantRouteWithChildren,
   DevUiRoute: DevUiRoute,
 }
 export const routeTree = rootRouteImport

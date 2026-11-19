@@ -1,10 +1,24 @@
 import '~/i18n'
 import type { ReactNode } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
+import { NotFoundView } from '~/components/layout/NotFoundView'
+import { getPublicLocaleFn } from '~/functions/i18n/public-locale.fn'
+import { i18next, type Locale } from '~/i18n'
 import { BRAND_NAME } from '~/lib/brand'
 import appCss from '~/styles/app.css?url'
 
+export interface RootRouteContext {
+  publicLocale: Locale
+}
+
 export const Route = createRootRoute({
+  beforeLoad: async (): Promise<RootRouteContext> => {
+    const publicLocale = await getPublicLocaleFn()
+    if (i18next.language !== publicLocale) {
+      await i18next.changeLanguage(publicLocale)
+    }
+    return { publicLocale }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -13,20 +27,24 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
+  notFoundComponent: NotFoundView,
   component: RootComponent,
 })
 
 function RootComponent() {
+  const { publicLocale } = Route.useRouteContext()
+  const htmlLang = publicLocale === 'en-US' ? 'en' : 'id'
+
   return (
-    <RootDocument>
+    <RootDocument lang={htmlLang}>
       <Outlet />
     </RootDocument>
   )
 }
 
-function RootDocument({ children }: { children: ReactNode }) {
+function RootDocument({ children, lang }: { children: ReactNode; lang: string }) {
   return (
-    <html lang="id">
+    <html lang={lang}>
       <head>
         <HeadContent />
       </head>
