@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
+import { listDevicesFn } from '~/functions/identity/device.fn'
 import { listMembersFn } from '~/functions/identity/members-admin.fn'
 import { listPendingInvitesFn } from '~/functions/identity/members.fn'
 import { listLegalEntitiesFn, listOutletsFn } from '~/functions/identity/org.fn'
@@ -45,5 +46,12 @@ export function rolesQueryOptions(tenantSlug: string) {
   return queryOptions({
     queryKey: qk.roles(tenantSlug),
     queryFn: () => listRolesWithPermissionsFn(),
+  })
+}
+
+export function devicesQueryOptions(tenantSlug: string) {
+  return queryOptions({
+    queryKey: qk.devices(tenantSlug),
+    queryFn: () => listDevicesFn(),
   })
 }

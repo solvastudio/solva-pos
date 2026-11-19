@@ -86,3 +86,21 @@ export {
   type ListMembersFilter,
 } from './server/members-admin.service'
 export { listRolesWithPermissions, updateRole } from './server/role.service'
+export {
+  __clearDeviceAuthCacheForTests,
+  authenticateDevice,
+  RateLimitRejectedError,
+  type AuthenticateDeviceDeps,
+  type DeviceContext,
+} from './server/device-auth'
+export {
+  createPairingCode,
+  enrollDevice,
+  EnrollConflictError,
+  extendCredentialIfNeeded,
+  listDevices,
+  revokeDevice,
+  type CreatePairingCodeDeps,
+  type EnrollConflictReason,
+  type EnrollDeviceDeps,
+} from './server/device.service'

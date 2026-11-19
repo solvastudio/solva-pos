@@ -28,6 +28,8 @@ import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/adm
 import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
+import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
+import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -127,6 +129,16 @@ const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => TenantAdminAuthedRoute,
 } as any)
+const ApiPosV1EnrollRoute = ApiPosV1EnrollRouteImport.update({
+  id: '/api/pos/v1/enroll',
+  path: '/api/pos/v1/enroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPosV1PingRoute = ApiPosV1PingRouteImport.update({
+  id: '/api/pos/v1/ping',
+  path: '/api/pos/v1/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -152,6 +164,8 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
+  '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -172,6 +186,8 @@ export interface FileRoutesByTo {
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
+  '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -195,6 +211,8 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
+  '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -219,6 +237,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/api/pos/v1/enroll'
+    | '/api/pos/v1/ping'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -239,6 +259,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/api/pos/v1/enroll'
+    | '/api/pos/v1/ping'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
   id:
@@ -261,6 +283,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/account'
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
+    | '/api/pos/v1/enroll'
+    | '/api/pos/v1/ping'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -274,6 +298,8 @@ export interface RootRouteChildren {
   PlatformApiSplatRoute: typeof PlatformApiSplatRoute
   PlatformTenantsTenantIdRoute: typeof PlatformTenantsTenantIdRoute
   PlatformTenantsNewRoute: typeof PlatformTenantsNewRoute
+  ApiPosV1EnrollRoute: typeof ApiPosV1EnrollRoute
+  ApiPosV1PingRoute: typeof ApiPosV1PingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -411,6 +437,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedUsersRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/api/pos/v1/enroll': {
+      id: '/api/pos/v1/enroll'
+      path: '/api/pos/v1/enroll'
+      fullPath: '/api/pos/v1/enroll'
+      preLoaderRoute: typeof ApiPosV1EnrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pos/v1/ping': {
+      id: '/api/pos/v1/ping'
+      path: '/api/pos/v1/ping'
+      fullPath: '/api/pos/v1/ping'
+      preLoaderRoute: typeof ApiPosV1PingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -472,6 +512,8 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformApiSplatRoute: PlatformApiSplatRoute,
   PlatformTenantsTenantIdRoute: PlatformTenantsTenantIdRoute,
   PlatformTenantsNewRoute: PlatformTenantsNewRoute,
+  ApiPosV1EnrollRoute: ApiPosV1EnrollRoute,
+  ApiPosV1PingRoute: ApiPosV1PingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

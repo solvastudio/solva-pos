@@ -275,10 +275,40 @@ export default defineConfig(
     },
   },
 
-  // Enforce hash-wasm ban in client folders outside pos/session
+  // Enforce hash-wasm and qrcode restrictions in client folders outside allowed scopes
   {
-    files: ['src/pos/**', 'src/components/**', 'src/hooks/**', 'src/queries/**', 'src/routes/**'],
-    ignores: ['src/pos/session/**', 'src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/components/ui/**'],
+    files: ['src/pos/**'],
+    ignores: ['src/pos/session/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...CLIENT_SERVER_PATTERNS,
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
+            { group: ['qrcode', 'qrcode/*'], message: 'qrcode is only allowed in /admin (lazy-loaded)' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/pos/session/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...CLIENT_SERVER_PATTERNS,
+            { group: ['qrcode', 'qrcode/*'], message: 'qrcode is only allowed in /admin (lazy-loaded)' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/components/**', 'src/hooks/**', 'src/queries/**', 'src/routes/**'],
+    ignores: ['src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/components/ui/**'],
     rules: {
       'no-restricted-imports': [
         'error',

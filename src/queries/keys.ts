@@ -12,4 +12,5 @@ export const qk = {
     ['identity', tenantSlug, 'members', filter ?? {}] as const,
   pendingInvites: (tenantSlug: string) => ['identity', tenantSlug, 'pending-invites'] as const,
   roles: (tenantSlug: string) => ['identity', tenantSlug, 'roles'] as const,
+  devices: (tenantSlug: string) => ['identity', tenantSlug, 'devices'] as const,
 }

@@ -55,6 +55,10 @@ export const envSchema = z.object({
     z.boolean().optional(),
   ),
   TRUSTED_PROXY_CIDR: optionalNonEmpty,
+  PUBLIC_BASE_URL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().url().optional(),
+  ),
 
   RL_LOGIN_SCHEDULE_SEC: scheduleCsvSchema,
   RL_LOGIN_RESET_AFTER_SEC: positiveIntEnv(900),
@@ -160,6 +164,11 @@ export function requireAuthEnv(): {
     BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET,
     AUTH_COOKIE_SECURE: secure,
   }
+}
+
+export function getPublicBaseUrl(): string {
+  const configured = getEnv().PUBLIC_BASE_URL
+  return (configured ?? 'http://localhost:3000').replace(/\/+$/, '')
 }
 
 export function resetEnvForTests(): void {

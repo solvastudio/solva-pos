@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DevicesTab } from '~/components/admin/devices/DevicesTab'
 import { RegistersTab } from '~/components/admin/users/RegistersTab'
 import { RolesTab } from '~/components/admin/users/RolesTab'
 import { UsersTab } from '~/components/admin/users/UsersTab'
@@ -8,6 +9,7 @@ import { Tabs, type TabItem } from '~/components/ui'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import {
+  devicesQueryOptions,
   membersQueryOptions,
   outletsQueryOptions,
   pendingInvitesQueryOptions,
@@ -27,6 +29,7 @@ export const Route = createFileRoute('/$tenant/admin/_authed/users')({
       context.queryClient.ensureQueryData(rolesQueryOptions(params.tenant)),
       context.queryClient.ensureQueryData(outletsQueryOptions(params.tenant)),
       context.queryClient.ensureQueryData(registersQueryOptions(params.tenant)),
+      context.queryClient.ensureQueryData(devicesQueryOptions(params.tenant)),
     ]
     if (context.session?.permissions.includes('user.invite')) {
       tasks.push(context.queryClient.ensureQueryData(pendingInvitesQueryOptions(params.tenant)))
@@ -73,6 +76,15 @@ function AdminUsersPage() {
       content: (
         <div className="mt-6">
           <RegistersTab tenantSlug={slug} />
+        </div>
+      ),
+    },
+    {
+      value: 'devices',
+      label: t('admin.users.tabDevices'),
+      content: (
+        <div className="mt-6">
+          <DevicesTab tenantSlug={slug} />
         </div>
       ),
     },

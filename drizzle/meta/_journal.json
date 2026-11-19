@@ -127,6 +127,20 @@
       "when": 1795128969999,
       "tag": "0017_member_emails_fn",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795130070877,
+      "tag": "0018_device_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795130072339,
+      "tag": "0019_device_rls_fn",
+      "breakpoints": true
     }
   ]
 }
