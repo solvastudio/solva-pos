@@ -30,8 +30,11 @@ import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
+import { Route as ApiPosV1PullRouteImport } from './routes/api/pos/v1/pull'
 import { Route as ApiPosV1PushRouteImport } from './routes/api/pos/v1/push'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
+import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
+import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -140,6 +143,11 @@ const ApiPosV1PingRoute = ApiPosV1PingRouteImport.update({
   path: '/api/pos/v1/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPosV1PullRoute = ApiPosV1PullRouteImport.update({
+  id: '/api/pos/v1/pull',
+  path: '/api/pos/v1/pull',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPosV1PushRoute = ApiPosV1PushRouteImport.update({
   id: '/api/pos/v1/push',
   path: '/api/pos/v1/push',
@@ -149,6 +157,16 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
   getParentRoute: () => TenantRoute,
+} as any)
+const ApiPosV1PullFullPageRoute = ApiPosV1PullFullPageRouteImport.update({
+  id: '/full/page',
+  path: '/full/page',
+  getParentRoute: () => ApiPosV1PullRoute,
+} as any)
+const ApiPosV1PullFullStartRoute = ApiPosV1PullFullStartRouteImport.update({
+  id: '/full/start',
+  path: '/full/start',
+  getParentRoute: () => ApiPosV1PullRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -172,9 +190,12 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
+  '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -195,9 +216,12 @@ export interface FileRoutesByTo {
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
+  '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -221,9 +245,12 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
+  '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,9 +275,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/pull/full/page'
+    | '/api/pos/v1/pull/full/start'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -271,9 +301,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/pull/full/page'
+    | '/api/pos/v1/pull/full/start'
   id:
     | '__root__'
     | '/'
@@ -296,9 +329,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/pull/full/page'
+    | '/api/pos/v1/pull/full/start'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -312,6 +348,7 @@ export interface RootRouteChildren {
   PlatformTenantsNewRoute: typeof PlatformTenantsNewRoute
   ApiPosV1EnrollRoute: typeof ApiPosV1EnrollRoute
   ApiPosV1PingRoute: typeof ApiPosV1PingRoute
+  ApiPosV1PullRoute: typeof ApiPosV1PullRouteWithChildren
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
 }
 
@@ -464,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPosV1PingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pos/v1/pull': {
+      id: '/api/pos/v1/pull'
+      path: '/api/pos/v1/pull'
+      fullPath: '/api/pos/v1/pull'
+      preLoaderRoute: typeof ApiPosV1PullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pos/v1/push': {
       id: '/api/pos/v1/push'
       path: '/api/pos/v1/push'
@@ -477,6 +521,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$tenant/admin/api/auth/$'
       preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/api/pos/v1/pull/full/page': {
+      id: '/api/pos/v1/pull/full/page'
+      path: '/full/page'
+      fullPath: '/api/pos/v1/pull/full/page'
+      preLoaderRoute: typeof ApiPosV1PullFullPageRouteImport
+      parentRoute: typeof ApiPosV1PullRoute
+    }
+    '/api/pos/v1/pull/full/start': {
+      id: '/api/pos/v1/pull/full/start'
+      path: '/full/start'
+      fullPath: '/api/pos/v1/pull/full/start'
+      preLoaderRoute: typeof ApiPosV1PullFullStartRouteImport
+      parentRoute: typeof ApiPosV1PullRoute
     }
   }
 }
@@ -523,6 +581,20 @@ const TenantRouteChildren: TenantRouteChildren = {
 const TenantRouteWithChildren =
   TenantRoute._addFileChildren(TenantRouteChildren)
 
+interface ApiPosV1PullRouteChildren {
+  ApiPosV1PullFullPageRoute: typeof ApiPosV1PullFullPageRoute
+  ApiPosV1PullFullStartRoute: typeof ApiPosV1PullFullStartRoute
+}
+
+const ApiPosV1PullRouteChildren: ApiPosV1PullRouteChildren = {
+  ApiPosV1PullFullPageRoute: ApiPosV1PullFullPageRoute,
+  ApiPosV1PullFullStartRoute: ApiPosV1PullFullStartRoute,
+}
+
+const ApiPosV1PullRouteWithChildren = ApiPosV1PullRoute._addFileChildren(
+  ApiPosV1PullRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TenantRoute: TenantRouteWithChildren,
@@ -534,6 +606,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformTenantsNewRoute: PlatformTenantsNewRoute,
   ApiPosV1EnrollRoute: ApiPosV1EnrollRoute,
   ApiPosV1PingRoute: ApiPosV1PingRoute,
+  ApiPosV1PullRoute: ApiPosV1PullRouteWithChildren,
   ApiPosV1PushRoute: ApiPosV1PushRoute,
 }
 export const routeTree = rootRouteImport

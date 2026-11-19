@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { purgeMemberCodes } from '~/modules/identity/public'
+import { cleanTombstoneFloors } from '~/modules/sync/public'
 import { getBackgroundPool } from '~/server/db'
 import { createLogger } from '~/server/log'
 
@@ -12,6 +13,7 @@ export interface BackgroundJobDefinition {
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000
+const SIX_HOURS_MS = 6 * ONE_HOUR_MS
 const registry: BackgroundJobDefinition[] = []
 const activeTimers: NodeJS.Timeout[] = []
 let started = false
@@ -60,6 +62,14 @@ export function startBackgroundJobs(): void {
     intervalMs: ONE_HOUR_MS,
     run: async () => {
       await purgeMemberCodes()
+    },
+  })
+
+  registerJob({
+    name: 'sync.clean_tombstone_floors',
+    intervalMs: SIX_HOURS_MS,
+    run: async () => {
+      await cleanTombstoneFloors()
     },
   })
 

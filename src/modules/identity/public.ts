@@ -108,3 +108,4 @@ export {
   touchDeviceStatus,
   type TouchDeviceStatusInput,
 } from './server/device-status.service'
+export { identityFeedSources } from './server/feed'

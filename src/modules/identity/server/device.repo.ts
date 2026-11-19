@@ -356,6 +356,14 @@ export interface UpdateDeviceSyncStatusParams {
   syncProtocolVersion: number | null
   clockOffsetMs: number | null
   clockOffsetAt: string | null
+  applyReport: boolean
+  pendingCount: number | null
+  oldestPendingAt: string | null
+  attentionCount: number | null
+  storagePersist: string | null
+  storageUsedPct: number | null
+  lastErrorCode: string | null
+  lastErrorRef: string | null
 }
 
 export async function updateDeviceSyncStatusRow(
@@ -374,6 +382,13 @@ export async function updateDeviceSyncStatusRow(
             sync_protocol_version = COALESCE(${params.syncProtocolVersion}::integer, sync_protocol_version),
             clock_offset_ms = COALESCE(${params.clockOffsetMs}::integer, clock_offset_ms),
             clock_offset_at = COALESCE(${params.clockOffsetAt}::timestamptz, clock_offset_at),
+            pending_count = COALESCE(${params.pendingCount}::integer, pending_count),
+            oldest_pending_at = CASE WHEN ${params.applyReport}::boolean THEN ${params.oldestPendingAt}::timestamptz ELSE oldest_pending_at END,
+            attention_count = COALESCE(${params.attentionCount}::integer, attention_count),
+            storage_persist = COALESCE(${params.storagePersist}::text, storage_persist),
+            storage_used_pct = CASE WHEN ${params.applyReport}::boolean THEN ${params.storageUsedPct}::smallint ELSE storage_used_pct END,
+            last_error_code = CASE WHEN ${params.applyReport}::boolean THEN ${params.lastErrorCode}::text ELSE last_error_code END,
+            last_error_ref = CASE WHEN ${params.applyReport}::boolean THEN ${params.lastErrorRef}::text ELSE last_error_ref END,
             updated_at = ${params.lastAttemptAt}::timestamptz
         WHERE tenant_id = ${params.tenantId}::uuid
           AND device_id = ${params.deviceId}::uuid`,

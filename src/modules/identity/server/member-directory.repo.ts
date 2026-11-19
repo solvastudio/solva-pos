@@ -268,6 +268,15 @@ export async function replaceUserOutlets(
     }
   }
 
+  await tx
+    .update(appUser)
+    .set({
+      version: writer.version,
+      updatedAt: params.nowIso,
+      updatedBy: writer.actorUserId,
+    })
+    .where(and(eq(appUser.tenantId, writer.tenantId), eq(appUser.id, params.appUserId)))
+
   return {
     before,
     after: Array.from(desiredByOutletKey.values()),

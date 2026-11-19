@@ -43,6 +43,7 @@ export const envSchema = z.object({
   DATABASE_URL: optionalUrlSchema,
   DATABASE_OWNER_URL: optionalUrlSchema,
   BETTER_AUTH_SECRET: optionalNonEmpty,
+  SYNC_TOKEN_SECRET: optionalNonEmpty,
   AUTH_COOKIE_SECURE: z.preprocess(
     (v) =>
       v === '' || v === undefined
@@ -169,6 +170,17 @@ export function requireAuthEnv(): {
 export function getPublicBaseUrl(): string {
   const configured = getEnv().PUBLIC_BASE_URL
   return (configured ?? 'http://localhost:3000').replace(/\/+$/, '')
+}
+
+export function getSyncTokenSecret(): string {
+  const env = getEnv()
+  if (env.SYNC_TOKEN_SECRET) {
+    return env.SYNC_TOKEN_SECRET
+  }
+  if (env.BETTER_AUTH_SECRET && env.BETTER_AUTH_SECRET.length >= 32) {
+    return env.BETTER_AUTH_SECRET
+  }
+  throw new Error('Missing SYNC_TOKEN_SECRET or BETTER_AUTH_SECRET for snapshot signing')
 }
 
 export function resetEnvForTests(): void {

@@ -238,3 +238,26 @@ export async function insertAttentionRecord(
     })
     .onConflictDoNothing({ target: attentionItem.commandId })
 }
+
+export async function findCommandStatusesForDevice(
+  tx: TenantTx,
+  tenantId: string,
+  deviceId: string,
+  commandIds: readonly string[],
+): Promise<Array<{ id: string; status: string }>> {
+  if (commandIds.length === 0) return []
+  const rows = await tx
+    .select({
+      id: idempotencyCommand.commandId,
+      status: idempotencyCommand.status,
+    })
+    .from(idempotencyCommand)
+    .where(
+      and(
+        eq(idempotencyCommand.tenantId, tenantId),
+        eq(idempotencyCommand.deviceId, deviceId),
+        inArray(idempotencyCommand.commandId, [...commandIds]),
+      ),
+    )
+  return rows.map((r) => ({ id: r.id, status: r.status }))
+}

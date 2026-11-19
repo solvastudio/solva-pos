@@ -1,16 +1,19 @@
 import '@tanstack/react-start/server-only'
+import type { DeviceReport } from '~/lib/contracts'
 import type { TenantTx } from '~/server/db'
 
 export interface TouchDeviceStatusPatch {
   lastAttemptAt: string
   lastPushAt?: string | null
   lastPullAt?: string | null
+  lastSuccessSyncAt?: string | null
   pullCursorVersion?: number | null
   appVersion?: string | null
   schemaVersion?: number | null
   syncProtocolVersion?: number | null
   clockOffsetMs?: number | null
   clockOffsetAt?: string | null
+  report?: DeviceReport
 }
 
 export interface DeviceStatusPort {

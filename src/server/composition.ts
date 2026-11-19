@@ -1,11 +1,17 @@
 import '@tanstack/react-start/server-only'
 import { appendAuditCommandHandler } from '~/modules/audit/public'
-import { extendCredentialIfNeeded, touchDeviceStatus } from '~/modules/identity/public'
+import {
+  extendCredentialIfNeeded,
+  identityFeedSources,
+  touchDeviceStatus,
+} from '~/modules/identity/public'
 import {
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
+  __resetForTests,
   registerCommandHandler,
   registerDeviceStatusPort,
+  registerFeedSource,
 } from '~/modules/sync/public'
 
 let composed = false
@@ -16,6 +22,9 @@ let composed = false
  */
 export function composeServer(): void {
   if (composed) return
+  for (const source of identityFeedSources()) {
+    registerFeedSource(source)
+  }
   registerCommandHandler(appendAuditCommandHandler)
   registerDeviceStatusPort({
     touchDeviceStatus,
@@ -25,6 +34,7 @@ export function composeServer(): void {
 }
 
 export function resetCompositionForTests(): void {
+  __resetForTests()
   __clearCommandHandlersForTests()
   __clearDeviceStatusPortForTests()
   composed = false

@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import type { ZodType } from 'zod'
 import {
   HEADER_APP_VERSION,
   HEADER_SCHEMA_VERSION,
@@ -10,9 +11,11 @@ import {
   RateLimitRejectedError,
   type DeviceContext,
 } from '~/modules/identity/public'
+import { PullRateLimitedError } from '~/modules/sync/public'
 import { getClientIp } from './auth/rate-limit/client-ip'
 import { getLimiters, type RateLimitersRegistry } from './auth/rate-limit/limiters'
 import { rateLimitedResponse } from './auth/rate-limit/rate-limited-response'
+import { AppError } from './error-classify'
 import { createLogger } from './log'
 import { getContext, setContextField } from './logging/log-context'
 import { newRefId } from './logging/log-time'
@@ -121,6 +124,9 @@ export function deviceRoute(
         if (err instanceof RateLimitRejectedError) {
           return rateLimitedResponse(err.retryAfterMs, err.kind, { ref: reqId })
         }
+        if (err instanceof PullRateLimitedError) {
+          return rateLimitedResponse(err.retryAfterMs, 'transient', { ref: reqId })
+        }
         if (err instanceof EnrollConflictError) {
           return Response.json(
             {
@@ -148,4 +154,27 @@ export function deviceRoute(
         )
       }
     })
+}
+
+export async function parseDeviceJson<T>(request: Request, schema: ZodType<T>): Promise<T> {
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    throw new AppError('VALIDATION_FAILED', 'Malformed JSON body')
+  }
+  const parsed = schema.safeParse(raw)
+  if (!parsed.success) {
+    throw new AppError('VALIDATION_FAILED', 'Invalid request payload')
+  }
+  return parsed.data
+}
+
+export function noStoreJson(data: unknown, status = 200): Response {
+  return Response.json(data, {
+    status,
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  })
 }

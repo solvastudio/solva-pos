@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import type { DeviceReport } from '~/lib/contracts'
 import type { TenantTx } from '~/server/db'
 import { updateDeviceSyncStatusRow } from './device.repo'
 
@@ -13,11 +14,12 @@ export interface TouchDeviceStatusInput {
   syncProtocolVersion?: number | null
   clockOffsetMs?: number | null
   clockOffsetAt?: string | null
+  report?: DeviceReport
 }
 
 /**
- * Updates `device_sync_status` for an active device, preserving existing non-null columns
- * when optional fields in the patch are omitted or null.
+ * Updates `device_sync_status` for an active device, applying explicit `DeviceReport` telemetry
+ * when present while preserving omitted header/sync columns.
  */
 export async function touchDeviceStatus(
   tx: TenantTx,
@@ -28,9 +30,11 @@ export async function touchDeviceStatus(
   const lastPushAt = patch.lastPushAt ?? null
   const lastPullAt = patch.lastPullAt ?? null
   const lastSuccessSyncAt =
-    patch.lastSuccessSyncAt !== undefined
-      ? (patch.lastSuccessSyncAt ?? null)
-      : (lastPushAt ?? lastPullAt)
+    patch.lastSuccessSyncAt !== undefined ? (patch.lastSuccessSyncAt ?? null) : lastPushAt
+  const rep = patch.report
+  const clockOffsetMs = rep?.clock_offset_ms ?? patch.clockOffsetMs ?? null
+  const clockOffsetAt =
+    clockOffsetMs !== null ? (patch.clockOffsetAt ?? patch.lastAttemptAt) : null
 
   await updateDeviceSyncStatusRow(tx, {
     tenantId,
@@ -40,10 +44,18 @@ export async function touchDeviceStatus(
     lastPullAt,
     lastSuccessSyncAt,
     pullCursorVersion: patch.pullCursorVersion ?? null,
-    appVersion: patch.appVersion ?? null,
-    schemaVersion: patch.schemaVersion ?? null,
-    syncProtocolVersion: patch.syncProtocolVersion ?? null,
-    clockOffsetMs: patch.clockOffsetMs ?? null,
-    clockOffsetAt: patch.clockOffsetAt ?? null,
+    appVersion: rep?.app_version ?? patch.appVersion ?? null,
+    schemaVersion: rep?.schema_version ?? patch.schemaVersion ?? null,
+    syncProtocolVersion: rep?.sync_protocol_version ?? patch.syncProtocolVersion ?? null,
+    clockOffsetMs,
+    clockOffsetAt,
+    applyReport: Boolean(rep),
+    pendingCount: rep ? rep.pending_count : null,
+    oldestPendingAt: rep ? rep.oldest_pending_at : null,
+    attentionCount: rep ? rep.attention_count : null,
+    storagePersist: rep ? rep.storage_persist : null,
+    storageUsedPct: rep ? rep.storage_used_pct : null,
+    lastErrorCode: rep ? rep.last_error_code : null,
+    lastErrorRef: rep ? rep.last_error_ref : null,
   })
 }

@@ -76,6 +76,7 @@ export interface RateLimitersRegistry {
   badCredentialIp: Limiter
   devicePush: Limiter
   devicePull: Limiter
+  devicePullFullPage: Limiter
   devicePing: Limiter
   deviceHandover: Limiter
   deviceLog: Limiter
@@ -152,6 +153,11 @@ export function getLimiters(): RateLimitersRegistry {
     devicePull: createWindowLimiter({
       name: 'device_pull',
       points: cfg.devicePullPerMin,
+      durationSec: 60,
+    }),
+    devicePullFullPage: createWindowLimiter({
+      name: 'device_pull_full_page',
+      points: cfg.devicePullPerMin * 20,
       durationSec: 60,
     }),
     devicePing: createWindowLimiter({

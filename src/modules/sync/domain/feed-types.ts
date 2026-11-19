@@ -41,4 +41,6 @@ export interface FeedSource<TTx = unknown> {
   ): Promise<FeedRow[]>
   /** Count live rows for full-resync manifest verification. */
   count(tx: TTx, args: { upper: number; scope: FeedScope }): Promise<number>
+  /** Highest version of rows tombstoned before `cutoffIso`, used by tombstone floor cleaner. */
+  maxTombstoneVersionOlderThan?(tx: TTx, args: { cutoffIso: string }): Promise<number | null>
 }

@@ -1,4 +1,11 @@
 export type { FeedCursor, FeedKey, FeedRow, FeedScope } from './domain/feed-types'
+export { FULL_RESYNC_ENTITY_ORDER, type FullResyncEntity } from './shared'
+export {
+  buildFeedSource,
+  omitWireColumns,
+  type FeedTableColumns,
+  type FeedTableSpec,
+} from './server/feed-builder'
 export {
   __resetForTests,
   getFeedSources,
@@ -16,6 +23,26 @@ export {
   type PullCycle,
   type PullPageResult,
 } from './server/pull'
+export {
+  fullResyncPage,
+  handlePull,
+  PullRateLimitedError,
+  startFullResync,
+  type PullRequestMeta,
+  type PullServiceDeps,
+} from './server/pull.service'
+export {
+  SNAPSHOT_TOKEN_TTL_MS,
+  signSnapshotToken,
+  verifySnapshotToken,
+  type SnapshotTokenOptions,
+  type SnapshotTokenPayload,
+} from './server/snapshot-token'
+export {
+  cleanTombstoneFloorForTenant,
+  cleanTombstoneFloors,
+  type CleanTombstonesResult,
+} from './server/tombstone-cleaner'
 export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
 export {
   CommandRejected,
