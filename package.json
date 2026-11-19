@@ -1,0 +1,41 @@
+{
+  "name": "solva-pos",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/local.mjs vite dev",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint diisi di Fase 01\"",
+    "test:unit": "echo \"test:unit diisi di Fase 01\"",
+    "test:db": "echo \"test:db diisi di Fase 01\"",
+    "test:e2e": "echo \"test:e2e diisi di Fase 30\""
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.105.0",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-router-ssr-query": "1.167.3",
+    "@tanstack/react-start": "1.169.4",
+    "clsx": "2.1.1",
+    "decimal.js": "10.6.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  }
+}

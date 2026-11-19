@@ -1,1 +1,16 @@
 plans/
+node_modules/
+dist/
+.output/
+.vinxi/
+.tanstack/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+logs/
+*.log
+sourcemaps/
+.DS_Store
