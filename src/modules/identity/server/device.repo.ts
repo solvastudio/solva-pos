@@ -343,6 +343,43 @@ export async function listDevicesWithSyncStatusRows(
     .orderBy(sql`${device.revokedAt} IS NOT NULL`, desc(device.enrolledAt))
 }
 
+export interface UpdateDeviceSyncStatusParams {
+  tenantId: string
+  deviceId: string
+  lastAttemptAt: string
+  lastPushAt: string | null
+  lastPullAt: string | null
+  lastSuccessSyncAt: string | null
+  pullCursorVersion: number | null
+  appVersion: string | null
+  schemaVersion: number | null
+  syncProtocolVersion: number | null
+  clockOffsetMs: number | null
+  clockOffsetAt: string | null
+}
+
+export async function updateDeviceSyncStatusRow(
+  tx: TenantTx,
+  params: UpdateDeviceSyncStatusParams,
+): Promise<void> {
+  await tx.execute(
+    sql`UPDATE device_sync_status
+        SET last_attempt_at = ${params.lastAttemptAt}::timestamptz,
+            last_push_at = COALESCE(${params.lastPushAt}::timestamptz, last_push_at),
+            last_pull_at = COALESCE(${params.lastPullAt}::timestamptz, last_pull_at),
+            last_success_sync_at = COALESCE(${params.lastSuccessSyncAt}::timestamptz, last_success_sync_at),
+            pull_cursor_version = COALESCE(${params.pullCursorVersion}::bigint, pull_cursor_version),
+            app_version = COALESCE(${params.appVersion}::text, app_version),
+            schema_version = COALESCE(${params.schemaVersion}::integer, schema_version),
+            sync_protocol_version = COALESCE(${params.syncProtocolVersion}::integer, sync_protocol_version),
+            clock_offset_ms = COALESCE(${params.clockOffsetMs}::integer, clock_offset_ms),
+            clock_offset_at = COALESCE(${params.clockOffsetAt}::timestamptz, clock_offset_at),
+            updated_at = ${params.lastAttemptAt}::timestamptz
+        WHERE tenant_id = ${params.tenantId}::uuid
+          AND device_id = ${params.deviceId}::uuid`,
+  )
+}
+
 export async function extendDeviceCredentialIfBelowThreshold(
   tx: TenantTx,
   params: {

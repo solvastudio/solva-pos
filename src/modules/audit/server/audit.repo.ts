@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { createHash } from 'node:crypto'
-import { and, asc, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, lte, sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
 import { auditChainHead, auditLog } from './schema'
 
@@ -133,4 +133,33 @@ export async function readRange(
     .where(and(...conditions))
     .orderBy(asc(auditLog.chainSeq))
     .limit(limit)
+}
+
+export async function tenantUserExists(
+  tx: TenantTx,
+  tenantId: string,
+  userId: string,
+): Promise<boolean> {
+  const res = await tx.execute(
+    sql`SELECT 1 FROM app_user
+        WHERE tenant_id = ${tenantId}::uuid
+          AND id = ${userId}::uuid
+          AND deleted_at IS NULL
+        LIMIT 1`,
+  )
+  return res.rows.length > 0
+}
+
+export async function tenantCommandExists(
+  tx: TenantTx,
+  tenantId: string,
+  commandId: string,
+): Promise<boolean> {
+  const res = await tx.execute(
+    sql`SELECT 1 FROM idempotency_command
+        WHERE tenant_id = ${tenantId}::uuid
+          AND command_id = ${commandId}::uuid
+        LIMIT 1`,
+  )
+  return res.rows.length > 0
 }

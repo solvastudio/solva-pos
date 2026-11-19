@@ -1,3 +1,4 @@
+export * from './canonical-json'
 export * from './codes'
 export * from './format'
 export * from './ids'

@@ -104,3 +104,7 @@ export {
   type EnrollConflictReason,
   type EnrollDeviceDeps,
 } from './server/device.service'
+export {
+  touchDeviceStatus,
+  type TouchDeviceStatusInput,
+} from './server/device-status.service'

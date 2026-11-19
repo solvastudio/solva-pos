@@ -55,6 +55,7 @@ export type PushResultItem = z.infer<typeof PushResultItem>
 export const PushResponse = z.object({
   server_time: z.iso.datetime(),
   results: z.array(PushResultItem),
+  max_schema_version: z.number().int().positive().optional(),
 })
 export type PushResponse = z.infer<typeof PushResponse>
 

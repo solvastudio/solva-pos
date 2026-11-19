@@ -1,3 +1,4 @@
+export * from './commands'
 export * from './enroll'
 export * from './enums'
 export * from './envelope'

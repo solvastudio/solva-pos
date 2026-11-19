@@ -2,6 +2,7 @@ import handler, { createServerEntry } from '@tanstack/react-start/server-entry'
 import { normalizeSlug, RESERVED_SLUGS, SLUG_PATTERN } from '~/lib/kernel'
 import { canonicalizePath } from '~/lib/tenancy/canonical-path'
 import { getEnv, type AppEnv } from '~/server/env'
+import { composeServer } from '~/server/composition'
 import { createLogger } from '~/server/log'
 import { startLogRetention } from '~/server/logging/log-retention'
 import { getRootLogger } from '~/server/logging/logger-core'
@@ -21,6 +22,7 @@ function bootServerEnv(): AppEnv {
 
 const env = bootServerEnv()
 getRootLogger()
+composeServer()
 startLogRetention(env.LOG_DIR, env.LOG_RETENTION_DAYS)
 startBackgroundJobs()
 installProcessHandlers({ exitOnFatal: env.APP_ENV === 'production' })

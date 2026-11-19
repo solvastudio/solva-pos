@@ -141,6 +141,20 @@
       "when": 1795130072339,
       "tag": "0019_device_rls_fn",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795130706099,
+      "tag": "0020_push_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795130707629,
+      "tag": "0021_push_rls_fk",
+      "breakpoints": true
     }
   ]
 }

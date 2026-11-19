@@ -30,6 +30,7 @@ import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
+import { Route as ApiPosV1PushRouteImport } from './routes/api/pos/v1/push'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -139,6 +140,11 @@ const ApiPosV1PingRoute = ApiPosV1PingRouteImport.update({
   path: '/api/pos/v1/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPosV1PushRoute = ApiPosV1PushRouteImport.update({
+  id: '/api/pos/v1/push',
+  path: '/api/pos/v1/push',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
+  '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/push'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/push'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
   id:
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/users'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
+    | '/api/pos/v1/push'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   PlatformTenantsNewRoute: typeof PlatformTenantsNewRoute
   ApiPosV1EnrollRoute: typeof ApiPosV1EnrollRoute
   ApiPosV1PingRoute: typeof ApiPosV1PingRoute
+  ApiPosV1PushRoute: typeof ApiPosV1PushRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -451,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPosV1PingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pos/v1/push': {
+      id: '/api/pos/v1/push'
+      path: '/api/pos/v1/push'
+      fullPath: '/api/pos/v1/push'
+      preLoaderRoute: typeof ApiPosV1PushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -514,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformTenantsNewRoute: PlatformTenantsNewRoute,
   ApiPosV1EnrollRoute: ApiPosV1EnrollRoute,
   ApiPosV1PingRoute: ApiPosV1PingRoute,
+  ApiPosV1PushRoute: ApiPosV1PushRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
