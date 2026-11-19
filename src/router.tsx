@@ -1,14 +1,36 @@
+import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { NotFoundView } from '~/components/layout/NotFoundView'
 import { routeTree } from './routeTree.gen'
 
 export function getRouter() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
+  })
+
   const router = createRouter({
     routeTree,
+    context: { queryClient },
     scrollRestoration: true,
     trailingSlash: 'never',
     defaultNotFoundComponent: NotFoundView,
   })
+
+  setupRouterSsrQueryIntegration({
+    router,
+    queryClient: queryClient as unknown as Parameters<
+      typeof setupRouterSsrQueryIntegration
+    >[0]['queryClient'],
+  })
+
   return router
 }
 

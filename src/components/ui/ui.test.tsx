@@ -10,6 +10,7 @@ import {
   Card,
   Checkbox,
   Chip,
+  DataTable,
   Dialog,
   EmptyState,
   Field,
@@ -256,5 +257,75 @@ describe('components/ui primitives and accessibility', () => {
     )
     await user.keyboard('{Escape}')
     expect(onLockedChange).not.toHaveBeenCalled()
+  })
+
+  it('DataTable: renders empty/loading states, sorts, paginates, and passes axe', async () => {
+    const user = userEvent.setup()
+    interface Item {
+      id: string
+      name: string
+      amount: number
+    }
+    const cols = [
+      { id: 'name', header: 'Name', sortValue: (r: Item) => r.name, cell: (r: Item) => r.name },
+      {
+        id: 'amount',
+        header: 'Amount',
+        numeric: true,
+        sortValue: (r: Item) => r.amount,
+        cell: (r: Item) => String(r.amount),
+      },
+    ] as const
+
+    const rows: Item[] = [
+      { id: '1', name: 'Beta', amount: 200 },
+      { id: '2', name: 'Alpha', amount: 100 },
+      { id: '3', name: 'Gamma', amount: 300 },
+    ]
+
+    const { container, rerender } = render(
+      <DataTable
+        caption="Sample items"
+        columns={cols}
+        rows={rows}
+        getRowKey={(r) => r.id}
+        emptyTitle="No items"
+        pageSize={2}
+      />,
+    )
+
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getAllByRole('row').length).toBe(3) // 1 header + 2 rows on page 1
+    await user.click(screen.getByRole('button', { name: /Name/ }))
+    expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getAllByText('Alpha').length).toBeGreaterThanOrEqual(1)
+
+    await user.click(screen.getByRole('button', { name: /Berikutnya|Next/ }))
+    expect(screen.getAllByText('Gamma').length).toBeGreaterThanOrEqual(1)
+
+    await expectZeroAxeViolations(container)
+
+    rerender(
+      <DataTable
+        caption="Empty table"
+        columns={cols}
+        rows={[]}
+        getRowKey={(r) => r.id}
+        emptyTitle="Nothing here"
+      />,
+    )
+    expect(screen.getByText('Nothing here')).toBeInTheDocument()
+
+    rerender(
+      <DataTable
+        caption="Loading table"
+        columns={cols}
+        rows={[]}
+        loading
+        getRowKey={(r) => r.id}
+        emptyTitle="Nothing here"
+      />,
+    )
+    expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument()
   })
 })

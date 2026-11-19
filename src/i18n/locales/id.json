@@ -9,7 +9,18 @@
     "back": "Kembali",
     "loading": "Memuat…",
     "search": "Cari",
-    "undo": "Urungkan"
+    "undo": "Urungkan",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "pageOf": "Halaman {{page}} dari {{totalPages}}",
+    "showingRows": "Menampilkan {{from}}–{{to}} dari {{total}}",
+    "edit": "Ubah",
+    "active": "Aktif",
+    "inactive": "Nonaktif",
+    "copied": "Disalin.",
+    "none": "Tidak ada",
+    "all": "Semua",
+    "dash": "-"
   },
   "auth": {
     "login": {
@@ -160,6 +171,8 @@
     },
     "nav": {
       "dashboard": "Beranda",
+      "settings": "Outlet & Pengaturan",
+      "users": "Pengguna & Register",
       "account": "Akun"
     },
     "dashboard": {
@@ -167,6 +180,292 @@
       "welcome": "Masuk sebagai {{name}}",
       "rolesSummary": "Peran aktif",
       "accountHint": "Kelola kata sandi, pilihan bahasa, dan sesi aktif dari halaman akun Anda."
+    },
+    "settings": {
+      "title": "Pengaturan Outlet",
+      "tabsLabel": "Bagian pengaturan",
+      "tabGeneral": "Umum",
+      "saved": "Perubahan tersimpan.",
+      "failed": "Tindakan gagal. Periksa isian lalu coba lagi.",
+      "legalEntity": {
+        "sectionTitle": "Entitas hukum",
+        "addButton": "Tambah entitas hukum",
+        "editTitle": "Ubah entitas hukum",
+        "createTitle": "Entitas hukum baru",
+        "emptyTitle": "Belum ada entitas hukum",
+        "emptyDesc": "Buat minimal satu entitas hukum sebelum menambahkan outlet.",
+        "colName": "Nama",
+        "colNpwp": "NPWP",
+        "colPkp": "Status PKP",
+        "colAddress": "Alamat",
+        "colAction": "Aksi",
+        "pkpYes": "PKP",
+        "pkpNo": "Non-PKP",
+        "nameLabel": "Nama entitas hukum",
+        "npwpLabel": "NPWP (15–16 digit)",
+        "npwpHint": "Tanda baca dan spasi dihapus otomatis.",
+        "isPkpLabel": "Pengusaha Kena Pajak (PKP)",
+        "pkpSinceLabel": "Berlaku PKP sejak",
+        "addressLabel": "Alamat terdaftar",
+        "npwpInvalid": "NPWP harus 15 atau 16 digit angka.",
+        "pkpRequiresNpwp": "Entitas PKP wajib memiliki NPWP 15 atau 16 digit.",
+        "npwpTaken": "NPWP sudah dipakai oleh entitas hukum lain.",
+        "pkpInUseByPpnOutlet": "Tidak dapat menonaktifkan PKP selama masih ada outlet berprofil PPN pada entitas ini."
+      },
+      "outlet": {
+        "sectionTitle": "Daftar outlet",
+        "addButton": "Tambah outlet",
+        "createTitle": "Outlet baru",
+        "editTitle": "Ubah outlet",
+        "emptyTitle": "Belum ada outlet",
+        "emptyDesc": "Tambahkan outlet di bawah entitas hukum untuk menyiapkan register dan perangkat.",
+        "colCode": "Kode",
+        "colName": "Nama",
+        "colEntity": "Entitas hukum",
+        "colTimezone": "Zona waktu",
+        "colCutoff": "Jam potong",
+        "colTax": "Profil pajak",
+        "colStatus": "Status",
+        "colAction": "Aksi",
+        "legalEntityLabel": "Entitas hukum",
+        "legalEntityPlaceholder": "Pilih entitas hukum",
+        "codeLabel": "Kode outlet",
+        "codeHint": "1–10 huruf besar atau angka. Tidak dapat diubah setelah dibuat.",
+        "codeInvalid": "Gunakan 1–10 huruf besar atau angka.",
+        "codeTaken": "Kode sudah dipakai",
+        "codeLocked": "Kode outlet tidak dapat diubah.",
+        "nameLabel": "Nama outlet",
+        "addressLabel": "Alamat",
+        "phoneLabel": "Telepon",
+        "timezoneLabel": "Zona waktu",
+        "tzWib": "WIB (Asia/Jakarta)",
+        "tzWita": "WITA (Asia/Makassar)",
+        "tzWit": "WIT (Asia/Jayapura)",
+        "cutoffLabel": "Jam potong hari bisnis (HH:MM)",
+        "priceTaxModeLabel": "Mode harga pajak",
+        "priceTaxModePlaceholder": "Pilih mode harga",
+        "priceInclusive": "Harga sudah termasuk pajak",
+        "priceExclusive": "Harga belum termasuk pajak",
+        "taxProfileLabel": "Profil pajak",
+        "taxNone": "NONE (Tanpa pajak)",
+        "taxPpn": "PPN",
+        "taxPb1": "PB1",
+        "activeLabel": "Outlet aktif",
+        "ppnRequiresPkp": "Profil PPN hanya tersedia untuk entitas hukum berstatus PKP.",
+        "nextTxBanner": "Berlaku untuk transaksi berikutnya; transaksi lama tidak berubah."
+      }
+    },
+    "users": {
+      "title": "Pengguna, Role & Register",
+      "tabsLabel": "Bagian pengguna dan register",
+      "tabUsers": "Pengguna",
+      "tabRoles": "Role & izin",
+      "tabRegisters": "Register",
+      "saved": "Perubahan tersimpan.",
+      "failed": "Tindakan gagal. Periksa isian lalu coba lagi.",
+      "lastOwner": "Tidak dapat mengubah peran satu-satunya Owner aktif.",
+      "searchPlaceholder": "Cari nama atau email",
+      "filterRoleAll": "Semua peran",
+      "filterOutletAll": "Semua outlet",
+      "inviteButton": "Undang anggota",
+      "colName": "Nama",
+      "colEmail": "Email",
+      "colRoles": "Peran",
+      "colOutlets": "Outlet",
+      "colPin": "PIN terminal",
+      "colAction": "Aksi",
+      "allOutlets": "Semua outlet",
+      "pendingBadge": "Menunggu undangan",
+      "emptyTitle": "Tidak ada anggota yang sesuai",
+      "emptyDesc": "Coba ubah pencarian atau filter.",
+      "actionChangeAccess": "Ubah peran/outlet",
+      "actionReset": "Terbitkan kode atur ulang",
+      "actionRemove": "Keluarkan dari {{tenant}}",
+      "actionCancelInvite": "Batalkan undangan",
+      "invite": {
+        "title": "Undang anggota",
+        "emailLabel": "Email",
+        "displayNameLabel": "Nama",
+        "roleLabel": "Peran",
+        "rolePlaceholder": "Pilih peran",
+        "allOutletsLabel": "Akses semua outlet",
+        "outletsLabel": "Outlet ditugaskan",
+        "submit": "Buat kode undangan",
+        "codeTitle": "Kode undangan berhasil dibuat",
+        "codeLabel": "Kode undangan",
+        "copyCode": "Salin kode",
+        "urlLabel": "Alamat gabung",
+        "copyUrl": "Salin alamat",
+        "expiryNotice": "Berlaku 72 jam (sampai {{expiry}})",
+        "onceNotice": "Kode ini hanya ditampilkan sekali. Sampaikan langsung kepada penerima; penerima menentukan kata sandinya sendiri."
+      },
+      "pending": {
+        "title": "Undangan tertunda ({{count}})",
+        "colEmail": "Email",
+        "colRole": "Peran",
+        "colExpires": "Berlaku sampai",
+        "colStatus": "Status",
+        "colAction": "Aksi",
+        "statusWaiting": "Menunggu",
+        "statusExpired": "Kedaluwarsa",
+        "reissuableUntil": "Dapat diterbitkan ulang sampai {{date}}",
+        "reissue": "Terbitkan ulang",
+        "cancel": "Batalkan",
+        "empty": "Tidak ada undangan tertunda.",
+        "reissuedTitle": "Kode undangan baru diterbitkan"
+      },
+      "editAccess": {
+        "title": "Ubah peran & outlet — {{name}}",
+        "scopeModeAll": "Seluruh tenant (semua outlet)",
+        "scopeModeSelected": "Outlet tertentu",
+        "roleLabel": "Peran",
+        "outletsLabel": "Outlet",
+        "roleForOutlet": "Peran di {{outlet}}",
+        "needOneOutlet": "Pilih minimal satu outlet.",
+        "submit": "Simpan perubahan"
+      },
+      "reset": {
+        "confirmTitle": "Terbitkan kode atur ulang untuk {{name}}?",
+        "confirmDesc": "Membuat kode atur ulang kata sandi sekali pakai yang berlaku 24 jam.",
+        "confirmAction": "Terbitkan kode atur ulang",
+        "resultTitle": "Kode atur ulang dibuat",
+        "codeLabel": "Kode atur ulang",
+        "urlLabel": "Alamat atur ulang",
+        "expiryNotice": "Berlaku 24 jam (sampai {{expiry}})",
+        "onceNotice": "Sampaikan kode ini langsung kepada pengguna. Kode hanya ditampilkan sekali.",
+        "denied": "Tidak dapat menerbitkan kode atur ulang untuk akun ini. Hubungi Operator Platform."
+      },
+      "remove": {
+        "confirmTitle": "Keluarkan {{name}} dari {{tenant}}?",
+        "confirmDesc": "Akun tidak dihapus. {{name}} kehilangan akses ke {{tenant}}; riwayat transaksi dan audit tetap tersimpan.",
+        "confirmAction": "Keluarkan anggota"
+      },
+      "role": {
+        "colRole": "Peran",
+        "colDiscountLimit": "Batas diskon (%)",
+        "colPermissions": "Izin",
+        "discountLabel": "Batas diskon (%)",
+        "ownerLockedHint": "Izin Owner selalu penuh dan tidak dapat diubah.",
+        "ownerPermissionsLocked": "Izin role Owner tidak dapat diubah.",
+        "save": "Simpan role",
+        "saved": "Role diperbarui untuk sinkronisasi berikutnya."
+      },
+      "register": {
+        "addButton": "Tambah register",
+        "createTitle": "Register baru",
+        "editTitle": "Ubah register — {{code}}",
+        "changePrefixTitle": "Ubah prefiks invoice — {{code}}",
+        "emptyTitle": "Belum ada register",
+        "emptyDesc": "Buat register kasir atau pelayan di bawah outlet terlebih dahulu.",
+        "colCode": "Kode",
+        "colName": "Nama",
+        "colOutlet": "Outlet",
+        "colType": "Jenis",
+        "colPrefix": "Prefiks invoice",
+        "colPaper": "Kertas",
+        "colStatus": "Status",
+        "colAction": "Aksi",
+        "changePrefix": "Ubah prefiks",
+        "outletLabel": "Outlet",
+        "outletPlaceholder": "Pilih outlet",
+        "codeLabel": "Kode register",
+        "codeHint": "1–10 huruf besar atau angka.",
+        "nameLabel": "Nama register",
+        "typeLabel": "Jenis register",
+        "typeCASHIER": "Kasir",
+        "typeWAITER": "Pelayan",
+        "waiterNotice": "Register Pelayan tidak membayar, tidak membuka shift, dan tidak menerbitkan invoice.",
+        "prefixLabel": "Prefiks invoice",
+        "prefixHint": "2–16 huruf besar/angka, tanda hubung hanya di dalam, tidak berakhiran NK.",
+        "newPrefixLabel": "Prefiks invoice baru",
+        "previewLabel": "Pratinjau nomor",
+        "previewInvoice": "Invoice: {{value}}",
+        "previewCreditNote": "Nota kredit: {{value}}",
+        "paperLabel": "Lebar kertas struk",
+        "paper58": "58 mm",
+        "paper80": "80 mm",
+        "localeLabel": "Bahasa bawaan",
+        "localeDefault": "Ikuti pengaturan outlet",
+        "statusLabel": "Status register",
+        "prefixNextMonth": "Berlaku mulai bulan berikutnya (periode {{month}}); nomor lama tidak berubah.",
+        "nextPrefixScheduled": "Bulan berikutnya ({{month}}): {{prefix}}",
+        "prefixRequired": "Prefiks invoice wajib untuk register Kasir.",
+        "prefixInvalid": "Bentuk prefiks tidak valid (2–16 huruf besar/angka, tanda hubung hanya di dalam, tidak berakhiran NK).",
+        "waiterNoPrefix": "Register Pelayan tidak boleh memiliki prefiks.",
+        "prefixTaken": "Prefiks sudah dipakai register lain.",
+        "codeTaken": "Kode register sudah dipakai di outlet ini.",
+        "codeLocked": "Kode register tidak dapat diubah.",
+        "typeLocked": "Jenis register tidak dapat diubah."
+      }
+    }
+  },
+  "role": {
+    "OWNER": "Owner",
+    "MANAGER": "Manager",
+    "CASHIER": "Kasir",
+    "SUPERVISOR": "Supervisor",
+    "WAITER": "Pelayan",
+    "INVENTORY": "Stok",
+    "ACCOUNTANT": "Akuntan"
+  },
+  "permission": {
+    "sale": {
+      "create": "Buat transaksi penjualan",
+      "void": "Batalkan (void) invoice"
+    },
+    "return": {
+      "approve": "Setujui retur dan nota kredit"
+    },
+    "discount": {
+      "manual": "Berikan diskon manual",
+      "approve": "Setujui diskon di atas batas"
+    },
+    "drawer": {
+      "open": "Buka laci kas secara manual"
+    },
+    "bill": {
+      "edit": "Ubah bill meja F&B",
+      "void_item": "Hapus item dari bill terbuka",
+      "handover": "Serahkan bill ke kasir",
+      "accept": "Terima bill serah-terima"
+    },
+    "shift": {
+      "open_close": "Buka dan tutup shift kasir",
+      "view_variance": "Lihat selisih kas shift",
+      "force_close": "Tutup paksa shift kasir lain"
+    },
+    "cash": {
+      "in_out": "Catat kas masuk / kas keluar"
+    },
+    "gap": {
+      "annotate": "Beri anotasi selisih nomor invoice"
+    },
+    "catalog": {
+      "manage": "Kelola katalog produk dan harga"
+    },
+    "inventory": {
+      "manage": "Kelola stok dan transfer barang"
+    },
+    "user": {
+      "manage": "Kelola pengguna, role, outlet & register",
+      "invite": "Undang anggota",
+      "remove": "Keluarkan anggota",
+      "reset_password": "Terbitkan kode atur ulang kata sandi"
+    },
+    "flag": {
+      "manage": "Kelola flag fitur tenant"
+    },
+    "screen": {
+      "unlock_override": "Buka kunci layar kasir terkunci"
+    },
+    "customer": {
+      "view_phone": "Lihat nomor telepon pelanggan utuh"
+    },
+    "report": {
+      "view": "Lihat laporan"
+    },
+    "audit": {
+      "view": "Lihat log audit"
     }
   },
   "sys": {

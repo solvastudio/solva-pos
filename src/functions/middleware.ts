@@ -1,5 +1,7 @@
 import { isNotFound, isRedirect } from '@tanstack/react-router'
 import { createMiddleware } from '@tanstack/react-start'
+import type { MutationActionResult } from '~/modules/identity/shared'
+import { AppError } from '~/server/error-classify'
 import { createLogger } from '~/server/log'
 import { getContext } from '~/server/logging/log-context'
 import { newRefId } from '~/server/logging/log-time'
@@ -24,3 +26,20 @@ export const publicErrorMiddleware = createMiddleware({ type: 'function' }).serv
     }
   },
 )
+
+/**
+ * Wraps domain mutations so expected `VALIDATION_FAILED` i18n keys reach form handlers cleanly
+ * while all unexpected or authorization errors continue flowing through `publicErrorMiddleware`.
+ */
+export async function runValidatedAction<T>(
+  fn: () => Promise<T>,
+): Promise<MutationActionResult<T>> {
+  try {
+    return { ok: true, data: await fn() }
+  } catch (err: unknown) {
+    if (err instanceof AppError && err.code === 'VALIDATION_FAILED') {
+      return { ok: false, errorKey: err.message }
+    }
+    throw err
+  }
+}

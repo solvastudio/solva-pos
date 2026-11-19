@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { AdminShell } from '~/components/layout/AdminShell'
+import { ToastProvider } from '~/components/ui'
 import { getSessionFn, type AdminSessionView } from '~/functions/auth/session.fn'
 import { changeLocale, i18next } from '~/i18n'
 import { safeReturnTo } from '~/lib/safe-redirect'
@@ -44,8 +45,10 @@ function AdminAuthedLayout() {
     return null
   }
   return (
-    <AdminShell session={session}>
-      <Outlet />
-    </AdminShell>
+    <ToastProvider>
+      <AdminShell session={session}>
+        <Outlet />
+      </AdminShell>
+    </ToastProvider>
   )
 }

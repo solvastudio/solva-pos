@@ -64,3 +64,25 @@ export {
   reissueOwnerInvite,
   type PlatformTenantView,
 } from './server/operator.service'
+export {
+  createLegalEntity,
+  createOutlet,
+  listLegalEntities,
+  listOutlets,
+  registerOutletCreatedHook,
+  updateLegalEntity,
+  updateOutlet,
+  type OutletCreatedHook,
+} from './server/org.service'
+export {
+  changeInvoicePrefix,
+  createRegister,
+  listRegisters,
+  updateRegister,
+} from './server/register.service'
+export {
+  changeMemberRoleAndOutlets,
+  listMembers,
+  type ListMembersFilter,
+} from './server/members-admin.service'
+export { listRolesWithPermissions, updateRole } from './server/role.service'

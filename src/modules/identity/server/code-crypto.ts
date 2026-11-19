@@ -16,6 +16,9 @@ export interface IdentityAuthActor {
   authOrgId: string
   appUserId: string
   permissions: ReadonlySet<PermissionCode>
+  /** `null` grants tenant-wide outlet access; `string[]` restricts to listed outlets; `undefined` fails closed for scoped ops. */
+  outletIds?: readonly string[] | null
+  roleCodes?: readonly string[]
 }
 
 export interface IdentityServiceDeps {
@@ -32,9 +35,30 @@ export const identityIdGen = createIdGenerator({
   },
 })
 
-export function requireActorPermission(actor: IdentityAuthActor, permission: PermissionCode): void {
+export function requireActorPermission(
+  actor: IdentityAuthActor,
+  permission: PermissionCode,
+  scope?: { requireTenantWide?: boolean; outletId?: string },
+): void {
   if (!actor.permissions.has(permission)) {
     throw new AppError('FORBIDDEN', `Missing required permission: ${permission}`)
+  }
+  if (!scope) {
+    return
+  }
+  if (scope.requireTenantWide) {
+    if (actor.outletIds !== null) {
+      throw new AppError('FORBIDDEN', 'Tenant-wide outlet access required')
+    }
+    return
+  }
+  if (scope.outletId !== undefined) {
+    if (actor.outletIds === null) {
+      return
+    }
+    if (!Array.isArray(actor.outletIds) || !actor.outletIds.includes(scope.outletId)) {
+      throw new AppError('FORBIDDEN', 'Outlet is outside your assigned scope')
+    }
   }
 }
 

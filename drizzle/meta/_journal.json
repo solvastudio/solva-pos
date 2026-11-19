@@ -120,6 +120,13 @@
       "when": 1795128165288,
       "tag": "0016_platform_auth_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795128969999,
+      "tag": "0017_member_emails_fn",
+      "breakpoints": true
     }
   ]
 }

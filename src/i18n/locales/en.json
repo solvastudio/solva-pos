@@ -9,7 +9,18 @@
     "back": "Back",
     "loading": "Loading…",
     "search": "Search",
-    "undo": "Undo"
+    "undo": "Undo",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{totalPages}}",
+    "showingRows": "Showing {{from}}–{{to}} of {{total}}",
+    "edit": "Edit",
+    "active": "Active",
+    "inactive": "Inactive",
+    "copied": "Copied.",
+    "none": "None",
+    "all": "All",
+    "dash": "-"
   },
   "auth": {
     "login": {
@@ -160,6 +171,8 @@
     },
     "nav": {
       "dashboard": "Dashboard",
+      "settings": "Outlet & Settings",
+      "users": "Users & Registers",
       "account": "Account"
     },
     "dashboard": {
@@ -167,6 +180,292 @@
       "welcome": "Signed in as {{name}}",
       "rolesSummary": "Active roles",
       "accountHint": "Manage your password, language preference, and active session from your account page."
+    },
+    "settings": {
+      "title": "Outlet & Settings",
+      "tabsLabel": "Settings sections",
+      "tabGeneral": "General",
+      "saved": "Changes saved.",
+      "failed": "Action failed. Check your input and try again.",
+      "legalEntity": {
+        "sectionTitle": "Legal entities",
+        "addButton": "Add legal entity",
+        "editTitle": "Edit legal entity",
+        "createTitle": "New legal entity",
+        "emptyTitle": "No legal entities yet",
+        "emptyDesc": "Create at least one legal entity before adding an outlet.",
+        "colName": "Name",
+        "colNpwp": "NPWP",
+        "colPkp": "Tax status (PKP)",
+        "colAddress": "Address",
+        "colAction": "Actions",
+        "pkpYes": "PKP",
+        "pkpNo": "Non-PKP",
+        "nameLabel": "Legal entity name",
+        "npwpLabel": "NPWP (15–16 digits)",
+        "npwpHint": "Punctuation and spaces are removed automatically.",
+        "isPkpLabel": "Registered Taxable Entrepreneur (PKP)",
+        "pkpSinceLabel": "PKP effective date",
+        "addressLabel": "Registered address",
+        "npwpInvalid": "NPWP must be 15 or 16 digits.",
+        "pkpRequiresNpwp": "PKP legal entities require a valid 15 or 16 digit NPWP.",
+        "npwpTaken": "NPWP is already used by another legal entity.",
+        "pkpInUseByPpnOutlet": "Cannot disable PKP while an outlet under this entity uses PPN tax profile."
+      },
+      "outlet": {
+        "sectionTitle": "Outlets",
+        "addButton": "Add outlet",
+        "createTitle": "New outlet",
+        "editTitle": "Edit outlet",
+        "emptyTitle": "No outlets yet",
+        "emptyDesc": "Add an outlet under a legal entity to configure registers and devices.",
+        "colCode": "Code",
+        "colName": "Name",
+        "colEntity": "Legal entity",
+        "colTimezone": "Timezone",
+        "colCutoff": "Day cutoff",
+        "colTax": "Tax profile",
+        "colStatus": "Status",
+        "colAction": "Actions",
+        "legalEntityLabel": "Legal entity",
+        "legalEntityPlaceholder": "Choose legal entity",
+        "codeLabel": "Outlet code",
+        "codeHint": "1–10 uppercase letters or digits. Cannot be changed later.",
+        "codeInvalid": "Use 1–10 uppercase letters or digits.",
+        "codeTaken": "Code is already in use",
+        "codeLocked": "Outlet code cannot be changed.",
+        "nameLabel": "Outlet name",
+        "addressLabel": "Address",
+        "phoneLabel": "Phone",
+        "timezoneLabel": "Timezone",
+        "tzWib": "WIB (Asia/Jakarta)",
+        "tzWita": "WITA (Asia/Makassar)",
+        "tzWit": "WIT (Asia/Jayapura)",
+        "cutoffLabel": "Day cutoff time (HH:MM)",
+        "priceTaxModeLabel": "Price tax mode",
+        "priceTaxModePlaceholder": "Choose tax mode",
+        "priceInclusive": "Tax inclusive",
+        "priceExclusive": "Tax exclusive",
+        "taxProfileLabel": "Tax profile",
+        "taxNone": "NONE",
+        "taxPpn": "PPN",
+        "taxPb1": "PB1",
+        "activeLabel": "Outlet active",
+        "ppnRequiresPkp": "PPN tax profile requires a PKP legal entity.",
+        "nextTxBanner": "Applies to future transactions; historical transactions remain unchanged."
+      }
+    },
+    "users": {
+      "title": "Users, Roles & Registers",
+      "tabsLabel": "User and register sections",
+      "tabUsers": "Users",
+      "tabRoles": "Roles & Permissions",
+      "tabRegisters": "Registers",
+      "saved": "Changes saved.",
+      "failed": "Action failed. Check your input and try again.",
+      "lastOwner": "You cannot remove the last active Owner.",
+      "searchPlaceholder": "Search name or email",
+      "filterRoleAll": "All roles",
+      "filterOutletAll": "All outlets",
+      "inviteButton": "Invite member",
+      "colName": "Name",
+      "colEmail": "Email",
+      "colRoles": "Roles",
+      "colOutlets": "Outlets",
+      "colPin": "Terminal PIN",
+      "colAction": "Actions",
+      "allOutlets": "All outlets",
+      "pendingBadge": "Pending invitation",
+      "emptyTitle": "No matching members",
+      "emptyDesc": "Try adjusting your search or filter.",
+      "actionChangeAccess": "Edit role & outlets",
+      "actionReset": "Issue reset code",
+      "actionRemove": "Remove from {{tenant}}",
+      "actionCancelInvite": "Cancel invitation",
+      "invite": {
+        "title": "Invite member",
+        "emailLabel": "Email",
+        "displayNameLabel": "Display name",
+        "roleLabel": "Role",
+        "rolePlaceholder": "Choose role",
+        "allOutletsLabel": "Access all outlets",
+        "outletsLabel": "Assigned outlets",
+        "submit": "Create invitation code",
+        "codeTitle": "Invitation code created",
+        "codeLabel": "Invitation code",
+        "copyCode": "Copy code",
+        "urlLabel": "Join link",
+        "copyUrl": "Copy link",
+        "expiryNotice": "Valid for 72 hours (until {{expiry}})",
+        "onceNotice": "This code is shown only once. Share it directly with the recipient; they will choose their own password."
+      },
+      "pending": {
+        "title": "Pending invitations ({{count}})",
+        "colEmail": "Email",
+        "colRole": "Role",
+        "colExpires": "Expires",
+        "colStatus": "Status",
+        "colAction": "Actions",
+        "statusWaiting": "Waiting",
+        "statusExpired": "Expired",
+        "reissuableUntil": "Can be reissued until {{date}}",
+        "reissue": "Reissue",
+        "cancel": "Cancel",
+        "empty": "No pending invitations.",
+        "reissuedTitle": "New invitation code created"
+      },
+      "editAccess": {
+        "title": "Edit role & outlets — {{name}}",
+        "scopeModeAll": "Tenant-wide (all outlets)",
+        "scopeModeSelected": "Specific outlets",
+        "roleLabel": "Role",
+        "outletsLabel": "Outlets",
+        "roleForOutlet": "Role for {{outlet}}",
+        "needOneOutlet": "Select at least one outlet.",
+        "submit": "Save changes"
+      },
+      "reset": {
+        "confirmTitle": "Issue reset code for {{name}}?",
+        "confirmDesc": "Creates a one-time 24-hour password reset code for this user.",
+        "confirmAction": "Issue reset code",
+        "resultTitle": "Password reset code created",
+        "codeLabel": "Reset code",
+        "urlLabel": "Reset link",
+        "expiryNotice": "Valid for 24 hours (until {{expiry}})",
+        "onceNotice": "Share this code directly with the user. It is only shown once.",
+        "denied": "Cannot issue a reset code for this account. Contact the Platform Operator."
+      },
+      "remove": {
+        "confirmTitle": "Remove {{name}} from {{tenant}}?",
+        "confirmDesc": "The account is not deleted. {{name}} will lose access to {{tenant}}, while historical transactions and audit logs remain preserved.",
+        "confirmAction": "Remove member"
+      },
+      "role": {
+        "colRole": "Role",
+        "colDiscountLimit": "Max discount (%)",
+        "colPermissions": "Permissions",
+        "discountLabel": "Discount limit (%)",
+        "ownerLockedHint": "Owner permissions are locked to full access and cannot be modified.",
+        "ownerPermissionsLocked": "Owner permissions cannot be modified.",
+        "save": "Save role",
+        "saved": "Role updated for future device syncs."
+      },
+      "register": {
+        "addButton": "Add register",
+        "createTitle": "New register",
+        "editTitle": "Edit register — {{code}}",
+        "changePrefixTitle": "Change invoice prefix — {{code}}",
+        "emptyTitle": "No registers yet",
+        "emptyDesc": "Create at least one cashier or waiter register under an outlet.",
+        "colCode": "Code",
+        "colName": "Name",
+        "colOutlet": "Outlet",
+        "colType": "Type",
+        "colPrefix": "Invoice prefix",
+        "colPaper": "Paper",
+        "colStatus": "Status",
+        "colAction": "Actions",
+        "changePrefix": "Change prefix",
+        "outletLabel": "Outlet",
+        "outletPlaceholder": "Choose outlet",
+        "codeLabel": "Register code",
+        "codeHint": "1–10 uppercase letters or digits.",
+        "nameLabel": "Register name",
+        "typeLabel": "Register type",
+        "typeCASHIER": "Cashier",
+        "typeWAITER": "Waiter",
+        "waiterNotice": "Waiter registers cannot take payments, open shifts, or issue invoices.",
+        "prefixLabel": "Invoice prefix",
+        "prefixHint": "2–16 uppercase letters/digits with internal hyphens, must not end with -NK.",
+        "newPrefixLabel": "New invoice prefix",
+        "previewLabel": "Number preview",
+        "previewInvoice": "Invoice: {{value}}",
+        "previewCreditNote": "Credit note: {{value}}",
+        "paperLabel": "Receipt paper width",
+        "paper58": "58 mm",
+        "paper80": "80 mm",
+        "localeLabel": "Default locale",
+        "localeDefault": "Follow outlet setting",
+        "statusLabel": "Register status",
+        "prefixNextMonth": "Effective starting next business month ({{month}}); historical invoice numbers stay unchanged.",
+        "nextPrefixScheduled": "Next month ({{month}}): {{prefix}}",
+        "prefixRequired": "Invoice prefix is required for Cashier registers.",
+        "prefixInvalid": "Invalid prefix (2–16 uppercase chars/digits, internal hyphens only, cannot end with NK).",
+        "waiterNoPrefix": "Waiter registers cannot have an invoice prefix.",
+        "prefixTaken": "Prefix is already used by another register.",
+        "codeTaken": "Register code is already used in this outlet.",
+        "codeLocked": "Register code cannot be changed.",
+        "typeLocked": "Register type cannot be changed."
+      }
+    }
+  },
+  "role": {
+    "OWNER": "Owner",
+    "MANAGER": "Manager",
+    "CASHIER": "Cashier",
+    "SUPERVISOR": "Supervisor",
+    "WAITER": "Waiter",
+    "INVENTORY": "Inventory",
+    "ACCOUNTANT": "Accountant"
+  },
+  "permission": {
+    "sale": {
+      "create": "Create sales",
+      "void": "Void invoices"
+    },
+    "return": {
+      "approve": "Approve returns & credit notes"
+    },
+    "discount": {
+      "manual": "Apply manual discount",
+      "approve": "Approve override discount"
+    },
+    "drawer": {
+      "open": "Open cash drawer manually"
+    },
+    "bill": {
+      "edit": "Edit F&B bills",
+      "void_item": "Void item on open bill",
+      "handover": "Hand over bill to cashier",
+      "accept": "Accept handed-over bill"
+    },
+    "shift": {
+      "open_close": "Open and close shift",
+      "view_variance": "View shift cash variance",
+      "force_close": "Force-close another cashier's shift"
+    },
+    "cash": {
+      "in_out": "Record cash in / cash out"
+    },
+    "gap": {
+      "annotate": "Annotate invoice number gaps"
+    },
+    "catalog": {
+      "manage": "Manage products and prices"
+    },
+    "inventory": {
+      "manage": "Manage stock and transfers"
+    },
+    "user": {
+      "manage": "Manage users, roles, outlets & registers",
+      "invite": "Invite members",
+      "remove": "Remove members",
+      "reset_password": "Issue password reset codes"
+    },
+    "flag": {
+      "manage": "Manage tenant feature flags"
+    },
+    "screen": {
+      "unlock_override": "Unlock locked POS terminals"
+    },
+    "customer": {
+      "view_phone": "View full customer phone numbers"
+    },
+    "report": {
+      "view": "View reports"
+    },
+    "audit": {
+      "view": "View audit log"
     }
   },
   "sys": {
