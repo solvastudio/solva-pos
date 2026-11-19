@@ -1,0 +1,8 @@
+[
+  {
+    "name": "pos-initial-js-css",
+    "path": "dist/client/assets/*.{js,css}",
+    "limit": "350 KB",
+    "gzip": true
+  }
+]

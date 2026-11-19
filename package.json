@@ -11,9 +11,11 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "echo \"lint diisi di Fase 01\"",
-    "test:unit": "echo \"test:unit diisi di Fase 01\"",
-    "test:db": "echo \"test:db diisi di Fase 01\"",
+    "lint": "eslint . && npm run lint:arch",
+    "lint:arch": "depcruise src --config .dependency-cruiser.cjs",
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db --passWithNoTests",
+    "size": "size-limit",
     "test:e2e": "echo \"test:e2e diisi di Fase 30\""
   },
   "dependencies": {
@@ -29,13 +31,23 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@size-limit/file": "14.3.0",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
+    "dependency-cruiser": "18.8.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "fast-check": "4.10.2",
+    "globals": "17.14.0",
+    "size-limit": "14.3.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "vite": "8.3.5"
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   }
 }
