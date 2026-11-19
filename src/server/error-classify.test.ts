@@ -4,13 +4,13 @@ import { AppError, classifyError } from './error-classify'
 import { toPublicError } from './public-error'
 
 describe('server/error-classify & public-error', () => {
-  it('mengklasifikasikan AppError, kode pg, ZodError, rantai cause, dan galat umum', () => {
+  it('classifies AppError, pg codes, ZodError, cause chains, and generic errors', () => {
     const zodErr = z.object({ id: z.number() }).safeParse({ id: 'x' }).error
 
     const cases: Array<{ label: string; err: unknown; code: string; status: number; retriable: boolean }> = [
       {
         label: 'AppError UNAUTHORIZED',
-        err: new AppError('UNAUTHORIZED', 'rahasia internal'),
+        err: new AppError('UNAUTHORIZED', 'internal secret'),
         code: 'UNAUTHORIZED',
         status: 401,
         retriable: false,
@@ -75,7 +75,7 @@ describe('server/error-classify & public-error', () => {
       },
       {
         label: 'unknown Error -> INTERNAL_ERROR',
-        err: new Error('SQL rahasia pin=9999'),
+        err: new Error('secret SQL pin=9999'),
         code: 'INTERNAL_ERROR',
         status: 500,
         retriable: false,
@@ -90,8 +90,8 @@ describe('server/error-classify & public-error', () => {
     }
   })
 
-  it('toPublicError hanya mengembalikan KODE#ref tanpa membocorkan pesan mentah', () => {
-    const pub = toPublicError(new Error('password rahasia SQL'), '20261119-140500-k7q2m')
+  it('toPublicError returns CODE#ref only without leaking raw error messages', () => {
+    const pub = toPublicError(new Error('secret SQL password'), '20261119-140500-k7q2m')
     expect(pub).toEqual({
       code: 'INTERNAL_ERROR',
       ref: '20261119-140500-k7q2m',

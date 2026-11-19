@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createIdGenerator, isUuid } from './ids'
 
 describe('kernel/ids', () => {
-  it('menghasilkan UUIDv7 monoton saat nowMs naik maupun sama', () => {
+  it('generates monotonic UUIDv7 when nowMs increases or stays the same', () => {
     let now = 1_760_000_000_000
     let rng = 100
     const gen = createIdGenerator({
@@ -14,9 +14,9 @@ describe('kernel/ids', () => {
     })
 
     const id1 = gen.newId()
-    const id2 = gen.newId() // nowMs sama
+    const id2 = gen.newId() // same nowMs
     now += 1
-    const id3 = gen.newId() // nowMs naik
+    const id3 = gen.newId() // increasing nowMs
 
     expect(isUuid(id1)).toBe(true)
     expect(isUuid(id2)).toBe(true)
@@ -26,7 +26,7 @@ describe('kernel/ids', () => {
     expect(id2 < id3).toBe(true)
   })
 
-  it('deterministik bila waktu dan RNG identik', () => {
+  it('is deterministic when clock and RNG match', () => {
     const mk = () => {
       let seed = 42
       return createIdGenerator({
@@ -44,7 +44,7 @@ describe('kernel/ids', () => {
     expect(g1.newId()).toBe(g2.newId())
   })
 
-  it('isUuid menolak huruf besar dan format salah', () => {
+  it('isUuid rejects uppercase letters and malformed formats', () => {
     expect(isUuid('019a0000-0000-7000-8000-000000000001')).toBe(true)
     expect(isUuid('019A0000-0000-7000-8000-000000000001')).toBe(false)
     expect(isUuid('019a0000-0000-7000-8000-00000000001')).toBe(false)

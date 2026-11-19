@@ -22,22 +22,22 @@ function extractPlaceholders(text: string): string[] {
   return Array.from(new Set(matches.map((m) => m.slice(2, -2).trim()))).sort()
 }
 
-describe('i18n/keys (kesepadanan kamus, plural, placeholder, 22 kode error)', () => {
+describe('i18n/keys (dictionary parity, plurals, placeholders, 22 error codes)', () => {
   const idFlat = flattenDict(id)
   const enFlat = flattenDict(en)
   const idKeys = Object.keys(idFlat).sort()
   const enKeys = Object.keys(enFlat).sort()
 
-  it('memiliki himpunan kunci datar identik antara id.json dan en.json', () => {
+  it('has identical flattened keys between id.json and en.json', () => {
     const enSet = new Set(enKeys)
     const idSet = new Set(idKeys)
     const missingInEn = idKeys.filter((k) => !enSet.has(k))
     const missingInId = enKeys.filter((k) => !idSet.has(k))
-    expect(missingInEn, `Kunci hilang di en.json: ${missingInEn.join(', ')}`).toEqual([])
-    expect(missingInId, `Kunci hilang di id.json: ${missingInId.join(', ')}`).toEqual([])
+    expect(missingInEn, `Keys missing in en.json: ${missingInEn.join(', ')}`).toEqual([])
+    expect(missingInId, `Keys missing in id.json: ${missingInId.join(', ')}`).toEqual([])
   })
 
-  it('setiap kunci plural memiliki pasangan _one dan _other di kedua locale', () => {
+  it('provides both _one and _other forms for every pluralized key in both locales', () => {
     for (const [name, flat] of [
       ['id.json', idFlat],
       ['en.json', enFlat],
@@ -46,32 +46,32 @@ describe('i18n/keys (kesepadanan kamus, plural, placeholder, 22 kode error)', ()
       for (const k of keys) {
         if (k.endsWith('_one')) {
           const other = `${k.slice(0, -4)}_other`
-          expect(Object.hasOwn(flat, other), `${name} kekurangan ${other}`).toBe(true)
+          expect(Object.hasOwn(flat, other), `${name} is missing ${other}`).toBe(true)
         } else if (k.endsWith('_other')) {
           const one = `${k.slice(0, -6)}_one`
-          expect(Object.hasOwn(flat, one), `${name} kekurangan ${one}`).toBe(true)
+          expect(Object.hasOwn(flat, one), `${name} is missing ${one}`).toBe(true)
         }
       }
     }
   })
 
-  it('setiap kunci memiliki himpunan placeholder {{x}} yang sama di kedua locale', () => {
+  it('uses identical {{placeholder}} sets across both locales for every key', () => {
     for (const k of idKeys) {
       const pId = extractPlaceholders(idFlat[k] ?? '')
       const pEn = extractPlaceholders(enFlat[k] ?? '')
-      expect(pEn, `Placeholder tidak cocok pada kunci "${k}"`).toEqual(pId)
+      expect(pEn, `Mismatched placeholders for key "${k}"`).toEqual(pId)
     }
   })
 
-  it('setiap kode error di ERROR_CODES memiliki error.<KODE>.action pada kedua locale', () => {
+  it('provides error.<CODE>.action in both locales for every code in ERROR_CODES', () => {
     for (const code of Object.keys(ERROR_CODES)) {
       const key = `error.${code}.action`
-      expect(Object.hasOwn(idFlat, key), `id.json kekurangan ${key}`).toBe(true)
-      expect(Object.hasOwn(enFlat, key), `en.json kekurangan ${key}`).toBe(true)
+      expect(Object.hasOwn(idFlat, key), `id.json is missing ${key}`).toBe(true)
+      expect(Object.hasOwn(enFlat, key), `en.json is missing ${key}`).toBe(true)
     }
   })
 
-  it('merender banner.pending secara benar dan berbeda untuk 1 vs 3 transaksi (id & en)', () => {
+  it('renders banner.pending distinctly and accurately for 1 vs 3 transactions (id & en)', () => {
     const tId = i18next.getFixedT('id-ID')
     const id1 = tId('banner.pending', { count: 1, durasi: '2 jam' })
     const id3 = tId('banner.pending', { count: 3, durasi: '2 jam' })

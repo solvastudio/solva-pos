@@ -35,17 +35,17 @@ export function formatInvoiceNo(p: {
 }): string {
   const prefixCheck = validateInvoicePrefix(p.prefix)
   if (!prefixCheck.ok) {
-    throw new RangeError(`Prefiks nomor dokumen tidak valid (${prefixCheck.reason}): "${p.prefix}"`)
+    throw new RangeError(`Invalid document number prefix (${prefixCheck.reason}): "${p.prefix}"`)
   }
   if (typeof p.period !== 'string' || !PERIOD_PATTERN.test(p.period)) {
-    throw new RangeError(`Periode MMYY tidak valid: "${String(p.period)}"`)
+    throw new RangeError(`Invalid MMYY period: "${String(p.period)}"`)
   }
   if (!Number.isSafeInteger(p.seq) || p.seq < 1) {
-    throw new RangeError(`Nomor urut harus integer >= 1: ${p.seq}`)
+    throw new RangeError(`Sequence number must be an integer >= 1: ${p.seq}`)
   }
   const conflictIdx = p.conflictIdx ?? 0
   if (!Number.isSafeInteger(conflictIdx) || conflictIdx < 0) {
-    throw new RangeError(`conflictIdx harus integer >= 0: ${conflictIdx}`)
+    throw new RangeError(`conflictIdx must be an integer >= 0: ${conflictIdx}`)
   }
 
   const seqPart = String(p.seq).padStart(6, '0')

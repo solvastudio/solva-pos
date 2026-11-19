@@ -7,31 +7,31 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const CLIENT_SERVER_PATTERNS = [
   {
     group: ['~/server', '~/server/**'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['~/modules/*/server', '~/modules/*/server/**'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['drizzle-orm', 'drizzle-orm/*'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['pg', 'pg/*'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['better-auth', 'better-auth/*'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['pino', 'pino-roll'],
-    message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
+    message: 'Client code must not import server code (ARCHITECTURE §8.4)',
   },
   {
     group: ['rate-limiter-flexible', 'rate-limiter-flexible/*'],
-    message: 'rate-limiter-flexible hanya diizinkan di kode server (ARCHITECTURE §6.9.4 / OQ-A26)',
+    message: 'rate-limiter-flexible is only allowed in server code (ARCHITECTURE §6.9.4 / OQ-A26)',
   },
 ]
 
@@ -39,36 +39,36 @@ const PURE_FORBIDDEN_PATTERNS = [
   ...CLIENT_SERVER_PATTERNS,
   {
     group: ['react', 'react/*', 'react-dom', 'react-dom/*', '@tanstack/*'],
-    message: 'Paket murni tidak boleh mengimpor React/TanStack (ARCHITECTURE §8.4)',
+    message: 'Pure packages must not import React or TanStack (ARCHITECTURE §8.4)',
   },
   {
     group: ['node:*'],
-    message: 'Paket murni tidak boleh mengimpor modul Node (ARCHITECTURE §8.4)',
+    message: 'Pure packages must not import Node modules (ARCHITECTURE §8.4)',
   },
 ]
 
 const DETERMINISM_SELECTORS = [
   {
     selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
-    message: 'Waktu/acak harus disuntik (AP-06)',
+    message: 'Time/randomness must be injected (AP-06)',
   },
   {
     selector: "NewExpression[callee.name='Date'][arguments.length=0]",
-    message: 'Waktu/acak harus disuntik (AP-06)',
+    message: 'Time/randomness must be injected (AP-06)',
   },
   {
     selector: "CallExpression[callee.object.name='Math'][callee.property.name='random']",
-    message: 'Waktu/acak harus disuntik (AP-06)',
+    message: 'Time/randomness must be injected (AP-06)',
   },
   {
     selector: "CallExpression[callee.property.name='randomUUID']",
-    message: 'Waktu/acak harus disuntik (AP-06)',
+    message: 'Time/randomness must be injected (AP-06)',
   },
 ]
 
 const NO_ENUM_SELECTOR = {
   selector: 'TSEnumDeclaration',
-  message: 'Enum dilarang; gunakan union literal (CLAUDE.md)',
+  message: 'Enums are forbidden; use literal union types instead (CLAUDE.md)',
 }
 
 const ALLOWED_JSX_STRINGS = new Set(['·', '/', '-', '—', '…', '%', '(', ')'])
@@ -77,7 +77,7 @@ const solvaPlugin = {
     'jsx-no-literals': {
       meta: {
         type: 'problem',
-        docs: { description: 'Larang string UI literal dalam JSX (FR-I18N-001)' },
+        docs: { description: 'Disallow literal UI strings in JSX (FR-I18N-001)' },
         schema: [],
       },
       create(context) {
@@ -86,7 +86,7 @@ const solvaPlugin = {
           if (trimmed.length === 0 || ALLOWED_JSX_STRINGS.has(trimmed)) return
           context.report({
             node,
-            message: 'Teks UI literal dilarang dalam JSX; gunakan kunci i18n t(...)',
+            message: 'Literal UI text is forbidden in JSX; use i18n key t(...)',
           })
         }
         return {
@@ -177,7 +177,7 @@ export default defineConfig(
       'no-restricted-imports': [
         'error',
         {
-          patterns: [{ group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm hanya untuk pos/session dan modules/identity' }],
+          patterns: [{ group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' }],
         },
       ],
     },
@@ -192,7 +192,7 @@ export default defineConfig(
         {
           patterns: [
             ...PURE_FORBIDDEN_PATTERNS,
-            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm hanya untuk pos/session dan modules/identity' },
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
           ],
         },
       ],
@@ -209,8 +209,8 @@ export default defineConfig(
         {
           patterns: [
             ...PURE_FORBIDDEN_PATTERNS,
-            { group: ['decimal.js', 'decimal.js/*'], message: 'decimal.js hanya diizinkan di src/lib/kernel' },
-            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm hanya untuk pos/session dan modules/identity' },
+            { group: ['decimal.js', 'decimal.js/*'], message: 'decimal.js is only allowed in src/lib/kernel' },
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
           ],
         },
       ],
@@ -229,7 +229,7 @@ export default defineConfig(
           patterns: [
             {
               regex: '^(?!~/lib/kernel|\\.)',
-              message: 'src/lib/sales-calc hanya boleh mengimpor ~/lib/kernel/*',
+              message: 'src/lib/sales-calc may only import ~/lib/kernel/*',
             },
           ],
         },
@@ -245,7 +245,7 @@ export default defineConfig(
         {
           patterns: [
             ...PURE_FORBIDDEN_PATTERNS,
-            { group: ['decimal.js', 'decimal.js/*'], message: 'decimal.js hanya diizinkan di src/lib/kernel' },
+            { group: ['decimal.js', 'decimal.js/*'], message: 'decimal.js is only allowed in src/lib/kernel' },
           ],
         },
       ],
@@ -262,10 +262,10 @@ export default defineConfig(
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
-            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm hanya untuk pos/session dan modules/identity' },
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
             {
               group: ['~/pos', '~/pos/**', '~/modules', '~/modules/**', '~/functions', '~/functions/**'],
-              message: 'src/components/ui harus bebas domain',
+              message: 'src/components/ui must stay domain-free',
             },
           ],
         },
@@ -283,7 +283,7 @@ export default defineConfig(
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
-            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm hanya untuk pos/session dan modules/identity' },
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
           ],
         },
       ],

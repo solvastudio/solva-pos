@@ -1,12 +1,12 @@
 import Decimal from 'decimal.js'
 
-/** Instans `Decimal` terkonfigurasi lokal untuk kernel (tanpa mutasi global). */
+/** Locally configured `Decimal` instance for the kernel (no global mutation). */
 export const D = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP })
 export type KernelDecimal = InstanceType<typeof D>
 
 declare const QtyBrand: unique symbol
 
-/** Kuantitas desimal kanonik berskala maksimum 4 digit pecahan (BR-MNY-002/008). */
+/** Canonical decimal quantity scaled up to 4 fractional digits (BR-MNY-002/008). */
 export type Qty = string & { readonly [QtyBrand]: true }
 
 export const QTY_PATTERN: RegExp = /^-?\d+(\.\d{1,4})?$/
@@ -43,7 +43,7 @@ export function normalizeQty(q: Qty): Qty {
 
 export function parseQty(input: string): Qty {
   if (typeof input !== 'string' || !RAW_DECIMAL_PATTERN.test(input)) {
-    throw new QtyError('INVALID_FORMAT', `Format kuantitas tidak valid: "${String(input)}"`)
+    throw new QtyError('INVALID_FORMAT', `Invalid quantity format: "${String(input)}"`)
   }
 
   const unsigned = input.startsWith('-') ? input.slice(1) : input
@@ -51,15 +51,15 @@ export function parseQty(input: string): Qty {
   const intPart = dotIdx === -1 ? unsigned : unsigned.slice(0, dotIdx)
   const fracPart = dotIdx === -1 ? '' : unsigned.slice(dotIdx + 1)
 
-  // Nol di depan dilarang kecuali tepat "0" (mis. "01", "-00.5" ditolak)
+  // Leading zeros are forbidden except exact "0" (e.g. "01", "-00.5" are rejected)
   if (intPart.length > 1 && intPart.startsWith('0')) {
-    throw new QtyError('INVALID_FORMAT', `Nol di depan tidak diizinkan pada kuantitas: "${input}"`)
+    throw new QtyError('INVALID_FORMAT', `Leading zeros are not allowed in quantity: "${input}"`)
   }
 
   if (fracPart.length > 4) {
     throw new QtyError(
       'SCALE_EXCEEDED',
-      `Kuantitas melebihi batas 4 angka di belakang koma: "${input}"`,
+      `Quantity exceeds the 4-decimal-place limit: "${input}"`,
     )
   }
 
@@ -70,7 +70,7 @@ function decimalToQty(value: KernelDecimal): Qty {
   if (value.decimalPlaces() > 4) {
     throw new QtyError(
       'SCALE_EXCEEDED',
-      `Hasil perhitungan kuantitas melebihi skala 4: ${value.toFixed()}`,
+      `Computed quantity exceeds scale 4: ${value.toFixed()}`,
     )
   }
   return normalizeQty(value.toFixed() as Qty)
@@ -109,20 +109,20 @@ export function isIntegerQty(q: Qty): boolean {
 
 export function qtyToBase(input: { qty: Qty; factor: Qty; allowFraction: boolean }): Qty {
   if (!isPositiveQty(input.qty) || !isPositiveQty(input.factor)) {
-    throw new QtyError('NOT_POSITIVE', 'Kuantitas dan faktor konversi harus lebih besar dari 0')
+    throw new QtyError('NOT_POSITIVE', 'Quantity and conversion factor must be greater than 0')
   }
 
   const base = qtyToDecimal(input.qty).times(qtyToDecimal(input.factor))
   if (base.decimalPlaces() > 4) {
     throw new QtyError(
       'SCALE_EXCEEDED',
-      `Hasil konversi UOM melebihi skala 4: ${base.toFixed()}`,
+      `UOM conversion result exceeds scale 4: ${base.toFixed()}`,
     )
   }
   if (!input.allowFraction && !base.isInteger()) {
     throw new QtyError(
       'FRACTION_NOT_ALLOWED',
-      `Hasil konversi UOM harus berupa bilangan bulat: ${base.toFixed()}`,
+      `UOM conversion result must be an integer: ${base.toFixed()}`,
     )
   }
 

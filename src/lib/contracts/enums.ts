@@ -1,4 +1,4 @@
-// Enum kanonik disalin persis dari docs/SCHEMA.md Lampiran A & B.
+// Canonical enums copied verbatim from docs/SCHEMA.md Appendix A & B.
 
 export const TENANT_STATUS = ['ACTIVE', 'SUSPENDED', 'CLOSED'] as const
 export type TenantStatus = (typeof TENANT_STATUS)[number]

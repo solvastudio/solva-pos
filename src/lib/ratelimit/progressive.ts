@@ -1,17 +1,17 @@
 /**
- * Jadwal jeda progresif login (indeks = jumlah gagal, 1-based; BR-RLM-003, V-40).
- * Maksimum 15 menit (900.000 ms), tanpa penguncian permanen.
+ * Progressive login delay schedule (index = failure count, 1-based; BR-RLM-003, V-40).
+ * Capped at 15 minutes (900,000 ms), with no permanent lockout.
  */
 export const LOGIN_DELAY_SCHEDULE_MS: readonly number[] = [
-  0, // 0 gagal
-  0, // ke-1
-  0, // ke-2
-  0, // ke-3
-  30_000, // ke-4: 30 detik
-  60_000, // ke-5: 1 menit
-  120_000, // ke-6: 2 menit
-  300_000, // ke-7: 5 menit
-  900_000, // ke-8+: 15 menit (maks)
+  0, // 0 failures
+  0, // 1st failure
+  0, // 2nd failure
+  0, // 3rd failure
+  30_000, // 4th failure: 30s
+  60_000, // 5th failure: 1m
+  120_000, // 6th failure: 2m
+  300_000, // 7th failure: 5m
+  900_000, // 8th+ failure: 15m (max)
 ]
 
 const MAX_DELAY_MS = 900_000

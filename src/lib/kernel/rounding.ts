@@ -4,8 +4,8 @@ import { D, type KernelDecimal, qtyToDecimal, type Qty } from './qty'
 const PERCENT_PATTERN = /^-?\d+(?:\.\d{1,4})?$/
 
 /**
- * Pembulatan half-up simetris (BR-MNY-004):
- * untuk x >= 0, tepat `.5` dibulatkan ke atas; untuk x < 0, `R(-x) = -R(x)`.
+ * Symmetric half-up rounding (BR-MNY-004):
+ * for x >= 0, exact `.5` rounds up; for x < 0, `R(-x) = -R(x)`.
  */
 export function roundHalfUp(x: KernelDecimal): Money {
   const rounded = x.isNegative()
@@ -14,30 +14,30 @@ export function roundHalfUp(x: KernelDecimal): Money {
   return toMoney(rounded.toNumber())
 }
 
-/** R(unit * q) sesuai BR-MNY-004. */
+/** R(unit * q) per BR-MNY-004. */
 export function mulRound(unit: Money, q: Qty): Money {
   return roundHalfUp(new D(unit).times(qtyToDecimal(q)))
 }
 
-/** R(base * percent / 100) dengan string persentase skala 4 mis. `"11.0000"`. */
+/** R(base * percent / 100) with scale-4 percentage string e.g. `"11.0000"`. */
 export function percentOf(base: Money, percent: string): Money {
   if (typeof percent !== 'string' || !PERCENT_PATTERN.test(percent)) {
-    throw new RangeError(`Format persentase tidak valid: "${String(percent)}"`)
+    throw new RangeError(`Invalid percentage format: "${String(percent)}"`)
   }
   return roundHalfUp(new D(base).times(new D(percent)).div(100))
 }
 
 /**
- * Alokasi Largest Remainder (BR-MNY-006):
- * `total >= 0`, semua `weights[i] >= 0` integer aman, `sum(weights) > 0`.
- * Seri pecahan dimenangkan oleh indeks lebih kecil (stabil).
+ * Largest Remainder allocation (BR-MNY-006):
+ * `total >= 0`, all `weights[i] >= 0` safe integers, `sum(weights) > 0`.
+ * Fractional ties are broken in favor of smaller indices (stable).
  */
 export function allocateLR(total: Money, weights: readonly number[]): Money[] {
   if (!Number.isSafeInteger(total) || total < 0) {
-    throw new RangeError(`Total alokasi LR harus bilangan bulat >= 0: ${total}`)
+    throw new RangeError(`LR allocation total must be an integer >= 0: ${total}`)
   }
   if (weights.length === 0) {
-    throw new RangeError('Daftar bobot alokasi LR tidak boleh kosong')
+    throw new RangeError('LR allocation weights list must not be empty')
   }
 
   const totalBig = BigInt(total)
@@ -46,7 +46,7 @@ export function allocateLR(total: Money, weights: readonly number[]): Money[] {
 
   for (const w of weights) {
     if (typeof w !== 'number' || !Number.isSafeInteger(w) || w < 0) {
-      throw new RangeError(`Setiap bobot alokasi LR harus bilangan bulat aman >= 0: ${w}`)
+      throw new RangeError(`Each LR allocation weight must be a safe integer >= 0: ${w}`)
     }
     const wb = BigInt(w)
     weightBigs.push(wb)
@@ -54,7 +54,7 @@ export function allocateLR(total: Money, weights: readonly number[]): Money[] {
   }
 
   if (sumWeights === 0n) {
-    throw new RangeError('Jumlah seluruh bobot alokasi LR harus > 0')
+    throw new RangeError('Sum of all LR allocation weights must be > 0')
   }
 
   const base: bigint[] = new Array(weights.length)
@@ -89,10 +89,10 @@ export function allocateLR(total: Money, weights: readonly number[]): Money[] {
   return base.map((v) => toMoney(Number(v)))
 }
 
-/** Alokasi Largest Remainder dengan `n` bobot sama (V-02). */
+/** Largest Remainder allocation with `n` equal weights (V-02). */
 export function allocateEqual(total: Money, n: number): Money[] {
   if (!Number.isSafeInteger(n) || n <= 0) {
-    throw new RangeError(`Jumlah bagian allocateEqual harus bilangan bulat > 0: ${n}`)
+    throw new RangeError(`allocateEqual parts count must be an integer > 0: ${n}`)
   }
   return allocateLR(
     total,

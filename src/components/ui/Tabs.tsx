@@ -35,7 +35,7 @@ export function Tabs({
   const hasPanels = items.some((item) => item.content !== undefined)
 
   if (!hasPanels) {
-    // Filter-only tab pill bar (DESIGN CMP-06 §803: role="radiogroup" tanpa dangling aria-controls)
+    // Filter-only tab pill bar (DESIGN CMP-06: role="radiogroup" without dangling aria-controls)
     return (
       <div
         role="radiogroup"

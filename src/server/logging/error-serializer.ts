@@ -58,7 +58,7 @@ export function serializeError(e: unknown, depth = 0): SerializedError {
 
   let message: string
   if (isPgLikeError(record)) {
-    // Redaksi total detail, where, parameters, dan fragmen bertanda kutip pada galat pg
+    // Fully redact detail, where, parameters, and quoted fragments from pg errors
     message = truncate(sanitizeDbMessage(record, e.message), MAX_MESSAGE)
   } else if (isFailedQueryError(record)) {
     message = 'Failed query'

@@ -5,11 +5,11 @@ export function isLocale(s: unknown): s is Locale {
 }
 
 /**
- * Menentukan bahasa UI efektif sesuai prioritas BR-I18N-002 (tertinggi -> terendah):
- * 1. Pilihan pengguna login (`user.locale`)
- * 2. Bahasa bawaan register (`register.locale`)
- * 3. Bahasa bawaan tenant (`tenant.default_locale`)
- * 4. Bawaan aplikasi `'id-ID'`
+ * Resolves the effective UI locale following BR-I18N-002 precedence (highest to lowest):
+ * 1. Signed-in user preference (`user.locale`)
+ * 2. Register default locale (`register.locale`)
+ * 3. Tenant default locale (`tenant.default_locale`)
+ * 4. Application default `'id-ID'`
  */
 export function resolveLocale(p: {
   user?: string | null

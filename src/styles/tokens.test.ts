@@ -23,11 +23,11 @@ function resolveColorVar(vars: Map<string, string>, name: string, depth = 0): st
   return val.toUpperCase()
 }
 
-describe('styles/tokens.css terhadap DESIGN Lampiran C', () => {
+describe('styles/tokens.css against DESIGN Appendix C', () => {
   const tokensCss = readFileSync(resolve(import.meta.dirname, 'tokens.css'), 'utf8')
   const vars = parseColorVars(tokensCss)
 
-  it('memuat nilai hex Lampiran C persis dan merujuk L1 secara konsisten', () => {
+  it('matches Appendix C hex values and resolves L2 semantic roles to L1 consistently', () => {
     expect(resolveColorVar(vars, '--color-action')).toBe('#46780D')
     expect(resolveColorVar(vars, '--color-primary-700')).toBe('#46780D')
     expect(resolveColorVar(vars, '--color-primary-500')).toBe('#76B617')
@@ -42,7 +42,7 @@ describe('styles/tokens.css terhadap DESIGN Lampiran C', () => {
     expect(resolveColorVar(vars, '--color-teal-solid')).toBe('#0F766E')
   })
 
-  it('menghapus palet warna bawaan, tidak punya --color-tenant*, dan tanpa tema gelap (T-16)', () => {
+  it('clears default color palette, excludes --color-tenant*, and omits dark theme (T-16)', () => {
     expect(tokensCss).toContain('--color-*: initial;')
     for (const key of vars.keys()) {
       expect(key.startsWith('--color-tenant')).toBe(false)

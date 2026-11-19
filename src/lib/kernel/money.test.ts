@@ -13,7 +13,7 @@ import {
 } from './money'
 
 describe('kernel/money', () => {
-  it('menerima integer aman dan menormalisasi -0 ke 0', () => {
+  it('accepts safe integers and normalizes -0 to 0', () => {
     expect(ZERO).toBe(0)
     expect(toMoney(12500)).toBe(12500)
     expect(toMoney(-500)).toBe(-500)
@@ -22,7 +22,7 @@ describe('kernel/money', () => {
     expect(toNonNegMoney(1000)).toBe(1000)
   })
 
-  it('menolak float, NaN, Infinity, dan angka di luar rentang aman', () => {
+  it('rejects floats, NaN, Infinity, and numbers outside the safe range', () => {
     expect(() => toMoney(12.5)).toThrowError(MoneyError)
     expect(() => toMoney(12.5)).toThrowError(expect.objectContaining({ code: 'NOT_INTEGER' }))
     expect(() => toMoney(Number.NaN)).toThrowError(expect.objectContaining({ code: 'UNSAFE' }))
@@ -35,7 +35,7 @@ describe('kernel/money', () => {
     expect(() => toNonNegMoney(-1)).toThrowError(expect.objectContaining({ code: 'NEGATIVE' }))
   })
 
-  it('melakukan aritmetika aman dan mendeteksi overflow rentang aman', () => {
+  it('performs safe arithmetic and detects safe-integer overflow', () => {
     const a = toMoney(10000)
     const b = toMoney(2500)
     expect(addMoney(a, b)).toBe(12500)

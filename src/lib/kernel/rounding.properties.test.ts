@@ -33,7 +33,7 @@ const VALID_QTY_STR_ARB = fc
   .map(([neg, intPart, frac]) => `${neg ? '-' : ''}${intPart}${frac}`)
 
 describe('kernel/rounding properties (fast-check)', () => {
-  it('properti 1 & 2: sum(allocateLR) === total dan tiap elemen dalam {floor(e), floor(e)+1}', () => {
+  it('property 1 & 2: sum(allocateLR) === total and each element is in {floor(e), floor(e)+1}', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 1_000_000_000 }),
@@ -60,7 +60,7 @@ describe('kernel/rounding properties (fast-check)', () => {
     )
   })
 
-  it('properti 3: permutasi bobot tanpa seri pecahan menghasilkan multiset hasil yang sama', () => {
+  it('property 3: weight permutations without fractional ties produce the same multiset of results', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 1_000_000 }),
@@ -83,7 +83,7 @@ describe('kernel/rounding properties (fast-check)', () => {
     )
   })
 
-  it('properti 4: roundHalfUp idempoten pada bilangan bulat', () => {
+  it('property 4: roundHalfUp is idempotent on integers', () => {
     fc.assert(
       fc.property(fc.integer({ min: -1_000_000_000, max: 1_000_000_000 }), (n) => {
         expect(roundHalfUp(new D(n))).toBe(n)
@@ -92,7 +92,7 @@ describe('kernel/rounding properties (fast-check)', () => {
     )
   })
 
-  it('properti 5: parseQty(normalizeQty(q)) === normalizeQty(q) dan normalizeQty idempoten', () => {
+  it('property 5: parseQty(normalizeQty(q)) === normalizeQty(q) and normalizeQty is idempotent', () => {
     fc.assert(
       fc.property(VALID_QTY_STR_ARB, (raw) => {
         const parsed = parseQty(raw)

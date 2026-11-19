@@ -36,18 +36,18 @@ export type AppEnv = z.infer<typeof envSchema>
 export function parseEnv(rawEnv: Record<string, string | undefined>): AppEnv {
   const parsed = envSchema.safeParse(rawEnv)
   if (!parsed.success) {
-    // Hanya laporkan NAMA kunci yang gagal validasi; nilai rahasia tidak pernah disertakan.
+    // Report only the KEY NAMES that failed validation; secret values are never included.
     const keys = Array.from(
       new Set(parsed.error.issues.map((issue) => issue.path.join('.') || 'ENV')),
     )
-    throw new Error(`Konfigurasi lingkungan tidak valid pada kunci: ${keys.join(', ')}`)
+    throw new Error(`Invalid environment configuration for keys: ${keys.join(', ')}`)
   }
 
   if (
     parsed.data.APP_ENV === 'production' &&
     (parsed.data.LOG_LEVEL === 'debug' || parsed.data.LOG_LEVEL === 'trace')
   ) {
-    throw new Error('Konfigurasi lingkungan ditolak: LOG_LEVEL debug/trace dilarang saat APP_ENV=production')
+    throw new Error('Invalid environment configuration: LOG_LEVEL debug/trace is forbidden when APP_ENV=production')
   }
 
   return parsed.data

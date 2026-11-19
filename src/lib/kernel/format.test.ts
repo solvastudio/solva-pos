@@ -4,7 +4,7 @@ import { toMoney } from './money'
 import { parseQty } from './qty'
 
 describe('kernel/format (V-26)', () => {
-  it('memenuhi V-26 untuk format dan urai uang/kuantitas per locale', () => {
+  it('satisfies V-26 for formatting and parsing money/quantity per locale', () => {
     expect(formatMoney(toMoney(112476), 'id-ID')).toBe('Rp112.476')
     expect(formatMoney(toMoney(112476), 'en-US')).toBe('Rp112,476')
     expect(formatMoney(toMoney(-2100), 'id-ID')).toBe('\u2212Rp2.100')
@@ -24,7 +24,7 @@ describe('kernel/format (V-26)', () => {
     expect(formatQty(parseQty('1500.5'), 'en-US')).toBe('1,500.5')
   })
 
-  it('memformat persentase dan tanggal-waktu sesuai zona outlet', () => {
+  it('formats percentages and date-times according to outlet timezone', () => {
     expect(formatPercent('10.0000', 'id-ID')).toBe('10%')
     expect(formatPercent('10.0000', 'en-US')).toBe('10%')
     expect(formatPercent('5.5000', 'id-ID')).toBe('5,5%')

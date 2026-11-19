@@ -30,7 +30,7 @@ function collectTsxFiles(dir: string): string[] {
 }
 
 describe('i18n/no-literal-ui (FR-I18N-001)', () => {
-  it('tidak ada atribut UI literal (aria-label/placeholder/title/alt) di components/routes', () => {
+  it('forbids literal UI attributes (aria-label/placeholder/title/alt) in components/routes', () => {
     const violations: string[] = []
     for (const relDir of SCAN_DIRS) {
       const files = collectTsxFiles(join(ROOT, relDir))
@@ -52,7 +52,7 @@ describe('i18n/no-literal-ui (FR-I18N-001)', () => {
 
     expect(
       violations,
-      `Atribut UI literal ditemukan (gunakan kunci t(...)):\n${violations.join('\n')}`,
+      `Literal UI attributes found (use i18n t(...) keys):\n${violations.join('\n')}`,
     ).toEqual([])
   })
 })

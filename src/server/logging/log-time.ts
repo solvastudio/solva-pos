@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
-/** Alfabet 31 karakter tanpa huruf/angka mirip (i, l, o, 0, 1). */
+/** 31-character alphabet excluding look-alike letters/digits (i, l, o, 0, 1). */
 const REF_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 
 export const REF_ID_PATTERN = /^\d{8}-\d{6}-[a-hj-km-np-z2-9]{5}$/

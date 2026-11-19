@@ -1,7 +1,7 @@
 export const SLUG_PATTERN: RegExp = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/
 
 /**
- * Daftar kata terlarang slug tenant (ARCHITECTURE §1.7 + segmen rute statis tingkat-atas).
+ * Reserved tenant slug deny-list (ARCHITECTURE §1.7 + top-level static route segments).
  */
 export const RESERVED_SLUGS: readonly string[] = [
   'platform',

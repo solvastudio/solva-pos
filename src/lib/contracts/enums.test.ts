@@ -37,8 +37,8 @@ import {
   TRANSFER_STATUS,
 } from './enums'
 
-describe('contracts/enums sesuai SCHEMA.md Lampiran A & B', () => {
-  it('mencocokkan seluruh enum wajib persis dengan dokumen', () => {
+describe('contracts/enums matches SCHEMA.md Appendix A & B', () => {
+  it('matches all required enums verbatim against the schema document', () => {
     expect(TENANT_STATUS).toEqual(['ACTIVE', 'SUSPENDED', 'CLOSED'])
     expect(REGISTER_TYPE).toEqual(['CASHIER', 'WAITER'])
     expect(TAX_PROFILE).toEqual(['NONE', 'PPN', 'PB1'])

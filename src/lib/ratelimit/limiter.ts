@@ -3,11 +3,11 @@ export type LimitDecision =
   | { allowed: false; retryAfterMs: number }
 
 export interface Limiter {
-  /** Menghabiskan 1 poin untuk `key`. Tidak melempar saat melebihi batas. */
+  /** Consumes 1 point for `key`. Never throws when the limit is exceeded. */
   consume(key: string, nowMs: number): Promise<LimitDecision>
-  /** Hanya melihat sisa tanpa menghabiskan. */
+  /** Inspects remaining points without consuming one. */
   peek(key: string, nowMs: number): Promise<LimitDecision>
-  /** Mengosongkan hitungan `key` (mis. setelah login sukses / terbit ulang undangan). */
+  /** Clears counters for `key` (e.g. after successful login or invite reissue). */
   reset(key: string): Promise<void>
 }
 

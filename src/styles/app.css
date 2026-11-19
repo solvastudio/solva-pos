@@ -53,7 +53,7 @@ body {
   @apply bg-app text-ink text-body antialiased;
 }
 
-/* Verifikasi DOQ-01: fitur OpenType 'tnum' absen di subset woff2 @fontsource-variable/plus-jakarta-sans; gunakan tabular-nums standar */
+/* DOQ-01 check: OpenType 'tnum' feature is absent in bundled @fontsource-variable/plus-jakarta-sans woff2 subsets; use standard tabular-nums */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }

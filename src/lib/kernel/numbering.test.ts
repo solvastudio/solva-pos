@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { formatInvoiceNo, parseInvoiceNo, validateInvoicePrefix, type DocKind } from './numbering'
 import { businessDate, invoicePeriod } from './time'
 
-describe('kernel/numbering (V-29 + properti)', () => {
-  it('memenuhi vektor uji V-29 (format invoice & nota kredit dengan jam potong)', () => {
+describe('kernel/numbering (V-29 + properties)', () => {
+  it('satisfies test vector V-29 (invoice & credit note formatting with cutoff hour)', () => {
     const bd1 = businessDate('2026-11-17T07:05:00.000Z', 'Asia/Jakarta', '04:00')
     expect(
       formatInvoiceNo({
@@ -48,7 +48,7 @@ describe('kernel/numbering (V-29 + properti)', () => {
     ).toBe('KSR2-1126-000123')
   })
 
-  it('memvalidasi prefiks dan sufiks konflik -D{n}', () => {
+  it('validates prefixes and -D{n} conflict suffixes', () => {
     expect(validateInvoicePrefix('OUT01-POS02')).toEqual({ ok: true })
     expect(validateInvoicePrefix('NK')).toEqual({ ok: false, reason: 'ENDS_WITH_NK' })
     expect(validateInvoicePrefix('OUT01-NK')).toEqual({ ok: false, reason: 'ENDS_WITH_NK' })
@@ -78,7 +78,7 @@ describe('kernel/numbering (V-29 + properti)', () => {
     expect(parseInvoiceNo('OUT01-NK-1126-000001-D0')).toBeNull()
   })
 
-  it('properti: parseInvoiceNo(formatInvoiceNo(x)) === x', () => {
+  it('property: parseInvoiceNo(formatInvoiceNo(x)) === x', () => {
     const segmentArb = fc
       .string({ minLength: 1, maxLength: 6 })
       .filter((s) => /^[A-Z0-9]+$/.test(s))

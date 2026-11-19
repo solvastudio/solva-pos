@@ -18,8 +18,8 @@ const VALID_CLASSES: readonly ErrorClass[] = [
   'business',
 ]
 
-describe('contracts/error-codes (snapshot emas & kestabilan)', () => {
-  it('memuat tepat 22 kode stabil sesuai snapshot emas', () => {
+describe('contracts/error-codes (golden snapshot & stability)', () => {
+  it('contains exactly 22 stable codes matching the golden snapshot', () => {
     expect(Object.keys(ERROR_CODES).sort()).toMatchInlineSnapshot(`
       [
         "APP_ERROR",
@@ -49,7 +49,7 @@ describe('contracts/error-codes (snapshot emas & kestabilan)', () => {
     expect(Object.keys(ERROR_CODES)).toHaveLength(22)
   })
 
-  it('menjamin tiap kode memiliki kelas valid dan aturan deprecated konsisten', () => {
+  it('ensures every code has a valid class and consistent deprecated rules', () => {
     for (const [code, meta] of Object.entries(ERROR_CODES)) {
       expect(isErrorCode(code)).toBe(true)
       expect(VALID_CLASSES).toContain(meta.class)
@@ -61,7 +61,7 @@ describe('contracts/error-codes (snapshot emas & kestabilan)', () => {
     expect(classOf('TIMEOUT')).toBe('transient')
   })
 
-  it('memformat dan mengurai KODE#id serta menjaga daftar DATA_REASON_CODES', () => {
+  it('formats and parses CODE#id and preserves DATA_REASON_CODES list', () => {
     expect(formatPublicCode('TIMEOUT', '20261119-140500-k7q2m')).toBe(
       'TIMEOUT#20261119-140500-k7q2m',
     )

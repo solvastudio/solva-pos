@@ -5,7 +5,7 @@ const SAMPLE_UUID = '019a0000-0000-7000-8000-000000000001'
 const SAMPLE_ISO = '2026-11-19T14:05:00.000Z'
 
 describe('contracts/envelope (Zod 4)', () => {
-  it('menerima PushRequest, PushResponse, PingResponse, dan ErrorEnvelope yang sah', () => {
+  it('accepts valid PushRequest, PushResponse, PingResponse, and ErrorEnvelope', () => {
     const req = PushRequest.parse({
       sent_at_device: SAMPLE_ISO,
       clock_offset_ms: -250,
@@ -45,7 +45,7 @@ describe('contracts/envelope (Zod 4)', () => {
     expect(ErrorEnvelope.parse({ error: { code: 'TIMEOUT', ref: '20261119-140500-k7q2m' } })).toBeTruthy()
   })
 
-  it('menolak perintah > 50, UUID tidak sah, dan tipe perintah tidak dikenal', () => {
+  it('rejects > 50 commands, invalid UUIDs, and unknown command types', () => {
     const cmd = {
       id: SAMPLE_UUID,
       type: 'OpenShift',

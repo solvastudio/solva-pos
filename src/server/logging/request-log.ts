@@ -42,7 +42,7 @@ export async function handleRequestWithLog(
   const startedAt = performance.now()
   const reqId = resolveRequestId(request.headers.get('x-request-id'), options.nowMs)
   const url = new URL(request.url)
-  // Hanya pathname yang ditulis (tanpa query string agar token/parameter sensitif tidak bocor)
+  // Log pathname only (no query string so tokens/sensitive params cannot leak)
   const path = url.pathname.slice(0, MAX_PATH_LEN)
 
   const ctx: LogContext = {

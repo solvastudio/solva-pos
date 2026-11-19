@@ -47,11 +47,11 @@ function pad4(n: number): string {
 
 export function parseIsoUtcMs(s: string): number {
   if (typeof s !== 'string') {
-    throw new RangeError('ISO instant harus berupa string')
+    throw new RangeError('ISO instant must be a string')
   }
   const m = ISO_UTC_PATTERN.exec(s)
   if (!m) {
-    throw new RangeError(`Format ISO-8601 UTC tidak valid: "${s}"`)
+    throw new RangeError(`Invalid ISO-8601 UTC format: "${s}"`)
   }
   const year = Number(m[1])
   const month = Number(m[2])
@@ -62,7 +62,7 @@ export function parseIsoUtcMs(s: string): number {
   const ms = m[7] ? Number(m[7].padEnd(3, '0')) : 0
 
   if (!isValidCalendarDate(year, month, day) || hour > 23 || minute > 59 || second > 59) {
-    throw new RangeError(`Komponen tanggal/waktu ISO tidak valid: "${s}"`)
+    throw new RangeError(`Invalid ISO date/time components: "${s}"`)
   }
   return Date.UTC(year, month - 1, day, hour, minute, second, ms)
 }
@@ -94,10 +94,10 @@ export function businessDate(
   cutoff: string,
 ): BusinessDate {
   if (!OUTLET_TIMEZONES.includes(tz)) {
-    throw new RangeError(`Zona waktu outlet tidak valid: "${String(tz)}"`)
+    throw new RangeError(`Invalid outlet timezone: "${String(tz)}"`)
   }
   if (typeof cutoff !== 'string' || !CUTOFF_PATTERN.test(cutoff)) {
-    throw new RangeError(`Format jam potong harus HH:MM (00:00..23:59), diterima: "${String(cutoff)}"`)
+    throw new RangeError(`Cutoff time must be HH:MM (00:00..23:59), received: "${String(cutoff)}"`)
   }
 
   const utcMs = parseIsoUtcMs(occurredAt)
@@ -134,17 +134,17 @@ export function businessDate(
 
 function parseBusinessDateParts(bd: BusinessDate): { year: number; month: number; day: number } {
   if (typeof bd !== 'string') {
-    throw new RangeError('BusinessDate harus berupa string YYYY-MM-DD')
+    throw new RangeError('BusinessDate must be a YYYY-MM-DD string')
   }
   const m = BUSINESS_DATE_PATTERN.exec(bd)
   if (!m) {
-    throw new RangeError(`Format BusinessDate tidak valid: "${bd}"`)
+    throw new RangeError(`Invalid BusinessDate format: "${bd}"`)
   }
   const year = Number(m[1])
   const month = Number(m[2])
   const day = Number(m[3])
   if (!isValidCalendarDate(year, month, day)) {
-    throw new RangeError(`Tanggal kalender BusinessDate tidak valid: "${bd}"`)
+    throw new RangeError(`Invalid BusinessDate calendar date: "${bd}"`)
   }
   return { year, month, day }
 }
@@ -156,7 +156,7 @@ export function invoicePeriod(bd: BusinessDate): string {
 
 export function returnWindowEnd(bd: BusinessDate, months: number): BusinessDate {
   if (!Number.isSafeInteger(months) || months < 0) {
-    throw new RangeError(`Jumlah bulan jendela retur harus integer >= 0: ${months}`)
+    throw new RangeError(`Return window months must be an integer >= 0: ${months}`)
   }
   const { year, month, day } = parseBusinessDateParts(bd)
   const totalMonths = year * 12 + (month - 1) + months

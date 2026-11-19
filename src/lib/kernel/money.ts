@@ -1,8 +1,8 @@
 declare const MoneyBrand: unique symbol
 
 /**
- * Nilai uang dalam satuan rupiah penuh (integer aman `Number.isSafeInteger`).
- * Dilarang perkalian pecahan langsung di modul ini; gunakan `rounding.mulRound`.
+ * Monetary value in whole rupiah units (safe integer `Number.isSafeInteger`).
+ * Direct fractional multiplication is forbidden in this module; use `rounding.mulRound`.
  */
 export type Money = number & { readonly [MoneyBrand]: true }
 
@@ -20,13 +20,13 @@ export class MoneyError extends Error {
 
 function assertSafeMoney(n: number): Money {
   if (typeof n !== 'number' || !Number.isFinite(n)) {
-    throw new MoneyError('UNSAFE', 'Nilai uang tidak hingga atau NaN')
+    throw new MoneyError('UNSAFE', 'Money value is non-finite or NaN')
   }
   if (!Number.isInteger(n)) {
-    throw new MoneyError('NOT_INTEGER', `Nilai uang harus bilangan bulat, diterima: ${n}`)
+    throw new MoneyError('NOT_INTEGER', `Money value must be an integer, received: ${n}`)
   }
   if (!Number.isSafeInteger(n)) {
-    throw new MoneyError('UNSAFE', `Nilai uang di luar rentang bilangan bulat aman: ${n}`)
+    throw new MoneyError('UNSAFE', `Money value is outside the safe integer range: ${n}`)
   }
   return (n === 0 ? 0 : n) as Money
 }
@@ -40,7 +40,7 @@ export function toMoney(n: number): Money {
 export function toNonNegMoney(n: number): Money {
   const m = assertSafeMoney(n)
   if (m < 0) {
-    throw new MoneyError('NEGATIVE', `Nilai uang tidak boleh negatif: ${n}`)
+    throw new MoneyError('NEGATIVE', `Money value must not be negative: ${n}`)
   }
   return m
 }

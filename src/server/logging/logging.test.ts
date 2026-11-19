@@ -13,8 +13,8 @@ import { captureLogs } from './logger-core'
 import { installProcessHandlers } from './process-handlers'
 import { resolveRequestId } from './request-id'
 
-describe('server/logging modul inti', () => {
-  it('menghasilkan refId & jobId UTC sesuai pola', () => {
+describe('server/logging core modules', () => {
+  it('generates UTC refId & jobId matching pattern', () => {
     const id = newRefId(Date.UTC(2026, 10, 19, 14, 5, 9))
     expect(id).toMatch(REF_ID_PATTERN)
     expect(id.startsWith('20261119-140509-')).toBe(true)
@@ -23,14 +23,14 @@ describe('server/logging modul inti', () => {
     expect(jobId).toMatch(/^job-\d{8}-\d{6}-[a-hj-km-np-z2-9]{5}$/)
   })
 
-  it('resolveRequestId menerima header sah dan menolak header tidak sah', () => {
+  it('resolveRequestId accepts valid headers and rejects invalid headers', () => {
     expect(resolveRequestId('req-abc_12.3')).toBe('req-abc_12.3')
     expect(resolveRequestId('x'.repeat(65))).toMatch(REF_ID_PATTERN)
     expect(resolveRequestId('bad header/with space')).toMatch(REF_ID_PATTERN)
     expect(resolveRequestId(null)).toMatch(REF_ID_PATTERN)
   })
 
-  it('daftar LOG_FIELD_NAMES tertutup cocok snapshot', () => {
+  it('closed LOG_FIELD_NAMES registry matches snapshot', () => {
     expect(LOG_FIELD_NAMES).toMatchInlineSnapshot(`
       [
         "err",
@@ -78,7 +78,7 @@ describe('server/logging modul inti', () => {
     `)
   })
 
-  it('error-serializer membuang detail/where/parameters galat pg dan membatasi stack/cause', () => {
+  it('error-serializer strips pg detail/where/parameters and bounds stack/cause', () => {
     const leaf = Object.assign(new Error('duplicate key value violates "1234"'), {
       code: '23505',
       severity: 'ERROR',
@@ -100,7 +100,7 @@ describe('server/logging modul inti', () => {
     }
   })
 
-  it('pruneLogs hanya menghapus app.<YYYY-MM-DD>.<n>.log yang melewati masa retensi', async () => {
+  it('pruneLogs deletes only app.<YYYY-MM-DD>.<n>.log files past retention', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'solva-log-ret-'))
     try {
       await writeFile(join(dir, 'app.2026-10-01.1.log'), 'old\n')
@@ -117,13 +117,13 @@ describe('server/logging modul inti', () => {
     }
   })
 
-  it('file-destination tidak menghentikan proses ketika pembukaan berkas gagal', async () => {
+  it('file-destination does not crash the process when opening the log file fails', async () => {
     const problems: string[] = []
     const sink = createFileSink({
       dir: '/nonexistent',
       reopenDelayMs: 60_000,
       build: async () => {
-        throw new Error('disk penuh')
+        throw new Error('disk full')
       },
       onProblem: (msg) => problems.push(msg),
     })
@@ -131,10 +131,10 @@ describe('server/logging modul inti', () => {
     await sink.whenOpen()
     sink.write('{"level":"info"}\n')
     expect(problems).toHaveLength(1)
-    expect(problems[0]).toContain('disk penuh')
+    expect(problems[0]).toContain('disk full')
   })
 
-  it('installProcessHandlers mencatat fatal, flush, dan memanggil exit hanya di produksi', () => {
+  it('installProcessHandlers logs fatal, flushes, and calls exit only in production', () => {
     const cap = captureLogs('debug')
     try {
       const target = new EventEmitter()
@@ -163,7 +163,7 @@ describe('server/logging modul inti', () => {
     }
   })
 
-  it('log-search memilih berkas kandidat dan memfilter entri JSON secara tepat', () => {
+  it('log-search selects candidate files and filters JSON entries accurately', () => {
     const files = candidateLogFiles(
       ['app.2026-11-10.1.log', 'app.2026-11-19.1.log', 'README.txt'],
       { ref: '20261119-140500-k7q2m' },

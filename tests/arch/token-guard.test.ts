@@ -62,13 +62,13 @@ function collectTsx(dir: string): string[] {
 }
 
 describe('arch/token-guard (DP-10, T-01..T-09)', () => {
-  it('src/components dan src/routes bebas dari hex, px/rem arbitrer, palet bawaan, dan disabled:opacity', () => {
+  it('src/components and src/routes are free of hardcoded hex, arbitrary px/rem, default palette, and disabled:opacity', () => {
     const files = [...collectTsx(join(ROOT, 'src/components')), ...collectTsx(join(ROOT, 'src/routes'))]
     const violations = files.flatMap(scanFile)
     expect(violations).toEqual([])
   })
 
-  it('mendeteksi keempat fixture pelanggaran token di tests/arch/fixtures-token', () => {
+  it('detects all four token violation fixtures in tests/arch/fixtures-token', () => {
     const fxDir = resolve(import.meta.dirname, 'fixtures-token')
     expect(scanFile(join(fxDir, 'bad-color.tsx')).some((v) => v.rule === 'hardcoded-color')).toBe(true)
     expect(scanFile(join(fxDir, 'bad-px.tsx')).some((v) => v.rule === 'arbitrary-px-rem')).toBe(true)

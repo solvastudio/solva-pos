@@ -31,7 +31,7 @@ const V24_CASES = [
 ] as const
 
 describe('kernel/qty', () => {
-  it('mengurai dan menormalisasi string desimal skala 4 kanonik', () => {
+  it('parses and normalizes canonical scale-4 decimal strings', () => {
     expect(QTY_PATTERN.test('1.5000')).toBe(true)
     expect(parseQty('0')).toBe('0')
     expect(parseQty('-0')).toBe('0')
@@ -41,7 +41,7 @@ describe('kernel/qty', () => {
     expect(normalizeQty(parseQty('2.500'))).toBe('2.5')
   })
 
-  it('menolak format invalid dan skala > 4 tanpa membulatkan (BR-UOM-005)', () => {
+  it('rejects invalid formats and scale > 4 without rounding (BR-UOM-005)', () => {
     const invalidInputs = ['', '+1', '1e3', '1,5', '.5', '1.', '01', '-01', 'abc']
     for (const s of invalidInputs) {
       expect(() => parseQty(s)).toThrowError(expect.objectContaining({ code: 'INVALID_FORMAT' }))
@@ -53,7 +53,7 @@ describe('kernel/qty', () => {
     )
   })
 
-  it('melakukan aritmetika desimal eksak dan menolak perkalian yang melebihi skala 4', () => {
+  it('performs exact decimal arithmetic and rejects multiplications exceeding scale 4', () => {
     expect(addQty(parseQty('0.1'), parseQty('0.2'))).toBe('0.3')
     expect(subQty(parseQty('1'), parseQty('0.3333'))).toBe('0.6667')
     expect(mulQty(parseQty('0.5'), parseQty('12'))).toBe('6')
@@ -70,7 +70,7 @@ describe('kernel/qty', () => {
     expect(isIntegerQty(parseQty('4.2'))).toBe(false)
   })
 
-  it('memenuhi vektor uji V-24 untuk konversi UOM (BR-UOM-004/005)', () => {
+  it('satisfies test vector V-24 for UOM conversion (BR-UOM-004/005)', () => {
     for (const c of V24_CASES) {
       expect(
         qtyToBase({

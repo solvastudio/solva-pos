@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { normalizeSlug, RESERVED_SLUGS, SLUG_PATTERN, validateSlug } from './slug'
 
 describe('kernel/slug (V-33)', () => {
-  it('menerima slug sah dan menormalisasi huruf kecil', () => {
+  it('accepts valid slugs and normalizes lowercase', () => {
     expect(SLUG_PATTERN.test('toko-maju-7')).toBe(true)
     expect(normalizeSlug('  ACME  ')).toBe('acme')
     expect(validateSlug('acme')).toEqual({ ok: true, slug: 'acme' })
@@ -10,7 +10,7 @@ describe('kernel/slug (V-33)', () => {
     expect(validateSlug('beta')).toEqual({ ok: true, slug: 'beta' })
   })
 
-  it('menolak slug tak sah, kata terlarang, dan huruf kapital sesuai V-33', () => {
+  it('rejects invalid slugs, reserved words, and uppercase letters per V-33', () => {
     expect(validateSlug('ab')).toEqual({ ok: false, reason: 'FORMAT' })
     expect(validateSlug('-acme')).toEqual({ ok: false, reason: 'FORMAT' })
     expect(validateSlug('acme-')).toEqual({ ok: false, reason: 'FORMAT' })
@@ -22,7 +22,7 @@ describe('kernel/slug (V-33)', () => {
     expect(validateSlug('ACME')).toEqual({ ok: false, reason: 'UPPERCASE' })
   })
 
-  it('mencantumkan segmen top-level statis di RESERVED_SLUGS', () => {
+  it('includes top-level static segments in RESERVED_SLUGS', () => {
     expect(RESERVED_SLUGS).toContain('platform')
     expect(RESERVED_SLUGS).toContain('health')
     expect(RESERVED_SLUGS).toContain('_serverfn')

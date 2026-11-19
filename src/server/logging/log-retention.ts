@@ -41,7 +41,7 @@ export async function pruneLogs(
       await remove(join(dir, name))
       removed.push(name)
     } catch {
-      /* lewati bila sedang dipakai atau sudah terhapus */
+      /* skip if in use or already deleted */
     }
   }
 

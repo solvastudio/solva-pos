@@ -44,7 +44,7 @@ function cleanLocalizedNumberString(raw: string, locale: LocaleId): string | nul
   return `${sign}${canonical}`
 }
 
-/** Format uang integer ke `"Rp112.476"` (`id-ID`) / `"Rp112,476"` (`en-US`); negatif memakai `−Rp...`. */
+/** Format integer money into `"Rp112.476"` (`id-ID`) / `"Rp112,476"` (`en-US`); negative uses `−Rp...`. */
 export function formatMoney(m: Money, locale: LocaleId): string {
   const formattedAbs = new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -57,7 +57,7 @@ export function formatMoney(m: Money, locale: LocaleId): string {
   return m < 0 ? `${MINUS_SIGN}${formattedAbs}` : formattedAbs
 }
 
-/** Mengurai input uang terlokalisasi menjadi `Money`, atau `null` bila tidak sah / pecahan. */
+/** Parse localized money input into `Money`, or `null` if invalid or fractional. */
 export function parseMoneyInput(s: string, locale: LocaleId): Money | null {
   const cleaned = cleanLocalizedNumberString(s, locale)
   if (!cleaned || !/^-?\d+$/.test(cleaned)) {
@@ -114,7 +114,7 @@ export function formatPercent(p: string, locale: LocaleId): string {
 
 export function formatDateTime(iso: IsoInstant, tz: OutletTimezone, locale: LocaleId): string {
   if (!OUTLET_TIMEZONES.includes(tz)) {
-    throw new RangeError(`Zona waktu outlet tidak valid: "${String(tz)}"`)
+    throw new RangeError(`Invalid outlet timezone: "${String(tz)}"`)
   }
   const ms = parseIsoUtcMs(iso)
   const d = new Date(ms)

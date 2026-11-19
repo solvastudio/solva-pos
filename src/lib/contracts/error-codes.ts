@@ -1,5 +1,5 @@
-// Kode tidak boleh dihapus atau diubah artinya; hanya ditambah (AD-35).
-// Ubah snapshot hanya bersama keputusan user.
+// Codes must not be removed or have their meanings altered; append only (AD-35).
+// Update snapshots only together with an explicit user decision.
 
 export type ErrorClass =
   | 'authorization'
@@ -65,7 +65,7 @@ export function parsePublicCode(s: string): { code: string; ref: string } | null
   return { code: match[1]!, ref: match[2]! }
 }
 
-/** Kode alasan DATA pada antrean "perlu perhatian" (SCHEMA §4.6.3, bukan kode tampilan). */
+/** DATA reason codes on the "needs attention" queue (SCHEMA §4.6.3, not display codes). */
 export const DATA_REASON_CODES = [
   'VALIDATION_FAILED',
   'UNKNOWN_REFERENCE',
@@ -79,7 +79,7 @@ export const DATA_REASON_CODES = [
 
 export type DataReasonCode = (typeof DATA_REASON_CODES)[number]
 
-/** Kode tambahan khusus log diagnostik perangkat (SCHEMA Lampiran A.5 butir 3). */
+/** Extra codes specific to device diagnostic logs (SCHEMA Appendix A.5 item 3). */
 export const DEVICE_LOG_EXTRA_CODES = [
   'SYNC_FAILED',
   'CLOCK_ANOMALY',

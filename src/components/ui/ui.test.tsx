@@ -34,7 +34,7 @@ afterEach(() => {
 async function expectZeroAxeViolations(container: HTMLElement) {
   const results = await axe.run(container, {
     rules: {
-      // jsdom tidak merender CSS terkomputasi untuk color-contrast; uji kontras ada di DESIGN Lampiran B + tokens.test.ts
+      // jsdom does not render computed CSS for color-contrast; contrast ratios are covered by DESIGN Appendix B and tokens.test.ts
       'color-contrast': { enabled: false },
     },
   })
@@ -51,8 +51,8 @@ function ToastHarness() {
   )
 }
 
-describe('components/ui primitif dan aksesibilitas', () => {
-  it('Button: merender varian, state disabled tanpa opacity-*, dan loading aria-busy mengabaikan klik', async () => {
+describe('components/ui primitives and accessibility', () => {
+  it('Button: renders variants, disabled state without opacity-*, and loading aria-busy ignores clicks', async () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
     const onLoadingClick = vi.fn()
@@ -95,7 +95,7 @@ describe('components/ui primitif dan aksesibilitas', () => {
     await expectZeroAxeViolations(container)
   })
 
-  it('IconButton & Chip: memiliki aria-label, badge 99+, ikon + teks, dan 0 pelanggaran axe', async () => {
+  it('IconButton & Chip: has aria-label, badge 99+, icon + text, and 0 axe violations', async () => {
     const { container } = render(
       <div>
         <IconButton label="Notifications" icon={<Bell />} badge={120} />
@@ -114,7 +114,7 @@ describe('components/ui primitif dan aksesibilitas', () => {
     await expectZeroAxeViolations(container)
   })
 
-  it('Input, Field & Select: mendukung default dan error state dengan 0 pelanggaran axe', async () => {
+  it('Input, Field & Select: supports default and error states with 0 axe violations', async () => {
     const { container } = render(
       <div>
         <Field label="Amount" htmlFor="amt" hint="In IDR">
@@ -148,7 +148,7 @@ describe('components/ui primitif dan aksesibilitas', () => {
     await expectZeroAxeViolations(container)
   })
 
-  it('Tabs, Segmented, Checkbox, Radio, Switch, Tooltip, Card, EmptyState, Skeleton: interaksi dan axe lolos', async () => {
+  it('Tabs, Segmented, Checkbox, Radio, Switch, Tooltip, Card, EmptyState, Skeleton: interactions and axe pass', async () => {
     const user = userEvent.setup()
     const onTab = vi.fn()
     const onSeg = vi.fn()
@@ -212,7 +212,7 @@ describe('components/ui primitif dan aksesibilitas', () => {
     await expectZeroAxeViolations(container)
   })
 
-  it('Dialog & Toast: fokus masuk dialog, Esc menutup (kecuali dismissible=false), Toast menampilkan status/alert', async () => {
+  it('Dialog & Toast: focus enters dialog, Esc closes (unless dismissible=false), Toast renders status/alert', async () => {
     const user = userEvent.setup()
     const onOpenChange = vi.fn()
     const onLockedChange = vi.fn()

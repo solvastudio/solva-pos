@@ -1,5 +1,5 @@
 @theme {
-  /* Kosongkan palet warna bawaan Tailwind agar warna ad-hoc (mis. bg-green-500) tidak tersedia */
+  /* Clear default Tailwind color palette so ad-hoc colors (e.g. bg-green-500) cannot be used */
   --color-*: initial;
 
   /* === L1 Primitif: Primary (DESIGN §2.1.1) === */

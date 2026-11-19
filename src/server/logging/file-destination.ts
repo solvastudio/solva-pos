@@ -42,13 +42,13 @@ export function createFileSink(options: FileSinkOptions): FileSink {
     try {
       stream?.end()
     } catch {
-      /* sudah tertutup */
+      /* already closed */
     }
     stream = null
     pending.length = 0
     const reason = error instanceof Error ? error.message : String(error)
     report(
-      `log file ${what}: ${reason}. Melanjutkan stdout saja; coba buka lagi dalam ${Math.round(reopenDelayMs / 1000)} dtk.`,
+      `log file ${what}: ${reason}. Logging to stdout only; retrying in ${Math.round(reopenDelayMs / 1000)}s.`,
     )
     setTimeout(open, reopenDelayMs).unref()
   }
@@ -64,7 +64,7 @@ export function createFileSink(options: FileSinkOptions): FileSink {
     })
       .then((created) => {
         created.on('error', (err) => {
-          if (stream === created) fail('gagal menulis', err)
+          if (stream === created) fail('write failed', err)
         })
         stream = created
         state = 'ready'
@@ -72,7 +72,7 @@ export function createFileSink(options: FileSinkOptions): FileSink {
           created.write(line)
         }
       })
-      .catch((err: unknown) => fail('gagal membuka', err))
+      .catch((err: unknown) => fail('open failed', err))
   }
 
   open()
@@ -89,7 +89,7 @@ export function createFileSink(options: FileSinkOptions): FileSink {
       try {
         stream?.flushSync()
       } catch {
-        /* abaikan saat keluar */
+        /* ignore on exit */
       }
     },
     whenOpen: () => opened,

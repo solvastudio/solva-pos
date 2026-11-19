@@ -11,12 +11,12 @@ const SENTINELS = [
 ] as const
 
 describe('server/logging redaction sentinel (NFR-OBS-002)', () => {
-  it('tidak pernah menuliskan sentinel ke baris log maupun path access', async () => {
+  it('never writes sentinel values to log lines or access paths', async () => {
     const cap = captureLogs('debug')
     const log = createLogger('redaction-test')
 
     try {
-      // 1. Request sukses berisi sentinel di query, header, dan body
+      // 1. Successful request carrying sentinels in query, header, and body
       const reqOk = new Request(
         'https://pos.local/acme/pos/checkout?pin=SENTINEL_PIN_9137&token=SENTINEL_TOKEN',
         {
@@ -41,7 +41,7 @@ describe('server/logging redaction sentinel (NFR-OBS-002)', () => {
       expect(resOk.status).toBe(200)
       expect(resOk.headers.get('X-Request-Id')).toBeTruthy()
 
-      // 2. Request gagal dengan galat pg palsu memuat sentinel pada detail, where, parameters, dan kutipan pesan
+      // 2. Failing request with simulated pg error carrying sentinels in detail, where, parameters, and quoted message
       const reqErr = new Request(
         'https://pos.local/acme/api?token=SENTINEL_TOKEN',
         { method: 'POST', body: 'SENTINEL_PIN_9137' },
@@ -65,7 +65,7 @@ describe('server/logging redaction sentinel (NFR-OBS-002)', () => {
       expect(body.error.code).toBe('INTERNAL_ERROR')
       expect(body.error.ref).toBe(resErr.headers.get('X-Request-Id'))
 
-      // 3. /health tidak dicatat access log
+      // 3. /health is excluded from access logs
       await handleRequestWithLog(new Request('https://pos.local/health'), async () => {
         return new Response('ok', { status: 200 })
       })

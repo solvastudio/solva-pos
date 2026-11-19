@@ -1,6 +1,6 @@
 /**
- * Daftar field log tertutup (BR-LOG-006, FR-LOG-003).
- * Penambahan field baru wajib didaftarkan di sini sebelum dipakai di pemanggil logger.
+ * Closed log field registry (BR-LOG-006, FR-LOG-003).
+ * Any new field must be registered here before being passed to logger callers.
  */
 export const LOG_FIELD_NAMES = [
   'err',

@@ -1,6 +1,6 @@
 /**
- * Katalog ikon Lucide yang diizinkan sesuai docs/DESIGN.md §2.7, §2.1.5, §2.1.6, §3.0.1.
- * Ikon diimpor bernama agar tree-shaking berjalan dan tidak memuat ikon liar.
+ * Allowed Lucide icon catalog per docs/DESIGN.md §2.7, §2.1.5, §2.1.6, §3.0.1.
+ * Named imports only so tree-shaking applies and unlisted icons cannot creep in.
  */
 export {
   Archive,

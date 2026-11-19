@@ -29,7 +29,7 @@ async function main(): Promise<number> {
   }
 
   if (values.level && !Object.hasOwn(SEARCH_LEVEL_RANK, values.level)) {
-    process.stderr.write(`Level tidak valid: ${values.level}\n`)
+    process.stderr.write(`Invalid log level: ${values.level}\n`)
     return 1
   }
 
