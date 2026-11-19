@@ -115,6 +115,7 @@ export default defineConfig(
     'src/routeTree.gen.ts',
     'node_modules/**',
     'tests/arch/fixtures/**',
+    'tests/arch/fixtures-token/**',
     'playwright-report/**',
   ]),
 

@@ -1,1 +1,70 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import './tokens.css';
+@import '@fontsource-variable/plus-jakarta-sans';
+
+@utility z-base {
+  z-index: var(--z-base);
+}
+@utility z-sticky {
+  z-index: var(--z-sticky);
+}
+@utility z-nav {
+  z-index: var(--z-nav);
+}
+@utility z-header {
+  z-index: var(--z-header);
+}
+@utility z-banner {
+  z-index: var(--z-banner);
+}
+@utility z-dropdown {
+  z-index: var(--z-dropdown);
+}
+@utility z-modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+@utility z-pin {
+  z-index: var(--z-pin);
+}
+@utility z-system {
+  z-index: var(--z-system);
+}
+
+@utility size-key {
+  width: var(--spacing-key);
+  height: var(--spacing-key);
+  @media (min-width: 768px) {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  @apply bg-app text-ink text-body antialiased;
+}
+
+/* Verifikasi DOQ-01: fitur OpenType 'tnum' absen di subset woff2 @fontsource-variable/plus-jakarta-sans; gunakan tabular-nums standar */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

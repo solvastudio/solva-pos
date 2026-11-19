@@ -1,0 +1,233 @@
+@theme {
+  /* Kosongkan palet warna bawaan Tailwind agar warna ad-hoc (mis. bg-green-500) tidak tersedia */
+  --color-*: initial;
+
+  /* === L1 Primitif: Primary (DESIGN §2.1.1) === */
+  --color-primary-50: #F5FAEA;
+  --color-primary-100: #E8F3CF;
+  --color-primary-200: #D2E8A3;
+  --color-primary-300: #B4D96C;
+  --color-primary-400: #94C73C;
+  --color-primary-500: #76B617;
+  --color-primary-600: #5E9A10;
+  --color-primary-700: #46780D;
+  --color-primary-800: #3D660F;
+  --color-primary-900: #32530F;
+  --color-primary-950: #172A04;
+
+  /* === L1 Primitif: Neutral (DESIGN §2.1.2) === */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-25: #FAFAFB;
+  --color-neutral-50: #F4F5F6;
+  --color-neutral-100: #ECEDEF;
+  --color-neutral-200: #DEDFE3;
+  --color-neutral-300: #C9CBD1;
+  --color-neutral-400: #8E929C;
+  --color-neutral-500: #6B7079;
+  --color-neutral-600: #52565F;
+  --color-neutral-700: #3F434B;
+  --color-neutral-800: #2A2D33;
+  --color-neutral-900: #1B1D21;
+  --color-neutral-950: #0F1012;
+
+  /* === L1 Keluarga Semantik (DESIGN §2.1.4) === */
+  --color-success-solid: #1A7F46;
+  --color-success-soft: #E7F6EC;
+  --color-success-line: #8FD0A9;
+  --color-success-ink: #17703D;
+
+  --color-warning-solid: #9A5200;
+  --color-warning-soft: #FFF3E0;
+  --color-warning-line: #F0A64B;
+  --color-warning-ink: #8A4A00;
+
+  --color-danger-solid: #C0281C;
+  --color-danger-soft: #FDECEC;
+  --color-danger-line: #E58B90;
+  --color-danger-ink: #B42318;
+
+  --color-info-solid: #1F6FBA;
+  --color-info-soft: #E8F1FB;
+  --color-info-line: #8FB8E6;
+  --color-info-ink: #195E9E;
+
+  --color-violet-solid: #6444B8;
+  --color-violet-soft: #F1ECFB;
+  --color-violet-line: #BCA9E8;
+  --color-violet-ink: #563AA0;
+
+  --color-teal-solid: #0F766E;
+  --color-teal-soft: #E2F5F3;
+  --color-teal-line: #85CFC8;
+  --color-teal-ink: #0D625C;
+
+  /* === L1 Palet Grafik Tervalidasi CVD (DESIGN §2.1.7) === */
+  --color-chart-1: #3D660F;
+  --color-chart-2: #1F6FBA;
+  --color-chart-3: #CF7B0E;
+  --color-chart-4: #C2417A;
+  --color-chart-5: #8E929C;
+
+  --color-seq-1: #E8F3CF;
+  --color-seq-2: #B4D96C;
+  --color-seq-3: #76B617;
+  --color-seq-4: #46780D;
+  --color-seq-5: #32530F;
+
+  --color-div-neg-2: #1F6FBA;
+  --color-div-neg-1: #8FB8E6;
+  --color-div-0: #ECEDEF;
+  --color-div-pos-1: #F0B777;
+  --color-div-pos-2: #CF7B0E;
+
+  /* === L2 Peran: Permukaan (DESIGN §2.1.3) === */
+  --color-canvas: var(--color-neutral-200);
+  --color-app: var(--color-neutral-0);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-subtle: var(--color-neutral-25);
+  --color-surface-hover: var(--color-neutral-50);
+  --color-surface-sunken: var(--color-neutral-100);
+  --color-surface-inverse: var(--color-neutral-900);
+  --color-scrim: color-mix(in srgb, var(--color-neutral-950) 50%, transparent);
+
+  /* === L2 Peran: Teks === */
+  --color-ink: var(--color-neutral-900);
+  --color-ink-soft: var(--color-neutral-600);
+  --color-ink-muted: var(--color-neutral-500);
+  --color-ink-disabled: var(--color-neutral-400);
+  --color-ink-inverse: var(--color-neutral-0);
+  --color-ink-brand: var(--color-primary-700);
+
+  /* === L2 Peran: Garis === */
+  --color-line-subtle: var(--color-neutral-100);
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+  --color-line-input: var(--color-neutral-400);
+
+  /* === L2 Peran: Aksi === */
+  --color-action: var(--color-primary-700);
+  --color-action-hover: var(--color-primary-800);
+  --color-action-active: var(--color-primary-900);
+  --color-action-soft: var(--color-primary-50);
+  --color-action-soft-hover: var(--color-primary-100);
+  --color-on-action: var(--color-neutral-0);
+  --color-on-action-soft: var(--color-primary-800);
+  --color-brand: var(--color-primary-500);
+  --color-focus-ring: var(--color-primary-700);
+
+  /* === L2 Alias Status Meja F&B (DESIGN §2.1.6) === */
+  --color-table-occupied-bg: var(--color-primary-50);
+  --color-table-occupied-line: var(--color-primary-600);
+  --color-table-occupied-ink: var(--color-primary-800);
+
+  /* === Tipografi (DESIGN §2.2 & §8.3) === */
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Roboto Mono', monospace;
+
+  --text-total-xl: 2.5rem;
+  --text-total-xl--line-height: 3rem;
+  --text-total-lg: 2rem;
+  --text-total-lg--line-height: 2.5rem;
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 2rem;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.5rem;
+  --text-title: 1rem;
+  --text-title--line-height: 1.5rem;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-label-sm: 0.75rem;
+  --text-label-sm--line-height: 1rem;
+  --text-button-lg: 1rem;
+  --text-button-lg--line-height: 1.5rem;
+  --text-button: 0.875rem;
+  --text-button--line-height: 1.25rem;
+  --text-num-xl: 1.75rem;
+  --text-num-xl--line-height: 2.25rem;
+  --text-num-lg: 1.25rem;
+  --text-num-lg--line-height: 1.75rem;
+  --text-num-md: 1rem;
+  --text-num-md--line-height: 1.5rem;
+  --text-num-sm: 0.875rem;
+  --text-num-sm--line-height: 1.25rem;
+  --text-code-id: 1.25rem;
+  --text-code-id--line-height: 1.75rem;
+
+  /* === Spasi, Kontrol & Layout (DESIGN §2.3, §2.8, §8.3) === */
+  --spacing: 0.25rem;
+  --spacing-control-sm: 2.25rem;
+  --spacing-control-md: 2.75rem;
+  --spacing-control-lg: 3rem;
+  --spacing-control-xl: 3.5rem;
+  --spacing-chip-sm: 1.5rem;
+  --spacing-chip-md: 1.75rem;
+  --spacing-key: 3.5rem;
+  --spacing-sidebar: 15rem;
+  --spacing-rail: 4.5rem;
+  --spacing-header: 4rem;
+  --spacing-topbar: 3.5rem;
+  --spacing-bottomnav: 4rem;
+  --spacing-cart: 25rem;
+
+  /* === Radius (DESIGN §2.4.1) === */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-card: 1rem;
+  --radius-modal: 1.25rem;
+  --radius-full: 9999px;
+
+  /* === Bayangan (DESIGN §2.4.3) === */
+  --shadow-none: none;
+  --shadow-card: 0 1px 2px rgb(27 29 33 / 0.04), 0 2px 8px rgb(27 29 33 / 0.04);
+  --shadow-pill: 0 1px 3px rgb(27 29 33 / 0.08);
+  --shadow-popover: 0 8px 24px rgb(27 29 33 / 0.12);
+  --shadow-modal: 0 16px 48px rgb(27 29 33 / 0.20);
+
+  /* === Animasi & Durasi (DESIGN §2.6) === */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  /* === Lebar Konten & Dialog (DESIGN §2.8.2) === */
+  --container-content: 90rem;
+  --container-form: 45rem;
+  --container-dialog-sm: 25rem;
+  --container-dialog-md: 32.5rem;
+  --container-dialog-lg: 45rem;
+  --container-dialog-xl: 60rem;
+}
+
+:root {
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-nav: 20;
+  --z-header: 30;
+  --z-banner: 35;
+  --z-dropdown: 40;
+  --z-modal-backdrop: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+  --z-pin: 80;
+  --z-system: 90;
+
+  --duration-instant: 0ms;
+  --duration-fast: 100ms;
+  --duration-base: 160ms;
+  --duration-slow: 240ms;
+  --duration-sheet: 280ms;
+}

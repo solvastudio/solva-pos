@@ -109,5 +109,53 @@
     "FEATURE_DISABLED": {
       "action": "Fitur ini tidak aktif untuk tenant Anda."
     }
+  },
+  "dev": {
+    "ui": {
+      "title": "Galeri Komponen UI",
+      "buttons": "Tombol & Ikon",
+      "btnPrimary": "Bayar Rp112.500",
+      "btnSecondary": "Batal",
+      "btnTonal": "Ubah",
+      "btnDanger": "Void",
+      "btnLoading": "Menyimpan",
+      "btnDisabled": "Nonaktif",
+      "iconLabel": "Notifikasi",
+      "inputs": "Input, Select & Field",
+      "fieldLabel": "Nominal Bayar",
+      "fieldHint": "Masukkan nominal rupiah",
+      "fieldError": "Nominal tidak valid",
+      "inputPlaceholder": "0",
+      "selectLabel": "Pilih metode",
+      "selectPlaceholder": "Pilih...",
+      "optCash": "Tunai",
+      "optQris": "QRIS",
+      "navigation": "Tab, Segmented & Chip",
+      "tabAll": "Semua",
+      "tabDrink": "Minuman",
+      "segPercent": "Persen",
+      "segNominal": "Nominal",
+      "segLabel": "Jenis diskon",
+      "chipOnline": "Online",
+      "chipOffline": "Offline",
+      "chipAttention": "Perlu perhatian",
+      "controls": "Checkbox, Radio, Switch & Tooltip",
+      "checkLabel": "Cetak struk otomatis",
+      "radioLabel": "Ukuran kertas",
+      "radio58": "58 mm",
+      "radio80": "80 mm",
+      "switchLabel": "Mode kedai",
+      "switchStateOn": "Aktif",
+      "switchStateOff": "Nonaktif",
+      "tooltipText": "Pengaturan berlaku seketika",
+      "overlays": "Dialog, Toast & Empty State",
+      "openDialog": "Buka Dialog",
+      "dialogTitle": "Konfirmasi Void",
+      "dialogDesc": "Invoice akan ditandai VOID.",
+      "showToast": "Tampilkan Toast",
+      "toastMessage": "Perubahan tersimpan.",
+      "emptyTitle": "Belum ada produk",
+      "emptyDesc": "Tambahkan produk pertama untuk mulai menjual."
+    }
   }
 }

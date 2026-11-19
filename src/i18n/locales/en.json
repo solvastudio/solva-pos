@@ -109,5 +109,53 @@
     "FEATURE_DISABLED": {
       "action": "This feature isn't enabled for your tenant."
     }
+  },
+  "dev": {
+    "ui": {
+      "title": "UI Component Gallery",
+      "buttons": "Buttons & Icons",
+      "btnPrimary": "Pay Rp112,500",
+      "btnSecondary": "Cancel",
+      "btnTonal": "Edit",
+      "btnDanger": "Void",
+      "btnLoading": "Saving",
+      "btnDisabled": "Disabled",
+      "iconLabel": "Notifications",
+      "inputs": "Inputs, Select & Field",
+      "fieldLabel": "Payment Amount",
+      "fieldHint": "Enter amount in rupiah",
+      "fieldError": "Invalid amount",
+      "inputPlaceholder": "0",
+      "selectLabel": "Choose method",
+      "selectPlaceholder": "Select...",
+      "optCash": "Cash",
+      "optQris": "QRIS",
+      "navigation": "Tabs, Segmented & Chips",
+      "tabAll": "All",
+      "tabDrink": "Drinks",
+      "segPercent": "Percent",
+      "segNominal": "Nominal",
+      "segLabel": "Discount type",
+      "chipOnline": "Online",
+      "chipOffline": "Offline",
+      "chipAttention": "Needs attention",
+      "controls": "Checkbox, Radio, Switch & Tooltip",
+      "checkLabel": "Auto-print receipt",
+      "radioLabel": "Paper width",
+      "radio58": "58 mm",
+      "radio80": "80 mm",
+      "switchLabel": "F&B table mode",
+      "switchStateOn": "Active",
+      "switchStateOff": "Inactive",
+      "tooltipText": "Setting applies immediately",
+      "overlays": "Dialog, Toast & Empty State",
+      "openDialog": "Open Dialog",
+      "dialogTitle": "Confirm Void",
+      "dialogDesc": "Invoice will be marked VOID.",
+      "showToast": "Show Toast",
+      "toastMessage": "Changes saved.",
+      "emptyTitle": "No products yet",
+      "emptyDesc": "Add your first product to start selling."
+    }
   }
 }
