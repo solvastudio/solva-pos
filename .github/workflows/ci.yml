@@ -35,4 +35,5 @@ jobs:
           TEST_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
           DATABASE_URL: postgres://solva_app_login:solva_app_dev@localhost:5432/solva_test
           DATABASE_OWNER_URL: postgres://solva_owner:solva_owner_dev@localhost:5432/solva_test
+      - run: npm run test:nginx
       - run: npm run build

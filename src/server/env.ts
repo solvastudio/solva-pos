@@ -17,6 +17,21 @@ const optionalNonEmpty = z.preprocess(
   z.string().min(1).optional(),
 )
 
+function positiveIntEnv(defaultValue: number) {
+  return z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v),
+    z.coerce.number().int().min(1).default(defaultValue),
+  )
+}
+
+const scheduleCsvSchema = z.preprocess(
+  (v) => (v === '' || v === undefined ? undefined : v),
+  z
+    .string()
+    .regex(/^\d+(?:,\d+)*$/)
+    .default('0,0,0,30,60,120,300,900'),
+)
+
 export const envSchema = z.object({
   APP_ENV: z.enum(ENV_MODES),
   LOG_LEVEL: z.preprocess((v) => (v === '' ? undefined : v), z.enum(LOG_LEVELS).default('info')),
@@ -29,10 +44,51 @@ export const envSchema = z.object({
   DATABASE_OWNER_URL: optionalUrlSchema,
   BETTER_AUTH_SECRET: optionalNonEmpty,
   AUTH_COOKIE_SECURE: z.preprocess(
-    (v) => (v === '' || v === undefined ? undefined : v === 'true' || v === true ? true : v === 'false' || v === false ? false : v),
+    (v) =>
+      v === '' || v === undefined
+        ? undefined
+        : v === 'true' || v === true
+          ? true
+          : v === 'false' || v === false
+            ? false
+            : v,
     z.boolean().optional(),
   ),
   TRUSTED_PROXY_CIDR: optionalNonEmpty,
+
+  RL_LOGIN_SCHEDULE_SEC: scheduleCsvSchema,
+  RL_LOGIN_RESET_AFTER_SEC: positiveIntEnv(900),
+  RL_LOGIN_SLUG_ALERT_THRESHOLD: positiveIntEnv(100),
+  RL_LOGIN_SLUG_ALERT_WINDOW_SEC: positiveIntEnv(900),
+  RL_LOGIN_SLUG_TARPIT_MS: positiveIntEnv(2000),
+  RL_LOGIN_IPSLUG_POINTS: positiveIntEnv(100),
+  RL_LOGIN_IPSLUG_WINDOW_SEC: positiveIntEnv(900),
+  RL_LOGIN_IPSLUG_BLOCK_SEC: positiveIntEnv(900),
+  RL_LOGIN_KEY_MAX: positiveIntEnv(10000),
+  RL_ENROLL_IP_POINTS: positiveIntEnv(10),
+  RL_ENROLL_IP_WINDOW_SEC: positiveIntEnv(300),
+  RL_ENROLL_SLUG_POINTS: positiveIntEnv(30),
+  RL_ENROLL_SLUG_WINDOW_SEC: positiveIntEnv(300),
+  RL_REDEEM_EMAIL_POINTS: positiveIntEnv(5),
+  RL_REDEEM_EMAIL_WINDOW_SEC: positiveIntEnv(900),
+  RL_REDEEM_SLUG_POINTS: positiveIntEnv(30),
+  RL_REDEEM_SLUG_WINDOW_SEC: positiveIntEnv(300),
+  RL_REDEEM_IPSLUG_POINTS: positiveIntEnv(10),
+  RL_REDEEM_IPSLUG_WINDOW_SEC: positiveIntEnv(300),
+  RL_ISSUE_TENANT_PER_HOUR: positiveIntEnv(20),
+  RL_ISSUE_EMAIL_PER_HOUR: positiveIntEnv(5),
+  RL_SLUG_PROBE_POINTS: positiveIntEnv(60),
+  RL_SLUG_PROBE_WINDOW_SEC: positiveIntEnv(300),
+  RL_BAD_CREDENTIAL_IP_POINTS: positiveIntEnv(30),
+  RL_BAD_CREDENTIAL_IP_WINDOW_SEC: positiveIntEnv(300),
+  RL_DEVICE_PUSH_PER_MIN: positiveIntEnv(60),
+  RL_DEVICE_PULL_PER_MIN: positiveIntEnv(30),
+  RL_DEVICE_PING_PER_MIN: positiveIntEnv(30),
+  RL_DEVICE_HANDOVER_PER_MIN: positiveIntEnv(30),
+  RL_DEVICE_LOG_PER_10MIN: positiveIntEnv(20),
+  RL_FULL_RESYNC_PER_HOUR: positiveIntEnv(1),
+  RL_PUSH_CONCURRENCY: positiveIntEnv(8),
+  RL_REPORT_CONCURRENCY_PER_TENANT: positiveIntEnv(2),
 })
 
 export type AppEnv = z.infer<typeof envSchema>
@@ -51,7 +107,18 @@ export function parseEnv(rawEnv: Record<string, string | undefined>): AppEnv {
     parsed.data.APP_ENV === 'production' &&
     (parsed.data.LOG_LEVEL === 'debug' || parsed.data.LOG_LEVEL === 'trace')
   ) {
-    throw new Error('Invalid environment configuration: LOG_LEVEL debug/trace is forbidden when APP_ENV=production')
+    throw new Error(
+      'Invalid environment configuration: LOG_LEVEL debug/trace is forbidden when APP_ENV=production',
+    )
+  }
+
+  if (
+    (parsed.data.APP_ENV === 'staging' || parsed.data.APP_ENV === 'production') &&
+    !parsed.data.TRUSTED_PROXY_CIDR
+  ) {
+    throw new Error(
+      'Invalid environment configuration: TRUSTED_PROXY_CIDR is required in staging and production',
+    )
   }
 
   return parsed.data
@@ -83,9 +150,7 @@ export function requireAuthEnv(): {
 } {
   const env = getEnv()
   if (!env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32) {
-    throw new Error(
-      'Missing or weak BETTER_AUTH_SECRET: must be set to at least 32 characters',
-    )
+    throw new Error('Missing or weak BETTER_AUTH_SECRET: must be set to at least 32 characters')
   }
   const secure =
     env.AUTH_COOKIE_SECURE !== undefined

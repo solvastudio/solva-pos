@@ -58,8 +58,15 @@ function AdminLoginPage() {
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as {
           error?: { code?: string; messageKey?: string }
+          retry_after_minutes?: number
         } | null
-        if (response.status === 403 && body?.error?.code === 'TENANT_SUSPENDED') {
+        if (response.status === 429 && body?.error?.code === 'RATE_LIMITED') {
+          const minutes =
+            typeof body.retry_after_minutes === 'number' && body.retry_after_minutes >= 1
+              ? body.retry_after_minutes
+              : 1
+          setErrorMessage(t('error.RATE_LIMITED.actionMinutes', { menit: minutes }))
+        } else if (response.status === 403 && body?.error?.code === 'TENANT_SUSPENDED') {
           setErrorMessage(t('auth.login.suspended'))
         } else {
           setErrorMessage(t('auth.login.invalid'))

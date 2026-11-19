@@ -22,7 +22,8 @@
       "hidePassword": "Sembunyikan kata sandi",
       "submit": "Masuk",
       "forgotHint": "Lupa kata sandi? Minta kode atur ulang dari Owner bisnis Anda. Bila akun Anda dipakai di beberapa bisnis, hubungi dukungan Solva.",
-      "suspended": "Layanan untuk tenant ini sedang tidak tersedia."
+      "suspended": "Layanan untuk tenant ini sedang tidak tersedia.",
+      "rateLimited": "Terlalu banyak percobaan. Coba lagi dalam sekitar {{menit}} menit."
     }
   },
   "account": {

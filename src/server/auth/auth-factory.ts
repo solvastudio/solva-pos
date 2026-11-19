@@ -36,6 +36,9 @@ function createTenantAuthInstance(slug: string, tenantId: string, authOrgId: str
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
     },
+    rateLimit: {
+      enabled: false,
+    },
     plugins: [organization()],
     trustedOrigins: (request) => {
       if (!request) return []

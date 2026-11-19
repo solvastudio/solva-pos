@@ -10,6 +10,8 @@ import {
   getAuthContext,
 } from '~/server/auth/auth-context'
 import { handleAuthRoute } from '~/server/auth/login-handler'
+import { resetLimitersForTests } from '~/server/auth/rate-limit/limiters'
+import { resetLoginLimiterForTests } from '~/server/auth/rate-limit/login-limiter'
 import { closePools } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { captureLogs } from '~/server/logging/logger-core'
@@ -206,6 +208,8 @@ function authGet(slug: string, action: string, cookie?: string) {
 describe('Better Auth multi-tenant global identity & per-slug sessions', () => {
   beforeEach(() => {
     __resetAuthInstancesForTests()
+    resetLimitersForTests()
+    resetLoginLimiterForTests()
   })
 
   afterAll(async () => {

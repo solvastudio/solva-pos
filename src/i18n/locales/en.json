@@ -22,7 +22,8 @@
       "hidePassword": "Hide password",
       "submit": "Sign in",
       "forgotHint": "Forgot your password? Ask your business Owner for a reset code. If your account is used for several businesses, contact Solva support.",
-      "suspended": "Service for this tenant is currently unavailable."
+      "suspended": "Service for this tenant is currently unavailable.",
+      "rateLimited": "Too many attempts. Try again in about {{menit}} minutes."
     }
   },
   "account": {

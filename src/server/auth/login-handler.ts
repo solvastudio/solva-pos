@@ -11,6 +11,9 @@ import { setContextField } from '~/server/logging/log-context'
 import { getAuthContext } from './auth-context'
 import { createTenantAuth } from './auth-factory'
 import { checkSameOrigin } from './origin-check'
+import { getClientIp } from './rate-limit/client-ip'
+import { checkLogin, recordLoginFailure, recordLoginSuccess } from './rate-limit/login-limiter'
+import { rateLimitedResponse } from './rate-limit/rate-limited-response'
 
 const log = createLogger('auth')
 
@@ -28,20 +31,14 @@ export type LoginAttemptHook = (ctx: LoginAttemptHookContext) => Promise<void> |
 export interface AuthHandlerDeps {
   onLoginAttempt?: LoginAttemptHook
   minLoginDelayMs?: number
+  remoteAddress?: string
+  nowMs?: () => number
 }
 
-/**
- * Default no-op login attempt hook.
- * Fase 17 plugs progressive delay and IP rate limiting into this hook.
- */
 const noopLoginAttempt: LoginAttemptHook = () => {}
 
 export function hashLoginIdentifier(email: string): string {
   return createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 8)
-}
-
-function getClientIp(request: Request): string | undefined {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || undefined
 }
 
 async function ensureMinDuration(startedAt: number, minDelayMs: number): Promise<void> {
@@ -71,9 +68,10 @@ function copySetCookieHeaders(from: Headers, to: Headers): void {
 async function rejectUniformLogin(
   startedAt: number,
   minDelayMs: number,
-  meta: { usernameHash: string; usernameLength: number; reason: string },
+  meta: { usernameHash: string; usernameLength: number; reason: string; extraDelayMs?: number },
 ): Promise<Response> {
-  await ensureMinDuration(startedAt, minDelayMs)
+  const targetFloorMs = Math.max(minDelayMs, meta.extraDelayMs ?? 0)
+  await ensureMinDuration(startedAt, targetFloorMs)
   const durationMs = Math.round(performance.now() - startedAt)
   log.warn(
     {
@@ -135,11 +133,26 @@ async function handleLogin(
     })
   }
 
+  const ip = getClientIp(request, deps?.remoteAddress)
+  const nowMs = deps?.nowMs?.()
+
+  // Step 2: Check progressive global account delay & IP+slug net BEFORE verifying credentials.
+  const limitCheck = await checkLogin({
+    email: normalizedEmail,
+    slug: tenant.slug,
+    ip,
+    nowMs,
+  })
+  if (!limitCheck.allowed) {
+    await ensureMinDuration(startedAt, minDelayMs)
+    return rateLimitedResponse(limitCheck.retryAfterMs, 'interactive')
+  }
+
   try {
     await (deps?.onLoginAttempt ?? noopLoginAttempt)({
       slug: tenant.slug,
       usernameHash,
-      ip: getClientIp(request),
+      ip,
     })
 
     const auth = createTenantAuth(tenant.slug, tenant.tenantId, tenant.authOrgId)
@@ -154,10 +167,17 @@ async function handleLogin(
     })
 
     if (!signInRes.ok) {
+      const failure = await recordLoginFailure({
+        email: normalizedEmail,
+        slug: tenant.slug,
+        ip,
+        nowMs,
+      })
       return rejectUniformLogin(startedAt, minDelayMs, {
         usernameHash,
         usernameLength,
         reason: 'credentials_or_membership_rejected',
+        extraDelayMs: failure.tarpitMs,
       })
     }
 
@@ -166,21 +186,37 @@ async function handleLogin(
     } | null
     const authUserId = payload?.user?.id
     if (!authUserId) {
+      const failure = await recordLoginFailure({
+        email: normalizedEmail,
+        slug: tenant.slug,
+        ip,
+        nowMs,
+      })
       return rejectUniformLogin(startedAt, minDelayMs, {
         usernameHash,
         usernameLength,
         reason: 'missing_user_payload',
+        extraDelayMs: failure.tarpitMs,
       })
     }
 
     const isMember = await checkActiveMembership(tenant.tenantId, tenant.authOrgId, authUserId)
     if (!isMember) {
+      const failure = await recordLoginFailure({
+        email: normalizedEmail,
+        slug: tenant.slug,
+        ip,
+        nowMs,
+      })
       return rejectUniformLogin(startedAt, minDelayMs, {
         usernameHash,
         usernameLength,
         reason: 'membership_inactive',
+        extraDelayMs: failure.tarpitMs,
       })
     }
+
+    recordLoginSuccess(normalizedEmail)
 
     const headers = new Headers()
     copySetCookieHeaders(signInRes.headers, headers)
@@ -218,10 +254,17 @@ async function handleLogin(
       },
       'login failed with exception',
     )
+    const failure = await recordLoginFailure({
+      email: normalizedEmail,
+      slug: tenant.slug,
+      ip,
+      nowMs,
+    })
     return rejectUniformLogin(startedAt, minDelayMs, {
       usernameHash,
       usernameLength,
       reason: 'auth_exception',
+      extraDelayMs: failure.tarpitMs,
     })
   }
 }

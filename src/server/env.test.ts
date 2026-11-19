@@ -7,23 +7,45 @@ describe('server/env', () => {
   })
 
   it('rejects LOG_LEVEL debug/trace when APP_ENV=production', () => {
-    expect(() => parseEnv({ APP_ENV: 'production', LOG_LEVEL: 'debug' })).toThrowError(/LOG_LEVEL/)
-    expect(() => parseEnv({ APP_ENV: 'production', LOG_LEVEL: 'trace' })).toThrowError(/LOG_LEVEL/)
+    expect(() =>
+      parseEnv({
+        APP_ENV: 'production',
+        LOG_LEVEL: 'debug',
+        TRUSTED_PROXY_CIDR: '172.16.0.0/12',
+      }),
+    ).toThrowError(/LOG_LEVEL/)
+    expect(() =>
+      parseEnv({
+        APP_ENV: 'production',
+        LOG_LEVEL: 'trace',
+        TRUSTED_PROXY_CIDR: '172.16.0.0/12',
+      }),
+    ).toThrowError(/LOG_LEVEL/)
+  })
+
+  it('requires TRUSTED_PROXY_CIDR in staging and production', () => {
+    expect(() => parseEnv({ APP_ENV: 'staging' })).toThrowError(/TRUSTED_PROXY_CIDR/)
+    expect(() => parseEnv({ APP_ENV: 'production' })).toThrowError(/TRUSTED_PROXY_CIDR/)
+    expect(
+      parseEnv({ APP_ENV: 'production', TRUSTED_PROXY_CIDR: '172.16.0.0/12' }).TRUSTED_PROXY_CIDR,
+    ).toBe('172.16.0.0/12')
   })
 
   it('accepts valid configuration with expected defaults', () => {
     const dev = parseEnv({ APP_ENV: 'development' })
-    expect(dev).toEqual({
+    expect(dev).toMatchObject({
       APP_ENV: 'development',
       LOG_LEVEL: 'info',
       LOG_DIR: './logs',
       LOG_RETENTION_DAYS: 30,
-      DATABASE_URL: undefined,
-      DATABASE_OWNER_URL: undefined,
-      BETTER_AUTH_SECRET: undefined,
-      AUTH_COOKIE_SECURE: undefined,
-      TRUSTED_PROXY_CIDR: undefined,
+      RL_LOGIN_KEY_MAX: 10000,
+      RL_LOGIN_SCHEDULE_SEC: '0,0,0,30,60,120,300,900',
     })
+    expect(dev.DATABASE_URL).toBeUndefined()
+    expect(dev.DATABASE_OWNER_URL).toBeUndefined()
+    expect(dev.BETTER_AUTH_SECRET).toBeUndefined()
+    expect(dev.AUTH_COOKIE_SECURE).toBeUndefined()
+    expect(dev.TRUSTED_PROXY_CIDR).toBeUndefined()
 
     const prod = parseEnv({
       APP_ENV: 'production',
@@ -31,6 +53,7 @@ describe('server/env', () => {
       LOG_DIR: '/var/log/solva',
       LOG_RETENTION_DAYS: '90',
       DATABASE_URL: 'postgres://app:pw@db:5432/solva',
+      TRUSTED_PROXY_CIDR: '172.16.0.0/12',
     })
     expect(prod.LOG_RETENTION_DAYS).toBe(90)
     expect(prod.LOG_LEVEL).toBe('warn')
