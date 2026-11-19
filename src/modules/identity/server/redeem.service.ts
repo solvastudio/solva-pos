@@ -267,15 +267,18 @@ export async function redeemReset(
         throw new InvalidRedeemError()
       }
 
-      const roles = await listUserRoleCodesForAppUser(tx, input.tenantId, profile.id)
-      if (roles.includes('OWNER')) {
-        throw new InvalidRedeemError()
-      }
+      // Tenant-issued reset codes require R1-R3 (single tenant, non-OWNER);
+      // platform operator reset codes (`issuedBy === null`) apply to multi-tenant/OWNER accounts too.
+      if (claimed.issuedBy !== null) {
+        const roles = await listUserRoleCodesForAppUser(tx, input.tenantId, profile.id)
+        if (roles.includes('OWNER')) {
+          throw new InvalidRedeemError()
+        }
 
-      // Re-verify single-tenant exclusivity (R1) at redemption time.
-      const membershipCount = await callAuthAccountMembershipCount(tx, profile.authUserId)
-      if (membershipCount !== 1) {
-        throw new InvalidRedeemError()
+        const membershipCount = await callAuthAccountMembershipCount(tx, profile.authUserId)
+        if (membershipCount !== 1) {
+          throw new InvalidRedeemError()
+        }
       }
 
       const newHash = await hashPassword(input.password)

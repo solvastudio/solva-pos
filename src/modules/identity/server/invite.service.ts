@@ -4,7 +4,7 @@ import { isUuid } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { getLimiters } from '~/server/auth/rate-limit/limiters'
-import { withTenant } from '~/server/db'
+import { withTenant, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { findAuthUserByEmail } from './auth-account.repo'
 import {
@@ -86,6 +86,55 @@ async function consumeIssueRateLimits(
   }
 }
 
+export interface IssueInviteCoreParams {
+  tenantId: string
+  appUserId: string
+  email: string
+  issuedBy: string | null
+  nowIso: string
+}
+
+/**
+ * Core helper shared between tenant `createInvite` and platform `createTenant`/`reissueOwnerInvite`.
+ * Revokes any active prior `INVITE` code on `appUserId`, generates a new 10-char code,
+ * stores only its SHA-256 hash, and returns the formatted plaintext code once.
+ */
+export async function issueInviteCore(
+  tx: TenantTx,
+  params: IssueInviteCoreParams,
+  deps?: IdentityServiceDeps,
+): Promise<{ codeId: string; code: string; expiresAt: string }> {
+  const generated = generateOneTimeMemberCode(deps)
+  const codeId = identityIdGen.newId()
+  const expiresAt = addHoursIso(params.nowIso, INVITE_TTL_HOURS)
+
+  await revokeActiveMemberCodes(
+    tx,
+    params.tenantId,
+    params.appUserId,
+    'REPLACED',
+    params.nowIso,
+    'INVITE',
+  )
+  await insertMemberCodeRow(tx, {
+    id: codeId,
+    tenantId: params.tenantId,
+    appUserId: params.appUserId,
+    kind: 'INVITE',
+    email: params.email,
+    codeHash: generated.codeHash,
+    expiresAt,
+    issuedBy: params.issuedBy,
+    createdAt: params.nowIso,
+  })
+
+  return {
+    codeId,
+    code: generated.formatted,
+    expiresAt,
+  }
+}
+
 export async function createInvite(
   actor: IdentityAuthActor,
   input: CreateInviteInput,
@@ -127,9 +176,6 @@ export async function createInvite(
   await consumeIssueRateLimits(actor.tenantId, email, nowMs)
 
   const uniqueOutlets = input.outletIds ? Array.from(new Set(input.outletIds)) : null
-  const generated = generateOneTimeMemberCode(deps)
-  const codeId = identityIdGen.newId()
-  const expiresAt = addHoursIso(nowIso, INVITE_TTL_HOURS)
 
   return withTenant(actor.tenantId, async (tx) => {
     const roleRow = await findTenantRoleById(tx, actor.tenantId, input.roleId)
@@ -191,18 +237,17 @@ export async function createInvite(
       })
     }
 
-    await revokeActiveMemberCodes(tx, actor.tenantId, targetAppUserId, 'REPLACED', nowIso, 'INVITE')
-    await insertMemberCodeRow(tx, {
-      id: codeId,
-      tenantId: actor.tenantId,
-      appUserId: targetAppUserId,
-      kind: 'INVITE',
-      email,
-      codeHash: generated.codeHash,
-      expiresAt,
-      issuedBy: actor.appUserId,
-      createdAt: nowIso,
-    })
+    const issued = await issueInviteCore(
+      tx,
+      {
+        tenantId: actor.tenantId,
+        appUserId: targetAppUserId,
+        email,
+        issuedBy: actor.appUserId,
+        nowIso,
+      },
+      deps,
+    )
 
     await appendAudit(
       tx,
@@ -214,7 +259,7 @@ export async function createInvite(
           email,
           roleId: roleRow.id,
           outletIds: uniqueOutlets,
-          codeId,
+          codeId: issued.codeId,
         },
         actorUserId: actor.appUserId,
         occurredAt: nowIso,
@@ -224,9 +269,9 @@ export async function createInvite(
 
     return {
       appUserId: targetAppUserId,
-      codeId,
-      code: generated.formatted,
-      expiresAt,
+      codeId: issued.codeId,
+      code: issued.code,
+      expiresAt: issued.expiresAt,
     }
   })
 }

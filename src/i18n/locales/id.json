@@ -240,6 +240,75 @@
       "lastOwner": "Tidak dapat mengeluarkan satu-satunya Owner aktif."
     }
   },
+  "platform": {
+    "brandTitle": "Konsol Platform Solva",
+    "nav": {
+      "tenants": "Daftar tenant",
+      "createTenant": "Buat tenant"
+    },
+    "signOut": "Keluar",
+    "login": {
+      "title": "Masuk Operator Platform",
+      "subtitle": "Masuk dengan akun operator platform Solva.",
+      "emailLabel": "Email operator",
+      "emailPlaceholder": "operator@solva.id",
+      "passwordLabel": "Kata sandi",
+      "submit": "Masuk",
+      "invalid": "Email atau kata sandi salah"
+    },
+    "tenants": {
+      "title": "Daftar Tenant",
+      "newButton": "Buat tenant",
+      "emptyTitle": "Belum ada tenant",
+      "emptyDesc": "Buat ruang tenant pertama untuk menerbitkan kode undangan Owner.",
+      "colName": "Nama",
+      "colSlug": "Slug",
+      "colStatus": "Status",
+      "colAction": "Kelola",
+      "openDetail": "Buka",
+      "statusACTIVE": "AKTIF",
+      "statusSUSPENDED": "DITANGGUHKAN",
+      "statusCLOSED": "DITUTUP"
+    },
+    "create": {
+      "title": "Buat tenant baru",
+      "nameLabel": "Nama tampilan bisnis",
+      "nameHint": "1 sampai 40 karakter.",
+      "slugLabel": "Slug tenant",
+      "slugHint": "Pengenal permanen (huruf kecil, angka, tanda hubung). Slug tidak dapat diubah setelah dibuat.",
+      "urlPreviewLabel": "Pratinjau alamat admin",
+      "ownerNameLabel": "Nama Owner pertama",
+      "ownerEmailLabel": "Email Owner pertama",
+      "submit": "Buat tenant",
+      "failed": "Tidak dapat membuat tenant. Periksa keunikan slug dan ketentuan isian.",
+      "createdTitle": "Tenant berhasil dibuat",
+      "createdDesc": "Sampaikan alamat gabung dan kode undangan sekali pakai kepada Owner.",
+      "inviteUrlLabel": "Alamat gabung",
+      "inviteCodeLabel": "Kode undangan",
+      "viewTenant": "Lihat detail tenant"
+    },
+    "detail": {
+      "backToList": "Kembali ke daftar tenant",
+      "renameTitle": "Nama tampilan",
+      "renameSubmit": "Simpan nama",
+      "renameSaved": "Nama tampilan diperbarui.",
+      "statusTitle": "Status tenant",
+      "activate": "Aktifkan",
+      "suspend": "Tangguhkan",
+      "closePermanent": "Tutup permanen",
+      "statusUpdated": "Status tenant diperbarui.",
+      "invitesTitle": "Undangan tertunda",
+      "noInvites": "Tidak ada undangan tertunda.",
+      "reissue": "Terbitkan ulang kode",
+      "cancelInvite": "Batalkan undangan",
+      "reissuedCodeLabel": "Kode baru",
+      "membersTitle": "Anggota",
+      "noMembers": "Belum ada anggota.",
+      "issueReset": "Terbitkan kode atur ulang",
+      "resetCodeLabel": "Kode atur ulang",
+      "actionFailed": "Tindakan gagal. Periksa syarat status atau profil lalu coba lagi."
+    }
+  },
   "dev": {
     "ui": {
       "title": "Galeri Komponen UI",

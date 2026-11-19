@@ -240,6 +240,75 @@
       "lastOwner": "You cannot remove the only active Owner."
     }
   },
+  "platform": {
+    "brandTitle": "Solva Platform Console",
+    "nav": {
+      "tenants": "Tenants",
+      "createTenant": "New tenant"
+    },
+    "signOut": "Sign out",
+    "login": {
+      "title": "Platform Operator Sign In",
+      "subtitle": "Sign in with a Solva platform operator account.",
+      "emailLabel": "Operator email",
+      "emailPlaceholder": "operator@solva.id",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "invalid": "Incorrect email or password"
+    },
+    "tenants": {
+      "title": "Tenants",
+      "newButton": "Create tenant",
+      "emptyTitle": "No tenants yet",
+      "emptyDesc": "Create the first tenant workspace to issue an owner invitation code.",
+      "colName": "Name",
+      "colSlug": "Slug",
+      "colStatus": "Status",
+      "colAction": "Manage",
+      "openDetail": "Open",
+      "statusACTIVE": "ACTIVE",
+      "statusSUSPENDED": "SUSPENDED",
+      "statusCLOSED": "CLOSED"
+    },
+    "create": {
+      "title": "Create tenant",
+      "nameLabel": "Business display name",
+      "nameHint": "1 to 40 characters.",
+      "slugLabel": "Tenant slug",
+      "slugHint": "Permanent identifier (lowercase letters, digits, hyphens). Cannot be changed after creation.",
+      "urlPreviewLabel": "Admin URL preview",
+      "ownerNameLabel": "Initial Owner name",
+      "ownerEmailLabel": "Initial Owner email",
+      "submit": "Create tenant",
+      "failed": "Could not create tenant. Verify slug uniqueness and input constraints.",
+      "createdTitle": "Tenant created",
+      "createdDesc": "Share the join URL and one-time invitation code with the Owner.",
+      "inviteUrlLabel": "Join URL",
+      "inviteCodeLabel": "Invitation code",
+      "viewTenant": "Open tenant detail"
+    },
+    "detail": {
+      "backToList": "Back to tenants",
+      "renameTitle": "Display name",
+      "renameSubmit": "Save name",
+      "renameSaved": "Display name updated.",
+      "statusTitle": "Lifecycle status",
+      "activate": "Activate",
+      "suspend": "Suspend",
+      "closePermanent": "Close tenant",
+      "statusUpdated": "Tenant status updated.",
+      "invitesTitle": "Pending invitations",
+      "noInvites": "No pending invitations.",
+      "reissue": "Reissue code",
+      "cancelInvite": "Cancel invite",
+      "reissuedCodeLabel": "Reissued code",
+      "membersTitle": "Members",
+      "noMembers": "No members yet.",
+      "issueReset": "Issue reset code",
+      "resetCodeLabel": "Issued reset code",
+      "actionFailed": "Action failed. Check constraints and try again."
+    }
+  },
   "dev": {
     "ui": {
       "title": "UI Component Gallery",

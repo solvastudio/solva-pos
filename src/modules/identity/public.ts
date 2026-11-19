@@ -5,6 +5,7 @@ export {
   type TenantResolution,
 } from './server/tenant-resolver.service'
 export * as authSchema from './server/auth-schema'
+export { platformAuthTables as platformAuthSchema } from './server/platform-auth-schema'
 export {
   checkActiveMembership,
   getTenantAuthMetadataById,
@@ -37,3 +38,29 @@ export {
   type RedeemResult,
 } from './server/redeem.service'
 export { purgeMemberCodes, type PurgeMemberCodesResult } from './server/member-cleanup'
+export {
+  createTenant,
+  getTenantDetail,
+  listTenants,
+  renameTenant,
+  setTenantStatus,
+  validateTenantDisplayName,
+  type CreateTenantDeps,
+  type CreateTenantInput,
+  type CreateTenantResult,
+  type PlatformOperatorActor,
+} from './server/tenant.service'
+export type {
+  PlatformTenantSummaryRow,
+  TenantDetailRow,
+  TenantLifecycleStatus,
+  TenantMemberOverviewRow,
+} from './server/tenant.repo'
+export {
+  cancelOwnerInvite,
+  getPlatformTenantView,
+  issueResetCodeAsOperator,
+  listOwnerInvites,
+  reissueOwnerInvite,
+  type PlatformTenantView,
+} from './server/operator.service'

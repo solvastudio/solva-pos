@@ -78,6 +78,10 @@ export async function resolveTenantBySlug(
   return resolution
 }
 
+export function invalidateTenantCache(rawSlug: string): void {
+  cache.delete(normalizeSlug(rawSlug))
+}
+
 export function __clearTenantCacheForTests(): void {
   cache.clear()
 }

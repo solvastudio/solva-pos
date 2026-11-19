@@ -11,6 +11,10 @@ export const GLOBAL_TABLES = new Set([
   'organization',
   'member',
   'invitation',
+  'platform_user',
+  'platform_session',
+  'platform_account',
+  'platform_verification',
 ])
 
 export interface CatalogTableInfo {

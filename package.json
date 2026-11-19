@@ -24,6 +24,7 @@
     "audit:verify": "node scripts/local.mjs tsx scripts/ops/verify-audit-chain.ts",
     "seed:dev-tenant": "node scripts/local.mjs tsx scripts/seed/dev-tenant.ts",
     "seed:dev-owner": "node scripts/local.mjs tsx scripts/seed/dev-owner.ts",
+    "ops:create-platform-admin": "node scripts/local.mjs tsx scripts/ops/create-platform-admin.ts",
     "test:nginx": "node scripts/ci/nginx-check.mjs",
     "test:e2e": "echo \"test:e2e diisi di Fase 30\""
   },
