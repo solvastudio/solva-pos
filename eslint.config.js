@@ -29,6 +29,10 @@ const CLIENT_SERVER_PATTERNS = [
     group: ['pino', 'pino-roll'],
     message: 'Kode klien tidak boleh mengimpor kode server (ARCHITECTURE §8.4)',
   },
+  {
+    group: ['rate-limiter-flexible', 'rate-limiter-flexible/*'],
+    message: 'rate-limiter-flexible hanya diizinkan di kode server (ARCHITECTURE §6.9.4 / OQ-A26)',
+  },
 ]
 
 const PURE_FORBIDDEN_PATTERNS = [
