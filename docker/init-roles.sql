@@ -1,0 +1,15 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'solva_owner') THEN
+    CREATE ROLE solva_owner LOGIN PASSWORD 'solva_owner_dev' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'solva_app') THEN
+    CREATE ROLE solva_app NOLOGIN NOSUPERUSER NOBYPASSRLS;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'solva_report') THEN
+    CREATE ROLE solva_report NOLOGIN NOSUPERUSER NOBYPASSRLS;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'solva_app_login') THEN
+    CREATE ROLE solva_app_login LOGIN PASSWORD 'solva_app_dev' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS IN ROLE solva_app;
+  END IF;
+END $$;

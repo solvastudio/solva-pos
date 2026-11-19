@@ -23,6 +23,7 @@ export default defineConfig({
         test: {
           name: 'db',
           include: ['tests/integration/**/*.int.test.ts'],
+          globalSetup: ['./tests/integration/global-setup.ts'],
           environment: 'node',
           testTimeout: 30_000,
           hookTimeout: 60_000,
