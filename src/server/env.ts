@@ -62,6 +62,17 @@ export function getEnv(): AppEnv {
   return cachedEnv
 }
 
+export function requireDbEnv(): { DATABASE_URL: string; DATABASE_OWNER_URL?: string } {
+  const env = getEnv()
+  if (!env.DATABASE_URL) {
+    throw new Error('Missing required environment variable: DATABASE_URL')
+  }
+  return {
+    DATABASE_URL: env.DATABASE_URL,
+    ...(env.DATABASE_OWNER_URL ? { DATABASE_OWNER_URL: env.DATABASE_OWNER_URL } : {}),
+  }
+}
+
 export function resetEnvForTests(): void {
   cachedEnv = null
 }

@@ -33,6 +33,9 @@ export default async function setup(): Promise<void> {
   process.env.TEST_OWNER_URL = ownerUrl
   process.env.TEST_APP_URL = appUrl
   process.env.TEST_ADMIN_DB_URL = adminDbUrl.toString()
+  process.env.DATABASE_URL = appUrl
+  process.env.DATABASE_OWNER_URL = ownerUrl
+  process.env.APP_ENV = process.env.APP_ENV || 'development'
 
   await runMigrations(ownerUrl)
 }

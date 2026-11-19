@@ -1,0 +1,194 @@
+{
+  "id": "c2778b99-4eaf-4e2c-a1bf-6dbb2f3721f8",
+  "prevId": "2754c4ac-6886-4907-bd48-3424b6b99549",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.tenant": {
+      "name": "tenant",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "default_locale": {
+          "name": "default_locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'id-ID'"
+        },
+        "currency": {
+          "name": "currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'IDR'"
+        },
+        "auth_org_id": {
+          "name": "auth_org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_tenant__slug": {
+          "name": "uq_tenant__slug",
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false
+        },
+        "uq_tenant__auth_org_id": {
+          "name": "uq_tenant__auth_org_id",
+          "columns": [
+            "auth_org_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "ck_tenant__name_len": {
+          "name": "ck_tenant__name_len",
+          "value": "char_length(\"tenant\".\"name\") BETWEEN 1 AND 40"
+        },
+        "ck_tenant__slug": {
+          "name": "ck_tenant__slug",
+          "value": "\"tenant\".\"slug\" ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'"
+        },
+        "ck_tenant__status": {
+          "name": "ck_tenant__status",
+          "value": "\"tenant\".\"status\" IN ('ACTIVE', 'SUSPENDED', 'CLOSED')"
+        },
+        "ck_tenant__default_locale": {
+          "name": "ck_tenant__default_locale",
+          "value": "\"tenant\".\"default_locale\" IN ('id-ID', 'en-US')"
+        },
+        "ck_tenant__currency": {
+          "name": "ck_tenant__currency",
+          "value": "\"tenant\".\"currency\" = 'IDR'"
+        },
+        "ck_tenant__version": {
+          "name": "ck_tenant__version",
+          "value": "\"tenant\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.tenant_sync": {
+      "name": "tenant_sync",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tombstone_floor_version": {
+          "name": "tombstone_floor_version",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "floor_updated_at": {
+          "name": "floor_updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_tenant_sync__version": {
+          "name": "ck_tenant_sync__version",
+          "value": "\"tenant_sync\".\"version\" >= 0"
+        },
+        "ck_tenant_sync__floor": {
+          "name": "ck_tenant_sync__floor",
+          "value": "\"tenant_sync\".\"tombstone_floor_version\" >= 0 AND \"tenant_sync\".\"tombstone_floor_version\" <= \"tenant_sync\".\"version\""
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
