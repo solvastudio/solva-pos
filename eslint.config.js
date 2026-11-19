@@ -116,6 +116,7 @@ export default defineConfig(
     'node_modules/**',
     'tests/arch/fixtures/**',
     'tests/arch/fixtures-token/**',
+    'tests/arch/fixtures-sql/**',
     'playwright-report/**',
   ]),
 

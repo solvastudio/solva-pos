@@ -29,10 +29,10 @@ export async function createTestTenant(
     try {
       await client.query("SELECT set_config('app.tenant_id', $1, true)", [id])
       await client.query(
-        'INSERT INTO tenant (id, name, slug, status) VALUES ($1, $2, $3, $4)',
+        'INSERT INTO tenant (id, name, slug, status, version) VALUES ($1, $2, $3, $4, 1)',
         [id, name, slug, status],
       )
-      await client.query('INSERT INTO tenant_sync (tenant_id) VALUES ($1)', [id])
+      await client.query('INSERT INTO tenant_sync (tenant_id, version) VALUES ($1, 1)', [id])
       await client.query('COMMIT')
     } catch (err) {
       await client.query('ROLLBACK')
