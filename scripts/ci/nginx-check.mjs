@@ -131,12 +131,12 @@ async function main() {
     assert.equal(fnBody.url, '/_serverFn/abc', 'Nginx must rewrite /<slug>/_serverFn/* -> /_serverFn/*')
     assert.equal(fnBody.xTenantSlug, 'acme', 'Nginx must inject captured slug into X-Tenant-Slug')
 
-    // 5. Rate limiting on anonymous /<slug>/join triggers 429 on bursts
+    // 5. Rate limiting on anonymous /<slug>/join and /<slug>/api/join triggers 429 on bursts
     const burstResponses = await Promise.all(
-      Array.from({ length: 40 }, () => fetch(`${baseUrl}/acme/join`)),
+      Array.from({ length: 40 }, () => fetch(`${baseUrl}/acme/api/join`, { method: 'POST' })),
     )
     const rateLimitedCount = burstResponses.filter((r) => r.status === 429).length
-    assert.ok(rateLimitedCount > 0, `Expected some 429 responses on 40x /acme/join burst, got ${rateLimitedCount}`)
+    assert.ok(rateLimitedCount > 0, `Expected some 429 responses on 40x /acme/api/join burst, got ${rateLimitedCount}`)
 
     // 6. SSE /api/pos/v1/signals remains 200 even when 60 parallel /api/slow saturate limit_conn (50)
     const slowControllers = []

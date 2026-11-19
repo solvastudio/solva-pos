@@ -3,6 +3,7 @@ import {
   boolean,
   char,
   check,
+  customType,
   date,
   foreignKey,
   index,
@@ -439,5 +440,82 @@ export const userOutlet = pgTable(
       name: 'fk_user_outlet__role',
     }),
     check('ck_user_outlet__version', sql`${t.version} > 0`),
+  ],
+)
+
+const citext = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return 'citext'
+  },
+  fromDriver(value) {
+    return String(value)
+  },
+  toDriver(value) {
+    return value
+  },
+})
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea'
+  },
+  fromDriver(value) {
+    return Buffer.isBuffer(value) ? value : Buffer.from(value)
+  },
+  toDriver(value) {
+    return value
+  },
+})
+
+export const memberCode = pgTable(
+  'member_code',
+  {
+    id: uuidId('id')
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    tenantId: uuidId('tenant_id').notNull(),
+    appUserId: uuidId('app_user_id').notNull(),
+    kind: text('kind').notNull(),
+    email: citext('email').notNull(),
+    codeHash: bytea('code_hash').notNull(),
+    expiresAt: isoTimestamptz('expires_at').notNull(),
+    usedAt: isoTimestamptz('used_at'),
+    redeemedAuthUserId: text('redeemed_auth_user_id'),
+    revokedAt: isoTimestamptz('revoked_at'),
+    revokeReason: text('revoke_reason'),
+    issuedBy: uuidId('issued_by'),
+    createdAt: isoTimestamptz('created_at').notNull().default(sql`now()`),
+  },
+  (t) => [
+    unique('uq_member_code__code_hash').on(t.codeHash),
+    uniqueIndex('uq_member_code__active_user_kind')
+      .on(t.appUserId, t.kind)
+      .where(sql`${t.usedAt} IS NULL AND ${t.revokedAt} IS NULL`),
+    index('ix_member_code__user_kind_created').on(t.appUserId, t.kind, sql`${t.createdAt} DESC`),
+    index('ix_member_code__expires_at').on(t.expiresAt),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenant.id],
+      name: 'fk_member_code__tenant',
+    }),
+    foreignKey({
+      columns: [t.tenantId, t.appUserId],
+      foreignColumns: [appUser.tenantId, appUser.id],
+      name: 'fk_member_code__app_user',
+    }),
+    foreignKey({
+      columns: [t.tenantId, t.issuedBy],
+      foreignColumns: [appUser.tenantId, appUser.id],
+      name: 'fk_member_code__issued_by',
+    }),
+    check('ck_member_code__kind', sql`${t.kind} IN ('INVITE', 'RESET')`),
+    check('ck_member_code__email_len', sql`char_length(${t.email}) <= 254`),
+    check('ck_member_code__expires_gt_created', sql`${t.expiresAt} > ${t.createdAt}`),
+    check('ck_member_code__revoke_reason', sql`${t.revokeReason} IN ('CANCELED', 'REPLACED')`),
+    check('ck_member_code__used_or_revoked', sql`${t.usedAt} IS NULL OR ${t.revokedAt} IS NULL`),
+    check(
+      'ck_member_code__revoked_pair',
+      sql`(${t.revokedAt} IS NULL) = (${t.revokeReason} IS NULL)`,
+    ),
   ],
 )

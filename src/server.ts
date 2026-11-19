@@ -7,6 +7,7 @@ import { startLogRetention } from '~/server/logging/log-retention'
 import { getRootLogger } from '~/server/logging/logger-core'
 import { installProcessHandlers } from '~/server/logging/process-handlers'
 import { handleRequestWithLog } from '~/server/logging/request-log'
+import { startBackgroundJobs } from '~/server/jobs/scheduler'
 
 function bootServerEnv(): AppEnv {
   try {
@@ -21,6 +22,7 @@ function bootServerEnv(): AppEnv {
 const env = bootServerEnv()
 getRootLogger()
 startLogRetention(env.LOG_DIR, env.LOG_RETENTION_DAYS)
+startBackgroundJobs()
 installProcessHandlers({ exitOnFatal: env.APP_ENV === 'production' })
 createLogger('boot').info({ appVersion: __APP_VERSION__ }, 'server started')
 

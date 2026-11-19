@@ -199,6 +199,45 @@
       "body": "Masuk lagi untuk melanjutkan.",
       "signIn": "Masuk",
       "refLabel": "Referensi galat"
+    },
+    "code": {
+      "invalid": "Email, kode, atau kata sandi tidak sesuai, atau kode sudah kedaluwarsa."
+    }
+  },
+  "join": {
+    "title": "Gabung ke {{tenant}}",
+    "emailLabel": "Email",
+    "emailPlaceholder": "nama@bisnis.id",
+    "code": "Kode undangan",
+    "codePlaceholder": "K7Q2M-9XD4R",
+    "passwordLabel": "Kata sandi",
+    "passwordHint": "Belum punya akun? Buat kata sandi baru. Sudah punya akun? Masukkan kata sandi Anda.",
+    "submit": "Gabung",
+    "done": "Selesai. Silakan masuk ke {{tenant}}.",
+    "toLogin": "Buka halaman masuk"
+  },
+  "reset": {
+    "title": "Atur ulang kata sandi — {{tenant}}",
+    "emailLabel": "Email",
+    "emailPlaceholder": "nama@bisnis.id",
+    "code": "Kode atur ulang",
+    "codePlaceholder": "K7Q2M-9XD4R",
+    "passwordLabel": "Kata sandi baru",
+    "passwordHint": "Buat kata sandi baru minimal 10 karakter.",
+    "submit": "Simpan kata sandi baru",
+    "done": "Kata sandi diperbarui. Silakan masuk.",
+    "toLogin": "Buka halaman masuk"
+  },
+  "members": {
+    "reset": {
+      "unavailable": "Reset tidak tersedia untuk akun ini di sini; hubungi operator platform."
+    },
+    "add": {
+      "already": "Email ini sudah menjadi anggota aktif tenant ini.",
+      "failed": "Tidak dapat membuat undangan. Periksa isian lalu coba lagi."
+    },
+    "remove": {
+      "lastOwner": "Tidak dapat mengeluarkan satu-satunya Owner aktif."
     }
   },
   "dev": {

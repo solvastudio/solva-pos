@@ -199,6 +199,45 @@
       "body": "Sign in again to continue.",
       "signIn": "Sign in",
       "refLabel": "Error reference"
+    },
+    "code": {
+      "invalid": "The email, code, or password doesn't match, or the code has expired."
+    }
+  },
+  "join": {
+    "title": "Join {{tenant}}",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@business.com",
+    "code": "Invitation code",
+    "codePlaceholder": "K7Q2M-9XD4R",
+    "passwordLabel": "Password",
+    "passwordHint": "No account yet? Create a new password. Already have an account? Enter your password.",
+    "submit": "Join",
+    "done": "Done. Please sign in to {{tenant}}.",
+    "toLogin": "Go to sign in"
+  },
+  "reset": {
+    "title": "Reset password — {{tenant}}",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@business.com",
+    "code": "Reset code",
+    "codePlaceholder": "K7Q2M-9XD4R",
+    "passwordLabel": "New password",
+    "passwordHint": "Choose a new password with at least 10 characters.",
+    "submit": "Save new password",
+    "done": "Password updated. Please sign in.",
+    "toLogin": "Go to sign in"
+  },
+  "members": {
+    "reset": {
+      "unavailable": "Reset is not available for this account here; contact the platform operator."
+    },
+    "add": {
+      "already": "This email is already an active member of this tenant.",
+      "failed": "Could not create the invitation. Check your input and try again."
+    },
+    "remove": {
+      "lastOwner": "You cannot remove the only active Owner."
     }
   },
   "dev": {

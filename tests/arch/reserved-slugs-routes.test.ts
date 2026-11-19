@@ -46,6 +46,9 @@ describe('architecture reserved slug vs static route guard', () => {
       return st.isDirectory() ? entry : entry.replace(/\.(?:tsx|ts|jsx|js)$/, '')
     })
     expect(new Set(childNames).size).toBe(childNames.length)
+    expect(childNames).toContain('api')
+    expect(childNames).toContain('join')
+    expect(childNames).toContain('reset')
   })
 
   it('detects unreserved top-level route segment in fixture directory', () => {

@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantRouteImport } from './routes/$tenant'
 import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
+import { Route as TenantJoinRouteImport } from './routes/$tenant/join'
+import { Route as TenantResetRouteImport } from './routes/$tenant/reset'
 import { Route as DevUiRouteImport } from './routes/_dev/ui'
 import { Route as TenantAdminAuthedRouteImport } from './routes/$tenant/admin/_authed'
 import { Route as TenantAdminLoginRouteImport } from './routes/$tenant/admin/login'
+import { Route as TenantApiJoinRouteImport } from './routes/$tenant/api/join'
+import { Route as TenantApiResetRouteImport } from './routes/$tenant/api/reset'
 import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/admin/_authed/index'
 import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
@@ -34,6 +38,16 @@ const TenantIndexRoute = TenantIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantJoinRoute = TenantJoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantResetRoute = TenantResetRouteImport.update({
+  id: '/reset',
+  path: '/reset',
+  getParentRoute: () => TenantRoute,
+} as any)
 const DevUiRoute = DevUiRouteImport.update({
   id: '/_dev/ui',
   path: '/ui',
@@ -47,6 +61,16 @@ const TenantAdminAuthedRoute = TenantAdminAuthedRouteImport.update({
 const TenantAdminLoginRoute = TenantAdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantApiJoinRoute = TenantApiJoinRouteImport.update({
+  id: '/api/join',
+  path: '/api/join',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantApiResetRoute = TenantApiResetRouteImport.update({
+  id: '/api/reset',
+  path: '/api/reset',
   getParentRoute: () => TenantRoute,
 } as any)
 const TenantAdminAuthedIndexRoute = TenantAdminAuthedIndexRouteImport.update({
@@ -69,19 +93,27 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$tenant': typeof TenantRouteWithChildren
+  '/$tenant/join': typeof TenantJoinRoute
+  '/$tenant/reset': typeof TenantResetRoute
   '/ui': typeof DevUiRoute
   '/$tenant/': typeof TenantIndexRoute
   '/$tenant/admin': typeof TenantAdminAuthedRouteWithChildren
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/api/join': typeof TenantApiJoinRoute
+  '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$tenant/join': typeof TenantJoinRoute
+  '/$tenant/reset': typeof TenantResetRoute
   '/ui': typeof DevUiRoute
   '/$tenant': typeof TenantIndexRoute
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/api/join': typeof TenantApiJoinRoute
+  '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
@@ -90,10 +122,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$tenant': typeof TenantRouteWithChildren
+  '/$tenant/join': typeof TenantJoinRoute
+  '/$tenant/reset': typeof TenantResetRoute
   '/_dev/ui': typeof DevUiRoute
   '/$tenant/': typeof TenantIndexRoute
   '/$tenant/admin/_authed': typeof TenantAdminAuthedRouteWithChildren
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
+  '/$tenant/api/join': typeof TenantApiJoinRoute
+  '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
@@ -103,19 +139,27 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$tenant'
+    | '/$tenant/join'
+    | '/$tenant/reset'
     | '/ui'
     | '/$tenant/'
     | '/$tenant/admin'
     | '/$tenant/admin/login'
+    | '/$tenant/api/join'
+    | '/$tenant/api/reset'
     | '/$tenant/admin/account'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$tenant/join'
+    | '/$tenant/reset'
     | '/ui'
     | '/$tenant'
     | '/$tenant/admin/login'
+    | '/$tenant/api/join'
+    | '/$tenant/api/reset'
     | '/$tenant/admin/account'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
@@ -123,10 +167,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$tenant'
+    | '/$tenant/join'
+    | '/$tenant/reset'
     | '/_dev/ui'
     | '/$tenant/'
     | '/$tenant/admin/_authed'
     | '/$tenant/admin/login'
+    | '/$tenant/api/join'
+    | '/$tenant/api/reset'
     | '/$tenant/admin/_authed/account'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
@@ -161,6 +209,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantIndexRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/$tenant/join': {
+      id: '/$tenant/join'
+      path: '/join'
+      fullPath: '/$tenant/join'
+      preLoaderRoute: typeof TenantJoinRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/$tenant/reset': {
+      id: '/$tenant/reset'
+      path: '/reset'
+      fullPath: '/$tenant/reset'
+      preLoaderRoute: typeof TenantResetRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/_dev/ui': {
       id: '/_dev/ui'
       path: '/ui'
@@ -180,6 +242,20 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/$tenant/admin/login'
       preLoaderRoute: typeof TenantAdminLoginRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/$tenant/api/join': {
+      id: '/$tenant/api/join'
+      path: '/api/join'
+      fullPath: '/$tenant/api/join'
+      preLoaderRoute: typeof TenantApiJoinRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/$tenant/api/reset': {
+      id: '/$tenant/api/reset'
+      path: '/api/reset'
+      fullPath: '/$tenant/api/reset'
+      preLoaderRoute: typeof TenantApiResetRouteImport
       parentRoute: typeof TenantRoute
     }
     '/$tenant/admin/_authed/': {
@@ -220,16 +296,24 @@ const TenantAdminAuthedRouteWithChildren =
   TenantAdminAuthedRoute._addFileChildren(TenantAdminAuthedRouteChildren)
 
 interface TenantRouteChildren {
+  TenantJoinRoute: typeof TenantJoinRoute
+  TenantResetRoute: typeof TenantResetRoute
   TenantIndexRoute: typeof TenantIndexRoute
   TenantAdminAuthedRoute: typeof TenantAdminAuthedRouteWithChildren
   TenantAdminLoginRoute: typeof TenantAdminLoginRoute
+  TenantApiJoinRoute: typeof TenantApiJoinRoute
+  TenantApiResetRoute: typeof TenantApiResetRoute
   TenantAdminApiAuthSplatRoute: typeof TenantAdminApiAuthSplatRoute
 }
 
 const TenantRouteChildren: TenantRouteChildren = {
+  TenantJoinRoute: TenantJoinRoute,
+  TenantResetRoute: TenantResetRoute,
   TenantIndexRoute: TenantIndexRoute,
   TenantAdminAuthedRoute: TenantAdminAuthedRouteWithChildren,
   TenantAdminLoginRoute: TenantAdminLoginRoute,
+  TenantApiJoinRoute: TenantApiJoinRoute,
+  TenantApiResetRoute: TenantApiResetRoute,
   TenantAdminApiAuthSplatRoute: TenantAdminApiAuthSplatRoute,
 }
 
