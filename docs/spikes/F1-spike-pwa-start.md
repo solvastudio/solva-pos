@@ -79,6 +79,7 @@ Definisi Opsi A/B/C di bawah diselaraskan dengan ARCHITECTURE §2.3 dan `plans/0
 
 ---
 
-## 6. Keputusan yang Diminta dari User
+## 6. Keputusan User (Final — 2026-11-20)
 
-Pilih **Opsi A, B, atau C** untuk shell `/pos` (Fase 26).
+- **Keputusan:** **Opsi A DIPILIH** oleh user pada **2026-11-20** dan telah diimplementasikan pada **Fase 26** (`/pos-shell.html` sebagai `navigateFallback` via `vite-plugin-pwa` `injectManifest` + `pwaAfterStartBuild()` + `PrecacheController` union-GC lintas tenant).
+- **Catatan pemetaan label (revisi draf awal):** skema "skrip pasca-build" yang sempat dilabeli Opsi B pada draf pertama dokumen ini tetap dipetakan sebagai **Opsi C**, sementara **Opsi B** adalah pendekatan tanpa shell statis (`NetworkFirst` navigasi `/$tenant/pos/*`). Pilihan user (**Opsi A**) merujuk pada definisi baku di Bagian 4 dan `docs/ARCHITECTURE.md` §2.3.
