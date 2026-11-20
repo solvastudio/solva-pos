@@ -99,3 +99,26 @@ export function allocateEqual(total: Money, n: number): Money[] {
     Array.from({ length: n }, () => 1),
   )
 }
+
+const RATIO_DECIMAL_PATTERN = /^\d+(?:\.\d{1,6})?$/
+
+/**
+ * Computes `R(base * numerator / denominator)` half-up via Decimal (`base >= 0`, `denominator > 0`).
+ * Used for inclusive tax extraction `R(B * r / (100 + r))`.
+ */
+export function ratioRound(base: Money, numerator: string, denominator: string): Money {
+  if (typeof base !== 'number' || !Number.isSafeInteger(base) || base < 0) {
+    throw new RangeError(`ratioRound base must be integer >= 0: ${base}`)
+  }
+  if (typeof numerator !== 'string' || !RATIO_DECIMAL_PATTERN.test(numerator)) {
+    throw new RangeError(`ratioRound numerator must be non-negative decimal string: "${numerator}"`)
+  }
+  if (typeof denominator !== 'string' || !RATIO_DECIMAL_PATTERN.test(denominator)) {
+    throw new RangeError(`ratioRound denominator must be positive decimal string: "${denominator}"`)
+  }
+  const denomDec = new D(denominator)
+  if (!denomDec.gt(0)) {
+    throw new RangeError(`ratioRound denominator must be > 0: "${denominator}"`)
+  }
+  return roundHalfUp(new D(base).times(new D(numerator)).div(denomDec))
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { toMoney, ZERO } from './money'
 import { D, parseQty } from './qty'
-import { allocateEqual, allocateLR, mulRound, percentOf, roundHalfUp } from './rounding'
+import { allocateEqual, allocateLR, mulRound, percentOf, ratioRound, roundHalfUp } from './rounding'
 
 const V01_MUL_CASES = [
   { id: 'V-01a', unit: 12500, qty: '0.333', expected: 4163 },
@@ -44,5 +44,15 @@ describe('kernel/rounding (V-01, V-02, V-03)', () => {
     expect(() => allocateLR(toMoney(100), [])).toThrowError(RangeError)
     expect(() => allocateLR(toMoney(100), [0, 0])).toThrowError(RangeError)
     expect(() => allocateEqual(toMoney(100), 0)).toThrowError(RangeError)
+  })
+
+  it('computes ratioRound accurately for inclusive tax extraction and rejects invalid ratios', () => {
+    expect(ratioRound(toMoney(101330), '11', '111')).toBe(10042)
+    expect(ratioRound(toMoney(123323), '10', '110')).toBe(11211)
+    expect(ratioRound(ZERO, '11', '111')).toBe(0)
+    expect(ratioRound(toMoney(10000), '0', '100')).toBe(0)
+    expect(() => ratioRound(toMoney(-1), '10', '110')).toThrowError(RangeError)
+    expect(() => ratioRound(toMoney(100), '10', '0')).toThrowError(RangeError)
+    expect(() => ratioRound(toMoney(100), '-5', '100')).toThrowError(RangeError)
   })
 })
