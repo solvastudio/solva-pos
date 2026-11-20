@@ -3,73 +3,39 @@ import { useTranslation } from 'react-i18next'
 import { Button, ErrorCodeBlock, RefreshCw, TriangleAlert } from '~/components/ui'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 import { logClientError } from '~/lib/client-errors/report-schema'
+import {
+  bootFailStorageKey,
+  clearBootCrashHistory,
+  DEFAULT_BOOT_FAIL_WINDOW_MS,
+  recordBootCrashTimestamp,
+  type BootFailureStorage,
+} from '~/pwa/boot-guard'
 import { SystemPage } from './SystemPage'
 
-export const BOOTFAIL_WINDOW_MS = 60_000
+export const BOOTFAIL_WINDOW_MS = DEFAULT_BOOT_FAIL_WINDOW_MS
 export const BOOTFAIL_THRESHOLD = 2
 
-export interface BootCrashStorage {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-  removeItem: (key: string) => void
-}
+export type BootCrashStorage = BootFailureStorage
 
-export function bootFailStorageKey(tenantKey: string): string {
-  return `solva:${tenantKey}:bootfail`
-}
+export { bootFailStorageKey }
 
 /**
- * Records a root boot crash in sessionStorage without touching IndexedDB/Dexie.
+ * Records a root boot crash in tenant-prefixed session storage without touching IndexedDB/Dexie.
  * Triggers full recovery mode when 2+ crashes occur within 60 seconds.
  */
 export function recordRootBootCrash(
   tenantKey: string,
   nowMs: number = Date.now(),
-  storage: BootCrashStorage | null = typeof sessionStorage !== 'undefined' ? sessionStorage : null,
+  storage?: BootCrashStorage | null,
 ): { count: number; shouldRecover: boolean } {
-  if (!storage) {
-    return { count: 1, shouldRecover: false }
-  }
-
-  const key = bootFailStorageKey(tenantKey)
-  const cutoff = nowMs - BOOTFAIL_WINDOW_MS
-  let recent: number[] = []
-
-  try {
-    const raw = storage.getItem(key)
-    if (raw) {
-      const parsed = JSON.parse(raw) as unknown
-      if (Array.isArray(parsed)) {
-        recent = parsed.filter(
-          (ts): ts is number => typeof ts === 'number' && Number.isFinite(ts) && ts >= cutoff && ts <= nowMs,
-        )
-      }
-    }
-    recent.push(nowMs)
-    storage.setItem(key, JSON.stringify(recent))
-  } catch {
-    return { count: 1, shouldRecover: false }
-  }
-
-  return {
-    count: recent.length,
-    shouldRecover: recent.length >= BOOTFAIL_THRESHOLD,
-  }
+  return recordBootCrashTimestamp(tenantKey, nowMs, storage, BOOTFAIL_WINDOW_MS)
 }
 
 export function clearRootBootCrash(
   tenantKey: string,
-  storage: Pick<BootCrashStorage, 'removeItem'> | null =
-    typeof sessionStorage !== 'undefined' ? sessionStorage : null,
+  storage?: Pick<BootCrashStorage, 'removeItem'> | null,
 ): void {
-  if (!storage) {
-    return
-  }
-  try {
-    storage.removeItem(bootFailStorageKey(tenantKey))
-  } catch {
-    // Ignore storage restriction errors during recovery cleanup.
-  }
+  clearBootCrashHistory(tenantKey, storage)
 }
 
 export interface RecoveryScreenProps {

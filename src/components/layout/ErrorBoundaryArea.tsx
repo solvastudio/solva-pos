@@ -4,11 +4,16 @@ import { Button, ErrorCodeBlock, RefreshCw, TriangleAlert } from '~/components/u
 import { logClientError } from '~/lib/client-errors/report-schema'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 
+export interface ErrorBoundaryErrorDetails {
+  route: string
+  componentStack?: string
+}
+
 export interface ErrorBoundaryAreaProps {
   area: string
   homeHref?: string
   clockOffsetMs?: number
-  onError?: (refLocal: string, error: Error) => void
+  onError?: (refLocal: string, error: Error, details?: ErrorBoundaryErrorDetails) => void
   onReset?: () => void
   children: ReactNode
 }
@@ -121,7 +126,10 @@ export class ErrorBoundaryArea extends Component<ErrorBoundaryAreaProps, ErrorBo
       refLocal,
       consecutiveCrashes: prev.consecutiveCrashes + 1,
     }))
-    this.props.onError?.(refLocal, error)
+    this.props.onError?.(refLocal, error, {
+      route,
+      componentStack: info.componentStack ?? undefined,
+    })
   }
 
   private handleRetry = () => {

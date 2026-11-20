@@ -21,7 +21,7 @@ export default defineConfig({
             'tests/arch/**/*.test.ts',
           ],
           environment: 'node',
-          setupFiles: ['./tests/setup-ui.ts'],
+          setupFiles: ['./tests/setup-ui.ts', 'fake-indexeddb/auto'],
         },
       },
       {

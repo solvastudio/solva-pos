@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { ErrorBoundaryArea } from '~/components/layout/ErrorBoundaryArea'
+import { ErrorBoundaryArea, type ErrorBoundaryErrorDetails } from '~/components/layout/ErrorBoundaryArea'
+import { findTenantIdBySlug } from '~/pos/db/registry'
+import { openTenantDb } from '~/pos/db/solva-db'
+import { logDevice } from '~/pos/maintenance/device-log'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
 import type { UpdateManager, UpdateStatus } from '~/pwa/update-manager'
@@ -19,14 +22,13 @@ function PosLayoutComponent() {
   const [updateManager, setUpdateManager] = useState<UpdateManager | null>(null)
 
   useEffect(() => {
-    const storage = typeof sessionStorage !== 'undefined' ? sessionStorage : null
-    clearBootCrashHistory(tenant, storage)
+    clearBootCrashHistory(tenant)
 
     const win = window as unknown as { __solvaPosMarkBootOk?: () => void }
     win.__solvaPosMarkBootOk?.()
 
     const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
-    notifyPosBootOk({ appVersion, dbVersion: 0 })
+    notifyPosBootOk({ appVersion, dbVersion: 1 })
   }, [tenant])
 
   useEffect(() => {
@@ -56,8 +58,30 @@ function PosLayoutComponent() {
     }
   }, [tenant])
 
+  const handlePosBoundaryError = useCallback(
+    (_refLocal: string, error: Error, details?: ErrorBoundaryErrorDetails) => {
+      void findTenantIdBySlug(tenant)
+        .then(async (tenantId) => {
+          if (!tenantId) return
+          const db = await openTenantDb(tenantId)
+          await logDevice(db, {
+            level: 'error',
+            code: 'APP_ERROR',
+            route: details?.route ?? `/${tenant}/pos`,
+            stack: error.stack ?? error.message,
+            componentStack: details?.componentStack,
+            ctx: { area: 'pos-shell', errorName: error.name },
+          })
+        })
+        .catch(() => {
+          // Swallow Dexie logging errors so boundary recovery UI always renders.
+        })
+    },
+    [tenant],
+  )
+
   return (
-    <ErrorBoundaryArea area="pos-shell" homeHref={`/${tenant}/pos/`}>
+    <ErrorBoundaryArea area="pos-shell" homeHref={`/${tenant}/pos/`} onError={handlePosBoundaryError}>
       <div
         data-pos-shell="true"
         data-tenant={tenant}

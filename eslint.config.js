@@ -39,8 +39,14 @@ const CLIENT_SERVER_PATTERNS = [
   },
 ]
 
+const DEXIE_FORBIDDEN_PATTERN = {
+  group: ['dexie', 'dexie/*'],
+  message: 'dexie may only be imported inside src/pos/db/** and src/pos/data/** (AD-13)',
+}
+
 const PURE_FORBIDDEN_PATTERNS = [
   ...CLIENT_SERVER_PATTERNS,
+  DEXIE_FORBIDDEN_PATTERN,
   {
     group: ['react', 'react/*', 'react-dom', 'react-dom/*', '@tanstack/*'],
     message: 'Pure packages must not import React or TanStack (ARCHITECTURE §8.4)',
@@ -122,6 +128,7 @@ export default defineConfig(
     'tests/arch/fixtures-token/**',
     'tests/arch/fixtures-sql/**',
     'tests/arch/fixtures-routes/**',
+    'tests/arch/fixtures-pos/**',
     'playwright-report/**',
   ]),
 
@@ -200,7 +207,10 @@ export default defineConfig(
       'no-restricted-imports': [
         'error',
         {
-          patterns: [{ group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' }],
+          patterns: [
+            { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
+            DEXIE_FORBIDDEN_PATTERN,
+          ],
         },
       ],
     },
@@ -285,6 +295,7 @@ export default defineConfig(
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
+            DEXIE_FORBIDDEN_PATTERN,
             { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
             {
               group: ['~/pos', '~/pos/**', '~/modules', '~/modules/**', '~/functions', '~/functions/**'],
@@ -296,16 +307,31 @@ export default defineConfig(
     },
   },
 
-  // Enforce hash-wasm and qrcode restrictions in client folders outside allowed scopes
+  // Non-UI server/pwa helpers may not import dexie directly.
+  {
+    files: ['src/pwa/**', 'src/modules/identity/**', 'src/start.ts', 'src/router.tsx'],
+    ignores: ['src/modules/*/domain/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [DEXIE_FORBIDDEN_PATTERN],
+        },
+      ],
+    },
+  },
+
+  // Enforce hash-wasm, qrcode, and dexie restrictions in client folders outside allowed scopes
   {
     files: ['src/pos/**'],
-    ignores: ['src/pos/session/**'],
+    ignores: ['src/pos/session/**', 'src/pos/db/**', 'src/pos/data/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
+            DEXIE_FORBIDDEN_PATTERN,
             { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
             { group: ['qrcode', 'qrcode/*'], message: 'qrcode is only allowed in /admin (lazy-loaded)' },
           ],
@@ -321,6 +347,7 @@ export default defineConfig(
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
+            DEXIE_FORBIDDEN_PATTERN,
             { group: ['qrcode', 'qrcode/*'], message: 'qrcode is only allowed in /admin (lazy-loaded)' },
           ],
         },
@@ -344,6 +371,7 @@ export default defineConfig(
         {
           patterns: [
             ...CLIENT_SERVER_PATTERNS,
+            DEXIE_FORBIDDEN_PATTERN,
             { group: ['hash-wasm', 'hash-wasm/*'], message: 'hash-wasm is only allowed in pos/session and modules/identity' },
           ],
         },

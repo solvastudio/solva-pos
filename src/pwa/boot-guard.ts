@@ -1,3 +1,5 @@
+import { getTenantStorage, type StorageLike } from '~/pos/locks/tenant-storage'
+
 export type BootAction = 'RETRY' | 'USE_LAST_GOOD' | 'RECOVERY'
 
 export interface BootLastGoodMeta {
@@ -6,9 +8,10 @@ export interface BootLastGoodMeta {
 }
 
 export const DEFAULT_BOOT_FAIL_WINDOW_MS = 60_000
+const BOOT_FAIL_SUFFIX = 'bootfail'
 
 export function bootFailStorageKey(tenantKey: string): string {
-  return `solva:${tenantKey}:bootfail`
+  return `solva:${tenantKey}:${BOOT_FAIL_SUFFIX}`
 }
 
 /**
@@ -37,29 +40,21 @@ export function onBootFailure(
   return 'RECOVERY'
 }
 
-export interface BootFailureStorage {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-  removeItem(key: string): void
-}
+export type BootFailureStorage = StorageLike
 
 export function recordBootCrashTimestamp(
   tenantKey: string,
   nowMs: number,
-  storage: BootFailureStorage | null,
+  storage?: BootFailureStorage | null,
   windowMs: number = DEFAULT_BOOT_FAIL_WINDOW_MS,
 ): { count: number; shouldRecover: boolean } {
-  if (!storage) {
-    return { count: 1, shouldRecover: false }
-  }
-
-  const key = bootFailStorageKey(tenantKey)
+  const tenantStorage = getTenantStorage(tenantKey, 'session', storage)
   const cutoff = nowMs - windowMs
   let timestamps: number[] = []
 
-  try {
-    const raw = storage.getItem(key)
-    if (raw) {
+  const raw = tenantStorage.get(BOOT_FAIL_SUFFIX)
+  if (raw) {
+    try {
       const parsed = JSON.parse(raw) as unknown
       if (Array.isArray(parsed)) {
         timestamps = parsed.filter(
@@ -67,10 +62,13 @@ export function recordBootCrashTimestamp(
             typeof ts === 'number' && Number.isFinite(ts) && ts >= cutoff && ts <= nowMs,
         )
       }
+    } catch {
+      timestamps = []
     }
-    timestamps.push(nowMs)
-    storage.setItem(key, JSON.stringify(timestamps))
-  } catch {
+  }
+  timestamps.push(nowMs)
+  const persisted = tenantStorage.set(BOOT_FAIL_SUFFIX, JSON.stringify(timestamps))
+  if (!persisted) {
     return { count: 1, shouldRecover: false }
   }
 
@@ -82,12 +80,17 @@ export function recordBootCrashTimestamp(
 
 export function clearBootCrashHistory(
   tenantKey: string,
-  storage: Pick<BootFailureStorage, 'removeItem'> | null,
+  storage?: Pick<BootFailureStorage, 'removeItem'> | null,
 ): void {
-  if (!storage) return
-  try {
-    storage.removeItem(bootFailStorageKey(tenantKey))
-  } catch {
-    // Ignore restricted storage environments.
-  }
+  const wrappedStorage =
+    storage !== undefined
+      ? storage
+        ? ({
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: (k: string) => storage.removeItem(k),
+          } satisfies StorageLike)
+        : null
+      : undefined
+  getTenantStorage(tenantKey, 'session', wrappedStorage).remove(BOOT_FAIL_SUFFIX)
 }
