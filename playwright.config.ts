@@ -26,6 +26,7 @@ process.env.DATABASE_OWNER_URL = ownerUrl
 process.env.BETTER_AUTH_SECRET = e2eAuthSecret
 process.env.TRUSTED_PROXY_CIDR = '127.0.0.0/8'
 process.env.AUTH_COOKIE_SECURE = 'false'
+process.env.PUBLIC_BASE_URL = `http://localhost:${e2ePort}`
 
 export default defineConfig({
   testDir: 'tests/e2e',
