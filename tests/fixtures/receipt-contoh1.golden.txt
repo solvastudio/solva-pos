@@ -1,0 +1,23 @@
+        TOKO SOLVA JAYA
+    Jl. Mawar No. 5 (contoh)
+--------------------------------
+No : OUT01-POS02-1126-000123
+Tgl: 17/11/2026 14:05 Kasir:
+Dewi
+--------------------------------
+Kopi Bubuk 200g
+ 2 x 18.500               37.000
+Gula 1kg
+ 1 x 16.000               16.000
+Susu UHT 1L
+ 3 x 17.900               53.700
+ Diskon 10%               -5.370
+--------------------------------
+Subtotal                 101.330
+PPN 11%                   11.146
+Pembulatan                    24
+TOTAL                    112.500
+Tunai                    150.000
+Kembali                   37.500
+--------------------------------
+          Terima kasih

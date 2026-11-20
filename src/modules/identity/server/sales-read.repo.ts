@@ -7,6 +7,7 @@ import {
   cashMaster,
   legalEntity,
   outlet,
+  outletReceiptSetting,
   paymentMethod,
   registerInvoicePrefix,
   taxRateHistory,
@@ -252,4 +253,25 @@ export async function getRegisterRecoveryContext(
     activeDeviceId: active?.id ?? null,
     latestDeviceId: devRows[0]?.id ?? null,
   }
+}
+
+export async function getOutletLogoMeta(
+  tx: TenantTx,
+  outletId: string,
+): Promise<{ logoObjectKey: string | null; logoSha256: string | null } | null> {
+  const rows = await tx
+    .select({
+      logoObjectKey: outletReceiptSetting.logoObjectKey,
+      logoSha256: outletReceiptSetting.logoSha256,
+    })
+    .from(outletReceiptSetting)
+    .where(
+      and(
+        eq(outletReceiptSetting.outletId, outletId),
+        isNull(outletReceiptSetting.deletedAt),
+      ),
+    )
+    .limit(1)
+
+  return rows[0] ?? null
 }

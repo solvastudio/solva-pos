@@ -1,5 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { PosPlaceholderView } from './-PlaceholderView'
+
+const LazyPosPlaceholderView = lazy(() =>
+  import('./-PlaceholderView').then((m) => ({
+    default: m.PosPlaceholderView,
+  })),
+)
 
 export const Route = createFileRoute('/$tenant/pos/$')({
   ssr: false,
@@ -8,5 +14,9 @@ export const Route = createFileRoute('/$tenant/pos/$')({
 
 function PosSplatRouteComponent() {
   const { tenant } = Route.useParams()
-  return <PosPlaceholderView tenant={tenant} />
+  return (
+    <Suspense fallback={null}>
+      <LazyPosPlaceholderView tenant={tenant} />
+    </Suspense>
+  )
 }

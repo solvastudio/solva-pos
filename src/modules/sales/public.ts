@@ -16,3 +16,4 @@ export {
 } from './server/register-recovery.service'
 export { annotateGap, listGaps, type InvoiceGapRow } from './server/gap.service'
 export { lookupInvoiceForReturn } from './server/invoice-lookup.service'
+export { loadOutletLogoAsset, resolveSafeAssetPath } from './server/logo.service'

@@ -33,6 +33,7 @@ import { Route as TenantPosMoreRouteImport } from './routes/$tenant/pos/more'
 import { Route as TenantPosPairRouteImport } from './routes/$tenant/pos/pair'
 import { Route as TenantPosPayRouteImport } from './routes/$tenant/pos/pay'
 import { Route as TenantPosSellRouteImport } from './routes/$tenant/pos/sell'
+import { Route as TenantPosSettingsRouteImport } from './routes/$tenant/pos/settings'
 import { Route as TenantPosSystemRouteImport } from './routes/$tenant/pos/system'
 import { Route as PlatformApiSplatRouteImport } from './routes/platform/api/$'
 import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants.$tenantId'
@@ -65,6 +66,7 @@ import { Route as TenantAdminAuthedCatalogProductIdRouteImport } from './routes/
 import { Route as TenantAdminAuthedCatalogImportRouteImport } from './routes/$tenant/admin/_authed/catalog/import'
 import { Route as TenantAdminAuthedCatalogNewRouteImport } from './routes/$tenant/admin/_authed/catalog/new'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
+import { Route as ApiPosV1AssetsLogoOutletIdRouteImport } from './routes/api/pos/v1/assets.logo.$outletId'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
 import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
 
@@ -187,6 +189,11 @@ const TenantPosPayRoute = TenantPosPayRouteImport.update({
 const TenantPosSellRoute = TenantPosSellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosSettingsRoute = TenantPosSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => TenantPosRoute,
 } as any)
 const TenantPosSystemRoute = TenantPosSystemRouteImport.update({
@@ -357,6 +364,12 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   path: '/admin/api/auth/$',
   getParentRoute: () => TenantRoute,
 } as any)
+const ApiPosV1AssetsLogoOutletIdRoute =
+  ApiPosV1AssetsLogoOutletIdRouteImport.update({
+    id: '/api/pos/v1/assets/logo/$outletId',
+    path: '/api/pos/v1/assets/logo/$outletId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPosV1PullFullPageRoute = ApiPosV1PullFullPageRouteImport.update({
   id: '/full/page',
   path: '/full/page',
@@ -392,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
+  '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -425,6 +439,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
+  '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -449,6 +464,7 @@ export interface FileRoutesByTo {
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
+  '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -482,6 +498,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/catalog': typeof TenantAdminAuthedCatalogIndexRoute
+  '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -510,6 +527,7 @@ export interface FileRoutesById {
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
+  '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -543,6 +561,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/_authed/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
+  '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -572,6 +591,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
     | '/$tenant/pos/sell'
+    | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -605,6 +625,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/catalog/new'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/catalog/'
+    | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesByTo: FileRoutesByTo
@@ -629,6 +650,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
     | '/$tenant/pos/sell'
+    | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -662,6 +684,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/catalog/new'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/catalog'
+    | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   id:
@@ -689,6 +712,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
     | '/$tenant/pos/sell'
+    | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -722,6 +746,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/catalog/new'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/_authed/catalog/'
+    | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesById: FileRoutesById
@@ -745,6 +770,7 @@ export interface RootRouteChildren {
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
   ApiPosV1ReleaseRoute: typeof ApiPosV1ReleaseRoute
   ApiPosV1SignalsRoute: typeof ApiPosV1SignalsRoute
+  ApiPosV1AssetsLogoOutletIdRoute: typeof ApiPosV1AssetsLogoOutletIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -915,6 +941,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/$tenant/pos/sell'
       preLoaderRoute: typeof TenantPosSellRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/settings': {
+      id: '/$tenant/pos/settings'
+      path: '/settings'
+      fullPath: '/$tenant/pos/settings'
+      preLoaderRoute: typeof TenantPosSettingsRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/$tenant/pos/system': {
@@ -1141,6 +1174,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/api/pos/v1/assets/logo/$outletId': {
+      id: '/api/pos/v1/assets/logo/$outletId'
+      path: '/api/pos/v1/assets/logo/$outletId'
+      fullPath: '/api/pos/v1/assets/logo/$outletId'
+      preLoaderRoute: typeof ApiPosV1AssetsLogoOutletIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pos/v1/pull/full/page': {
       id: '/api/pos/v1/pull/full/page'
       path: '/full/page'
@@ -1167,6 +1207,7 @@ interface TenantPosRouteChildren {
   TenantPosPairRoute: typeof TenantPosPairRoute
   TenantPosPayRoute: typeof TenantPosPayRoute
   TenantPosSellRoute: typeof TenantPosSellRoute
+  TenantPosSettingsRoute: typeof TenantPosSettingsRoute
   TenantPosSystemRoute: typeof TenantPosSystemRoute
   TenantPosIndexRoute: typeof TenantPosIndexRoute
   TenantPosDevArgonBenchRoute: typeof TenantPosDevArgonBenchRoute
@@ -1188,6 +1229,7 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosPairRoute: TenantPosPairRoute,
   TenantPosPayRoute: TenantPosPayRoute,
   TenantPosSellRoute: TenantPosSellRoute,
+  TenantPosSettingsRoute: TenantPosSettingsRoute,
   TenantPosSystemRoute: TenantPosSystemRoute,
   TenantPosIndexRoute: TenantPosIndexRoute,
   TenantPosDevArgonBenchRoute: TenantPosDevArgonBenchRoute,
@@ -1296,6 +1338,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPosV1PushRoute: ApiPosV1PushRoute,
   ApiPosV1ReleaseRoute: ApiPosV1ReleaseRoute,
   ApiPosV1SignalsRoute: ApiPosV1SignalsRoute,
+  ApiPosV1AssetsLogoOutletIdRoute: ApiPosV1AssetsLogoOutletIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

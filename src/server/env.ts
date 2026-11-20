@@ -64,6 +64,10 @@ export const envSchema = z.object({
     (v) => (v === '' || v === undefined ? undefined : v),
     z.string().min(1).default('./sourcemaps'),
   ),
+  ASSETS_DIR: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v),
+    z.string().min(1).default('./assets'),
+  ),
   TELEGRAM_BOT_TOKEN: optionalNonEmpty,
   TELEGRAM_CHAT_ID: optionalNonEmpty,
 

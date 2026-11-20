@@ -300,11 +300,27 @@ export async function finalizeSale(
         return { id: auditCmdId, payload }
       })
 
+      const cashDrawerJob: PrintJobRecord | null = input.payments.some((p) => p.kind === 'CASH')
+        ? {
+            id: newId(),
+            kind: 'CASH_DRAWER',
+            status: 'QUEUED',
+            entity_id: saleId,
+            entity_type: 'SALE',
+            receipt_locale: receiptLocale,
+            attempts: 0,
+            last_error: null,
+            created_at: occurredAt,
+            updated_at: occurredAt,
+          }
+        : null
+
       const printJob: PrintJobRecord = {
         id: newId(),
         kind: 'RECEIPT',
         status: 'QUEUED',
         entity_id: saleId,
+        entity_type: 'SALE',
         receipt_locale: receiptLocale,
         attempts: 0,
         last_error: null,
@@ -320,6 +336,7 @@ export async function finalizeSale(
         payload: built.payload,
         auditEntries,
         printJob,
+        cashDrawerJob,
         invoicePrefix: prefixRow.invoice_prefix,
         invoicePeriod: period,
         registerId: device.register_id,

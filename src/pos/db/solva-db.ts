@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import { tenantDbName } from '../locks/names'
 import { STORES_V1 } from './schema-v1'
 import type {
+  AssetCacheRecord,
   AppUserRecord,
   CartDraftRecord,
   CashMasterRecord,
@@ -104,7 +105,7 @@ export class SolvaDb extends Dexie {
   stock_snapshot!: Table<StockSnapshotRecord, string>
   bill_snapshot!: Table<Record<string, unknown>, string>
   cart_draft!: Table<CartDraftRecord, string>
-  asset_cache!: Table<{ key: string; [key: string]: unknown }, string>
+  asset_cache!: Table<AssetCacheRecord, string>
   pull_stage!: Table<PullStageRow, number>
 
   constructor(tenantId: string, onBlocked?: (tenantId: string) => void) {

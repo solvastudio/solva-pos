@@ -70,11 +70,32 @@ export const META_SCHEMAS = {
   }),
   printer: z
     .object({
-      mode: z.enum(['browser', 'escpos']),
+      // Legacy shape compatibility (existing meta tests) + Fase 47 local printer config
+      mode: z.enum(['browser', 'escpos']).optional(),
       printer_id: z.string().optional(),
       width_mm: z.union([z.literal(58), z.literal(80)]).optional(),
+      adapter: z.enum(['webusb', 'webbluetooth', 'browser-print', 'virtual']).optional(),
+      deviceId: z.string().optional(),
+      deviceName: z.string().optional(),
+      profileId: z.string().optional(),
+      paperWidthMm: z.union([z.literal(58), z.literal(80)]).optional(),
+      columns: z.union([z.literal(32), z.literal(48)]).optional(),
+      codePage: z.string().optional(),
+      canCut: z.boolean().optional(),
+      canOpenDrawer: z.boolean().optional(),
+      drawerPulse: z.tuple([z.number().int(), z.number().int(), z.number().int()]).optional(),
+      serviceUuid: z.string().optional(),
+      characteristicUuid: z.string().optional(),
     })
     .nullable(),
+  scanner: z
+    .object({
+      wedgeEnabled: z.boolean(),
+      maxGapMs: z.number().int().min(10).max(200),
+      terminator: z.enum(['Enter', 'Tab', 'Any']),
+      cameraEnabled: z.boolean(),
+    })
+    .optional(),
   dexie_version: z.number().int().positive(),
   tenant: z.object({
     id: z.string().min(1),
@@ -189,6 +210,8 @@ export interface OutletRecord extends IdRecord {
   legal_entity_id: string
   code: string
   name: string
+  address?: string | null
+  phone?: string | null
   timezone: string
   day_cutoff_time: string
   price_tax_mode: 'INCLUSIVE' | 'EXCLUSIVE' | string
@@ -268,6 +291,7 @@ export interface OutletReceiptSettingRecord extends IdRecord {
   receipt_locale: 'id-ID' | 'en-US' | string
   header_text?: string | null
   footer_text?: string | null
+  logo_object_key?: string | null
   logo_sha256?: string | null
   deleted_at?: string | null
 }
@@ -465,13 +489,34 @@ export interface CreditNoteRefundRecord extends IdRecord {
 
 export interface PrintJobRecord {
   id: string
-  kind: 'RECEIPT' | 'CREDIT_NOTE' | 'SHIFT_REPORT'
+  kind:
+    | 'RECEIPT'
+    | 'REPRINT'
+    | 'CREDIT_NOTE'
+    | 'PREBILL'
+    | 'SHIFT_RECAP'
+    | 'CASH_DRAWER'
+    | 'TEST'
   status: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
   entity_id: string
+  entity_type?: 'SALE' | 'CREDIT_NOTE' | 'SHIFT' | 'DEVICE' | null
+  printer_id?: string | null
+  payload?: Record<string, unknown> | null
   receipt_locale: 'id-ID' | 'en-US'
   attempts: number
   last_error: string | null
   created_at: string
+  first_byte_at?: string | null
+  done_at?: string | null
+  updated_at: string
+}
+
+export interface AssetCacheRecord {
+  key: string
+  sha256: string
+  width: number
+  height: number
+  bits: Uint8Array
   updated_at: string
 }
 
@@ -480,6 +525,7 @@ export interface CashMasterRecord extends IdRecord {
   code: string
   name: string
   register_type: string
+  paper_width_mm?: 58 | 80
   invoice_prefix: string
   deleted_at: string | null
 }

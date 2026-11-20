@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getSessionState } from '~/pos/session/session'
+import { createFileRoute } from '@tanstack/react-router'
 
 const LazyReturnScreen = lazy(() =>
   import('~/components/pos/returns/ReturnScreen').then((m) => ({
@@ -13,12 +12,6 @@ export const Route = createFileRoute('/$tenant/pos/return/$saleId')({
   validateSearch: (search: Record<string, unknown>) => ({
     invoiceNo: typeof search.invoiceNo === 'string' ? search.invoiceNo : undefined,
   }),
-  beforeLoad: ({ params }) => {
-    const cleanSlug = params.tenant.toLowerCase()
-    if (!getSessionState().staff) {
-      throw redirect({ href: `/${cleanSlug}/pos/login` })
-    }
-  },
   component: PosReturnRouteComponent,
 })
 

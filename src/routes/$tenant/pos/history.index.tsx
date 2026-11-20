@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getSessionState } from '~/pos/session/session'
+import { createFileRoute } from '@tanstack/react-router'
 
 const LazyHistoryListScreen = lazy(() =>
   import('~/components/pos/history/HistoryListScreen').then((m) => ({
@@ -10,12 +9,6 @@ const LazyHistoryListScreen = lazy(() =>
 
 export const Route = createFileRoute('/$tenant/pos/history/')({
   ssr: false,
-  beforeLoad: ({ params }) => {
-    const cleanSlug = params.tenant.toLowerCase()
-    if (!getSessionState().staff) {
-      throw redirect({ href: `/${cleanSlug}/pos/login` })
-    }
-  },
   component: PosHistoryIndexComponent,
 })
 

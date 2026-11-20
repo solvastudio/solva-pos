@@ -8,12 +8,13 @@ import { Chip } from '~/components/ui/Chip'
 import { Select } from '~/components/ui/Select'
 import { useToast } from '~/components/ui/Toast'
 import { Ban, Printer, Undo2 } from '~/components/ui/icons'
-import { createIdGenerator, formatMoney, toMoney } from '~/lib/kernel'
+import { formatMoney, toMoney } from '~/lib/kernel'
 import type { BootResult } from '~/pos/boot/boot'
-import { enqueueReprintJob } from '~/pos/data/print-job.repo'
 import { getSaleWithDetails } from '~/pos/data/sale.repo'
 import type { SaleLineRecord, SalePaymentRecord, SaleRecord } from '~/pos/db/types'
+import { kickActivePrintQueue } from '~/pos/printing/runtime'
 import { kickActiveSync } from '~/pos/sync'
+import { reprintSale } from '~/pos/usecases/print/reprint'
 import { voidSale, VoidSaleError } from '~/pos/usecases/sales/void-sale'
 
 type VoidReasonCode = 'MISTAKE' | 'CANCELLED' | 'DUPLICATE' | 'OTHER'
@@ -36,15 +37,6 @@ function extractServerFlags(result: Record<string, unknown> | null): string[] {
     .map((f) => (typeof f === 'string' ? f : (f as { code?: string })?.code ?? ''))
     .filter((s) => s.length > 0)
 }
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export function SaleDetailScreen({ tenant, saleId, bootResult }: SaleDetailScreenProps) {
   const { t, i18n } = useTranslation()
@@ -105,17 +97,8 @@ export function SaleDetailScreen({ tenant, saleId, bootResult }: SaleDetailScree
 
   async function handleReprint() {
     if (!shell.db || !shell.device || !sale) return
-    await enqueueReprintJob(shell.db, {
-      id: idGen.newId(),
-      kind: 'RECEIPT',
-      entity_id: sale.id,
-      receipt_locale: sale.receipt_locale,
-      status: 'QUEUED',
-      attempts: 0,
-      last_error: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    await reprintSale(shell.db, sale.id)
+    void kickActivePrintQueue()
     showToast({ tone: 'info', message: t('pos.history.reprintQueued') })
   }
 

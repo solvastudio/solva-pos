@@ -122,6 +122,7 @@ export {
   findMissingAppUserId,
   findMissingPaymentMethodId,
   findRegisterPrefixForBusinessDate,
+  getOutletLogoMeta,
   getRegisterPendingCommandCount,
   getRegisterRecoveryContext,
   getTaxRateHistory,

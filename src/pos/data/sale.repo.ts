@@ -85,6 +85,7 @@ export interface AtomicFinalizeTxInput {
   payload: FinalizeSalePayloadV1
   auditEntries: readonly { id: string; payload: AppendAuditPayloadV1 }[]
   printJob: PrintJobRecord
+  cashDrawerJob?: PrintJobRecord | null
   invoicePrefix: string
   invoicePeriod: string
   registerId: string
@@ -197,6 +198,9 @@ export async function commitAtomicSaleTransaction(
         })
       }
 
+      if (input.cashDrawerJob) {
+        await enqueuePrintJob(tx, input.cashDrawerJob)
+      }
       await enqueuePrintJob(tx, input.printJob)
 
       if (input.beforeCommitHookForTest) {

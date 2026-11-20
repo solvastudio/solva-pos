@@ -1,5 +1,4 @@
 import { isPermissionCode, type PermissionCode } from '~/modules/identity/shared'
-import { loadStaffSessionSummary } from '../data/pin.repo'
 import type { SolvaDb } from '../db/solva-db'
 
 export interface StaffSessionContext {
@@ -54,6 +53,7 @@ export async function startSession(
   staffId: string,
   outletId: string,
 ): Promise<StaffSessionContext> {
+  const { loadStaffSessionSummary } = await import('../data/pin.repo')
   const summary = await loadStaffSessionSummary(db, staffId, outletId)
   if (!summary) {
     throw new Error(`Staff ${staffId} has no active assignment for outlet ${outletId}`)

@@ -8,7 +8,9 @@ import { observePrintJobForEntity } from '~/pos/data/print-job.repo'
 import { getSaleWithDetails } from '~/pos/data/sale.repo'
 import type { PrintJobRecord, SalePaymentRecord, SaleRecord } from '~/pos/db/types'
 import { useShift } from '~/pos/hooks/use-shift'
+import { kickActivePrintQueue } from '~/pos/printing/runtime'
 import { clearSession, getSessionState } from '~/pos/session/session'
+import { reprintSale } from '~/pos/usecases/print/reprint'
 import { SaleDone } from './SaleDone'
 
 export interface DoneRouteScreenProps {
@@ -89,6 +91,13 @@ export function DoneRouteScreen({ tenant, saleId, bootResult }: DoneRouteScreenP
         sale={sale}
         payments={payments}
         printJob={printJob}
+        onReprint={
+          db && sale
+            ? () => {
+                void reprintSale(db, sale.id).then(() => kickActivePrintQueue())
+              }
+            : undefined
+        }
         onNewSale={() => void navigate({ href: `/${cleanSlug}/pos/sell` })}
       />
     </PosWorkspaceShell>

@@ -57,6 +57,18 @@ export function formatMoney(m: Money, locale: LocaleId): string {
   return m < 0 ? `${MINUS_SIGN}${formattedAbs}` : formattedAbs
 }
 
+/**
+ * Formats integer money without currency symbol (`"112.476"` id-ID, `"112,476"` en-US),
+ * using U+2212 on negative values — used on fixed-width thermal receipts (BR-PRN-007).
+ */
+export function formatNumberPlain(n: number, locale: LocaleId): string {
+  const formattedAbs = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+    useGrouping: true,
+  }).format(Math.abs(n))
+  return n < 0 ? `${MINUS_SIGN}${formattedAbs}` : formattedAbs
+}
+
 /** Parse localized money input into `Money`, or `null` if invalid or fractional. */
 export function parseMoneyInput(s: string, locale: LocaleId): Money | null {
   const cleaned = cleanLocalizedNumberString(s, locale)

@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getSessionState } from '~/pos/session/session'
+import { createFileRoute } from '@tanstack/react-router'
 
 const LazyMoreScreen = lazy(() =>
   import('~/components/pos/more/MoreScreen').then((m) => ({
@@ -10,12 +9,6 @@ const LazyMoreScreen = lazy(() =>
 
 export const Route = createFileRoute('/$tenant/pos/more')({
   ssr: false,
-  beforeLoad: ({ params }) => {
-    const cleanSlug = params.tenant.toLowerCase()
-    if (!getSessionState().staff) {
-      throw redirect({ href: `/${cleanSlug}/pos/login` })
-    }
-  },
   component: PosMoreComponent,
 })
 

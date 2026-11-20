@@ -57,6 +57,12 @@ describe('pos/data/meta.repo', () => {
       full_resync: true,
       storage: { persist: 'GRANTED', used_pct: 12.5 },
       printer: { mode: 'escpos', printer_id: 'usb-01', width_mm: 58 },
+      scanner: {
+        wedgeEnabled: true,
+        maxGapMs: 50,
+        terminator: 'Enter',
+        cameraEnabled: true,
+      },
       dexie_version: 1,
       tenant: { id: T, name: 'Kopi Satu', default_locale: 'id-ID' },
       sync_protocol_version: 1,
