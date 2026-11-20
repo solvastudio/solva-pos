@@ -3,7 +3,7 @@ import { parseCommandPayload, type FinalizeSalePayloadV1, type FlagCode } from '
 import { formatInvoiceNo, invoicePeriod } from '~/lib/kernel'
 import { filterMissingCatalogRefs } from '~/modules/catalog/public'
 import { findRegisterPrefixForBusinessDate, validateSaleIdentityRefs } from '~/modules/identity/public'
-import { getShiftForCommand } from '~/modules/shift/public'
+import { getShiftForCommand, recomputeRecapIfClosed } from '~/modules/shift/public'
 import {
   CommandRejected,
   createAttentionItem,
@@ -237,6 +237,8 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
     for (const f of businessFlags) {
       flags.add(f)
     }
+
+    await recomputeRecapIfClosed(tx, s.shift_id, ctx.receivedAtIso)
 
     return {
       sale_id: s.id,

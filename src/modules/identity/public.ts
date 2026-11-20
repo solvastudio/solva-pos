@@ -119,7 +119,22 @@ export {
 } from './server/feature-flag.service'
 export { identityFeedSources } from './server/feed'
 export {
+  findMissingAppUserId,
+  findMissingPaymentMethodId,
   findRegisterPrefixForBusinessDate,
+  getRegisterPendingCommandCount,
+  getRegisterRecoveryContext,
   getTaxRateHistory,
   validateSaleIdentityRefs,
 } from './server/sales-read.repo'
+export {
+  invalidateRevokedDeviceAuthCaches,
+  revokeDeviceInTx,
+} from './server/device.service'
+export {
+  __clearEnrollmentCounterProviderForTests,
+  registerEnrollmentCounterProvider,
+  type EnrollmentCounterProvider,
+  type EnrollmentInvoiceCounter,
+} from './server/enrollment-counters.port'
+export { requireActorPermission } from './server/code-crypto'

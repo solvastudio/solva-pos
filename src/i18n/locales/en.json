@@ -484,6 +484,31 @@
         "confirmAction": "Revoke device",
         "succeeded": "Device revoked.",
         "failed": "Could not revoke device."
+      },
+      "actionRecover": "Recover register",
+      "recover": {
+        "title": "Recover register {{register}}",
+        "step1Title": "Step 1: Revoke old device",
+        "step1Desc": "Device {{name}} will be revoked and can no longer sync. A replacement device will receive continuing sequence numbers upon enrollment.",
+        "step2Title": "Step 2: Last physical receipt sequence (optional)",
+        "step2Desc": "Enter the last printed sequence number on physical receipts if known to prevent duplicate numbers.",
+        "step3Title": "Step 3: Recovery preview",
+        "highestReceived": "Highest received on server",
+        "declaredInvoiceLabel": "Last printed invoice sequence on physical receipt (optional)",
+        "declaredInvoicePlaceholder": "000127",
+        "declaredCreditLabel": "Last printed credit note sequence on physical receipt (optional)",
+        "declaredCreditPlaceholder": "000012",
+        "reasonTextLabel": "Recovery note (optional)",
+        "nextInvoiceSeq": "Next invoice sequence: {{seq}}",
+        "nextCreditSeq": "Next credit note sequence: {{seq}}",
+        "gapCreated": "Gap created ({{type}}): {{from}}–{{to}}",
+        "noGapCreated": "No gap created ({{type}}).",
+        "back": "Back",
+        "next": "Next",
+        "previewLoading": "Computing preview...",
+        "confirmAction": "Confirm recover register",
+        "succeeded": "Register recovered.",
+        "failed": "Could not recover register."
       }
     },
     "catalog": {

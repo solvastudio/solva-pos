@@ -26,6 +26,7 @@ import {
 import { devicesQueryOptions, registersQueryOptions } from '~/queries/identity.queries'
 import { qk } from '~/queries/keys'
 import { PairingDialog } from './PairingDialog'
+import { RecoverRegisterWizard } from './RecoverRegisterWizard'
 
 export interface DevicesTabProps {
   tenantSlug: string
@@ -61,6 +62,7 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
   const [revokeTarget, setRevokeTarget] = useState<DeviceView | null>(null)
   const [revokeReason, setRevokeReason] = useState<DeviceRevokeReason>('REPLACED')
   const [revokeError, setRevokeError] = useState<string | null>(null)
+  const [recoverTarget, setRecoverTarget] = useState<DeviceView | null>(null)
 
   const activeDeviceRegisters = useMemo(() => {
     const busy = new Set<string>()
@@ -214,17 +216,26 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
       hideOnMobileCard: true,
       cell: (r) =>
         r.revokedAt === null ? (
-          <Button
-            variant="danger-outline"
-            size="md"
-            onClick={() => {
-              setRevokeError(null)
-              setRevokeReason('REPLACED')
-              setRevokeTarget(r)
-            }}
-          >
-            {t('admin.devices.actionRevoke')}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setRecoverTarget(r)}
+            >
+              {t('admin.devices.actionRecover')}
+            </Button>
+            <Button
+              variant="danger-outline"
+              size="md"
+              onClick={() => {
+                setRevokeError(null)
+                setRevokeReason('REPLACED')
+                setRevokeTarget(r)
+              }}
+            >
+              {t('admin.devices.actionRevoke')}
+            </Button>
+          </div>
         ) : null,
     },
   ]
@@ -255,17 +266,22 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
         emptyDescription={t('admin.devices.emptyDesc')}
         mobileActions={(r) =>
           r.revokedAt === null ? (
-            <Button
-              variant="danger-outline"
-              size="md"
-              onClick={() => {
-                setRevokeError(null)
-                setRevokeReason('REPLACED')
-                setRevokeTarget(r)
-              }}
-            >
-              {t('admin.devices.actionRevoke')}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="md" onClick={() => setRecoverTarget(r)}>
+                {t('admin.devices.actionRecover')}
+              </Button>
+              <Button
+                variant="danger-outline"
+                size="md"
+                onClick={() => {
+                  setRevokeError(null)
+                  setRevokeReason('REPLACED')
+                  setRevokeTarget(r)
+                }}
+              >
+                {t('admin.devices.actionRevoke')}
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -378,6 +394,11 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
           </div>
         </div>
       </Dialog>
+      <RecoverRegisterWizard
+        tenantSlug={tenantSlug}
+        target={recoverTarget}
+        onOpenChange={(open) => !open && setRecoverTarget(null)}
+      />
     </section>
   )
 }

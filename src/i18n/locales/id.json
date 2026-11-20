@@ -484,6 +484,31 @@
         "confirmAction": "Cabut perangkat",
         "succeeded": "Perangkat berhasil dicabut.",
         "failed": "Gagal mencabut perangkat."
+      },
+      "actionRecover": "Pulihkan register",
+      "recover": {
+        "title": "Pulihkan register {{register}}",
+        "step1Title": "Langkah 1: Cabut perangkat lama",
+        "step1Desc": "Perangkat {{name}} akan dicabut dan tidak bisa lagi mengirim transaksi. Anda dapat memasang perangkat baru dengan nomor seri berlanjut.",
+        "step2Title": "Langkah 2: Nomor struk fisik terakhir (opsional)",
+        "step2Desc": "Masukkan nomor urut terakhir pada struk fisik jika diketahui agar tidak terjadi nomor ganda.",
+        "step3Title": "Langkah 3: Pratinjau pemulihan",
+        "highestReceived": "Tertinggi diterima server",
+        "declaredInvoiceLabel": "Nomor urut invoice terakhir di struk fisik (opsional)",
+        "declaredInvoicePlaceholder": "000127",
+        "declaredCreditLabel": "Nomor urut nota kredit terakhir di struk fisik (opsional)",
+        "declaredCreditPlaceholder": "000012",
+        "reasonTextLabel": "Catatan pemulihan (opsional)",
+        "nextInvoiceSeq": "Nomor invoice berikutnya: {{seq}}",
+        "nextCreditSeq": "Nomor nota kredit berikutnya: {{seq}}",
+        "gapCreated": "Gap yang dibuat ({{type}}): {{from}}–{{to}}",
+        "noGapCreated": "Tidak ada gap baru ({{type}}).",
+        "back": "Kembali",
+        "next": "Lanjut",
+        "previewLoading": "Menghitung pratinjau...",
+        "confirmAction": "Konfirmasi pulihkan register",
+        "succeeded": "Register berhasil dipulihkan.",
+        "failed": "Gagal memulihkan register."
       }
     },
     "catalog": {

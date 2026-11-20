@@ -7,13 +7,29 @@ import {
   registerHasTransactionsPort,
 } from '~/modules/catalog/public'
 import {
+  __clearEnrollmentCounterProviderForTests,
   __clearOutletCreatedHooksForTests,
   extendCredentialIfNeeded,
   identityFeedSources,
+  registerEnrollmentCounterProvider,
   registerOutletCreatedHook,
   touchDeviceStatus,
 } from '~/modules/identity/public'
-import { finalizeSaleCommandHandler, hasSalesForProductOrSku } from '~/modules/sales/public'
+import {
+  finalizeCreditNoteCommandHandler,
+  finalizeSaleCommandHandler,
+  getRecoveryCountersAndBindDevice,
+  getShiftCashSalesAndRefundTotals,
+  hasSalesForProductOrSku,
+  voidSaleCommandHandler,
+} from '~/modules/sales/public'
+import {
+  __clearShiftRecapSalesPortForTests,
+  closeShiftCommandHandler,
+  openShiftCommandHandler,
+  recordCashMovementCommandHandler,
+  registerShiftRecapSalesPort,
+} from '~/modules/shift/public'
 import {
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
@@ -39,12 +55,23 @@ export function composeServer(): void {
   }
   registerCommandHandler(appendAuditCommandHandler)
   registerCommandHandler(finalizeSaleCommandHandler)
+  registerCommandHandler(voidSaleCommandHandler)
+  registerCommandHandler(finalizeCreditNoteCommandHandler)
+  registerCommandHandler(openShiftCommandHandler)
+  registerCommandHandler(recordCashMovementCommandHandler)
+  registerCommandHandler(closeShiftCommandHandler)
   registerDeviceStatusPort({
     touchDeviceStatus,
     extendCredentialIfNeeded,
   })
   registerHasTransactionsPort({
     hasTransactions: hasSalesForProductOrSku,
+  })
+  registerShiftRecapSalesPort({
+    getShiftCashTotals: getShiftCashSalesAndRefundTotals,
+  })
+  registerEnrollmentCounterProvider({
+    getCountersAndBindDevice: getRecoveryCountersAndBindDevice,
   })
   registerOutletCreatedHook((tx, w, outlet) =>
     createDefaultAvailabilityForOutlet(tx, w, outlet.id),
@@ -58,5 +85,7 @@ export function resetCompositionForTests(): void {
   __clearDeviceStatusPortForTests()
   __clearHasTransactionsPortForTests()
   __clearOutletCreatedHooksForTests()
+  __clearShiftRecapSalesPortForTests()
+  __clearEnrollmentCounterProviderForTests()
   composed = false
 }

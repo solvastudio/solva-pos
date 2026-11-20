@@ -42,6 +42,7 @@ import {
   invalidateDeviceAuthCacheByHash,
   RateLimitRejectedError,
 } from './device-auth'
+import { getEnrollmentCounterProvider } from './enrollment-counters.port'
 import {
   revokeDeviceSchema,
   type CreatePairingCodeResult,
@@ -270,6 +271,13 @@ export async function enrollDevice(
         { newId: () => identityIdGen.newId(), nowIso: () => nowIso },
       )
 
+      const invoiceCounters = await getEnrollmentCounterProvider().getCountersAndBindDevice(
+        tx,
+        resolved.tenantId,
+        reg.id,
+        deviceId,
+      )
+
       log.info(
         {
           tenantId: resolved.tenantId,
@@ -304,6 +312,7 @@ export async function enrollDevice(
           paper_width_mm: reg.paperWidthMm === 58 ? 58 : 80,
         },
         server_time: nowMs,
+        invoice_counters: invoiceCounters,
       }
     })
   } catch (err: unknown) {
@@ -371,6 +380,61 @@ export async function revokeDevice(
   invalidateDeviceAuthCacheByDeviceId(deviceId)
   if (credentialHashToInvalidate) {
     invalidateDeviceAuthCacheByHash(credentialHashToInvalidate)
+  }
+}
+
+/**
+ * Revokes a device inside an already-open tenant transaction (used by atomic register recovery).
+ * Caller MUST invoke `invalidateDeviceCachesForIds` after transaction commit.
+ */
+export async function revokeDeviceInTx(
+  tx: TenantTx,
+  actor: IdentityAuthActor,
+  params: { deviceId: string; reasonCode: DeviceRevokeReason; nowIso: string },
+): Promise<{ credentialHash: Buffer | null }> {
+  const dev = await findDeviceForRevoke(tx, actor.tenantId, params.deviceId)
+  if (!dev) {
+    throw new AppError('VALIDATION_FAILED', 'Device not found')
+  }
+  requireActorPermission(actor, 'user.manage', { outletId: dev.outletId })
+
+  if (dev.revokedAt !== null) {
+    return { credentialHash: dev.credentialHash }
+  }
+
+  await markDeviceRevoked(tx, {
+    tenantId: actor.tenantId,
+    deviceId: params.deviceId,
+    revokedBy: actor.appUserId,
+    reasonCode: params.reasonCode,
+    nowIso: params.nowIso,
+  })
+
+  await appendAudit(
+    tx,
+    {
+      action: 'device.revoked',
+      entityType: 'device',
+      entityId: dev.id,
+      outletId: dev.outletId,
+      registerId: dev.registerId,
+      deviceId: dev.id,
+      reasonCode: params.reasonCode,
+      actorUserId: actor.appUserId,
+      occurredAt: params.nowIso,
+      beforeData: { name: dev.name },
+      afterData: { revoked: true, reasonCode: params.reasonCode },
+    },
+    { newId: () => identityIdGen.newId(), nowIso: () => params.nowIso },
+  )
+
+  return { credentialHash: dev.credentialHash }
+}
+
+export function invalidateRevokedDeviceAuthCaches(deviceId: string, credentialHash: Buffer | null): void {
+  invalidateDeviceAuthCacheByDeviceId(deviceId)
+  if (credentialHash) {
+    invalidateDeviceAuthCacheByHash(credentialHash)
   }
 }
 

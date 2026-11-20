@@ -4,11 +4,14 @@ import type { TaxRateRow } from '~/lib/sales-calc'
 import type { TenantTx } from '~/server/db'
 import {
   appUser,
+  cashMaster,
   legalEntity,
+  outlet,
   paymentMethod,
   registerInvoicePrefix,
   taxRateHistory,
 } from './schema'
+import { device, deviceSyncStatus } from './device-schema'
 
 export async function getTaxRateHistory(
   tx: TenantTx,
@@ -115,4 +118,138 @@ export async function validateSaleIdentityRefs(
   }
 
   return { missingUserId: null, missingLegalEntity: false, missingMethodId: null }
+}
+
+export async function findMissingAppUserId(
+  tx: TenantTx,
+  tenantId: string,
+  userIds: readonly string[],
+): Promise<string | null> {
+  const uniqueUsers = [...new Set(userIds)]
+  if (uniqueUsers.length === 0) return null
+  const found = await tx
+    .select({ id: appUser.id })
+    .from(appUser)
+    .where(and(eq(appUser.tenantId, tenantId), inArray(appUser.id, uniqueUsers)))
+  const set = new Set(found.map((u) => u.id))
+  for (const id of uniqueUsers) {
+    if (!set.has(id)) return id
+  }
+  return null
+}
+
+export async function findMissingPaymentMethodId(
+  tx: TenantTx,
+  tenantId: string,
+  methodIds: readonly string[],
+): Promise<string | null> {
+  const uniqueIds = [...new Set(methodIds)]
+  if (uniqueIds.length === 0) return null
+  const found = await tx
+    .select({ id: paymentMethod.id })
+    .from(paymentMethod)
+    .where(and(eq(paymentMethod.tenantId, tenantId), inArray(paymentMethod.id, uniqueIds)))
+  const set = new Set(found.map((m) => m.id))
+  for (const id of uniqueIds) {
+    if (!set.has(id)) return id
+  }
+  return null
+}
+
+export async function getRegisterPendingCommandCount(
+  tx: TenantTx,
+  tenantId: string,
+  registerId: string,
+): Promise<number> {
+  const rows = await tx
+    .select({ pendingCount: deviceSyncStatus.pendingCount })
+    .from(deviceSyncStatus)
+    .innerJoin(
+      device,
+      and(eq(device.tenantId, deviceSyncStatus.tenantId), eq(device.id, deviceSyncStatus.deviceId)),
+    )
+    .where(
+      and(
+        eq(deviceSyncStatus.tenantId, tenantId),
+        eq(deviceSyncStatus.registerId, registerId),
+        isNull(device.revokedAt),
+      ),
+    )
+    .limit(1)
+
+  if (rows[0]) {
+    return Number(rows[0].pendingCount)
+  }
+
+  // Fallback to latest device_sync_status row on this register if device was just revoked
+  const fallback = await tx
+    .select({ pendingCount: deviceSyncStatus.pendingCount })
+    .from(deviceSyncStatus)
+    .where(
+      and(eq(deviceSyncStatus.tenantId, tenantId), eq(deviceSyncStatus.registerId, registerId)),
+    )
+    .orderBy(desc(deviceSyncStatus.lastAttemptAt))
+    .limit(1)
+  return fallback[0] ? Number(fallback[0].pendingCount) : 0
+}
+
+export async function getRegisterRecoveryContext(
+  tx: TenantTx,
+  tenantId: string,
+  registerId: string,
+): Promise<{
+  registerId: string
+  registerCode: string
+  registerName: string
+  outletId: string
+  outletCode: string
+  outletTimezone: string
+  outletDayCutoffTime: string
+  activeDeviceId: string | null
+  latestDeviceId: string | null
+} | null> {
+  const regRows = await tx
+    .select({
+      registerId: cashMaster.id,
+      registerCode: cashMaster.code,
+      registerName: cashMaster.name,
+      outletId: cashMaster.outletId,
+      outletCode: outlet.code,
+      outletTimezone: outlet.timezone,
+      outletDayCutoffTime: outlet.dayCutoffTime,
+    })
+    .from(cashMaster)
+    .innerJoin(
+      outlet,
+      and(eq(outlet.tenantId, cashMaster.tenantId), eq(outlet.id, cashMaster.outletId)),
+    )
+    .where(
+      and(
+        eq(cashMaster.tenantId, tenantId),
+        eq(cashMaster.id, registerId),
+        isNull(cashMaster.deletedAt),
+        isNull(outlet.deletedAt),
+      ),
+    )
+    .limit(1)
+
+  const reg = regRows[0]
+  if (!reg) return null
+
+  const devRows = await tx
+    .select({
+      id: device.id,
+      revokedAt: device.revokedAt,
+    })
+    .from(device)
+    .where(and(eq(device.tenantId, tenantId), eq(device.registerId, registerId)))
+    .orderBy(desc(device.enrolledAt))
+    .limit(5)
+
+  const active = devRows.find((d) => d.revokedAt === null)
+  return {
+    ...reg,
+    activeDeviceId: active?.id ?? null,
+    latestDeviceId: devRows[0]?.id ?? null,
+  }
 }

@@ -20,6 +20,7 @@ import {
 } from '~/modules/identity/public'
 import { PERMISSION_CODES } from '~/modules/identity/shared'
 import {
+  __clearCommandHandlersForTests,
   processPush,
   registerCommandHandler,
   type SyncDeviceIdentity,
@@ -348,16 +349,6 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       ref: 'req-xt-1',
     })
 
-    let openShiftCalled = false
-    registerCommandHandler({
-      type: 'OpenShift',
-      parse: (p) => p,
-      async handle() {
-        openShiftCalled = true
-        return { ok: true }
-      },
-    })
-
     const waiterNowIso = new Date().toISOString()
     const waiterCmd: PushCommandEnvelope = {
       id: testIdGen.newId(),
@@ -383,7 +374,6 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [waiterCmd] },
       { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-wtr-1' },
     )
-    expect(openShiftCalled).toBe(false)
     expect(resWaiter.results[0]).toEqual({
       id: waiterCmd.id,
       outcome: 'ATTENTION',
@@ -690,6 +680,7 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
     __resetNotifierForTests(mockNotifier)
 
     let handleCalls = 0
+    __clearCommandHandlersForTests()
     registerCommandHandler({
       type: 'OpenShift',
       parse: (raw) => raw,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { REGISTER_TYPE } from './enums'
+import { DOC_TYPE, REGISTER_TYPE } from './enums'
+import { zPeriod, zSafePosInt } from './primitives'
 
 export const EnrollRequest = z.object({
   slug: z.string().trim().min(1).max(64),
@@ -34,5 +35,14 @@ export const EnrollResponse = z.object({
     paper_width_mm: z.union([z.literal(58), z.literal(80)]),
   }),
   server_time: z.number().int().positive(),
+  invoice_counters: z
+    .array(
+      z.object({
+        doc_type: z.enum(DOC_TYPE),
+        period: zPeriod,
+        next_seq: zSafePosInt,
+      }),
+    )
+    .optional(),
 })
 export type EnrollResponse = z.infer<typeof EnrollResponse>
