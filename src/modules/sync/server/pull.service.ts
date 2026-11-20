@@ -21,6 +21,12 @@ import { getDeviceStatusPort } from './device-status-port'
 import { getFeedSources } from './feed-registry'
 import { findCommandStatusesForDevice } from './idempotency.repo'
 import { pullPage } from './pull'
+import {
+  evaluateClientVersion,
+  getReleasePolicy,
+  releaseBlock,
+  UpdateRequiredError,
+} from './release.service'
 import { signSnapshotToken, verifySnapshotToken } from './snapshot-token'
 
 const log = createLogger('sync.pull')
@@ -84,6 +90,20 @@ export async function handlePull(
   const nowIso = (deps?.nowIso ?? (() => new Date(nowMs).toISOString()))()
   const scope = deviceScope(device)
   const safeAppVersion = normalizeSemverAppVersion(meta.appVersion)
+
+  const policy = await getReleasePolicy({ nowMs: () => nowMs })
+  const release = releaseBlock(policy)
+  const versionEval = evaluateClientVersion(
+    {
+      appVersion: safeAppVersion,
+      schemaVersion: meta.schemaVersion,
+      nowIso,
+    },
+    policy,
+  )
+  if (!versionEval.ok && versionEval.reason === 'APP_TOO_OLD') {
+    throw new UpdateRequiredError(release, `Client app version below minimum: ${safeAppVersion ?? 'null'}`)
+  }
 
   const page = await pullPage({
     tenantId: device.tenantId,
@@ -185,7 +205,7 @@ export async function handlePull(
     next_cursor: page.nextCursor,
     has_more: page.hasMore,
     max_schema_version: SCHEMA_VERSION,
-    release: null,
+    release,
     ...(isLastPage
       ? {
           command_updates: commandUpdates,

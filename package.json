@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "node scripts/local.mjs vite dev",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
+    "build:ops": "node scripts/build-ops.mjs",
+    "start": "node dist/ops/serve.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && npm run lint:arch",
     "lint:arch": "depcruise src --config .dependency-cruiser.cjs",

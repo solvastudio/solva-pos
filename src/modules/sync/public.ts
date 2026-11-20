@@ -43,6 +43,16 @@ export {
   cleanTombstoneFloors,
   type CleanTombstonesResult,
 } from './server/tombstone-cleaner'
+export {
+  __clearReleasePolicyCacheForTests,
+  defaultReleasePolicy,
+  evaluateClientVersion,
+  getReleasePolicy,
+  releaseBlock,
+  UpdateRequiredError,
+  type ReleasePolicy,
+  type VersionEvaluationResult,
+} from './server/release.service'
 export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
 export {
   CommandRejected,

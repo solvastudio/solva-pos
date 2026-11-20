@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ATTENTION_REASON_CLASS, COMMAND_TYPE } from './enums'
+import { ReleaseBlockSchema } from './release'
 
 export const ErrorEnvelope = z.object({
   error: z.object({
@@ -56,6 +57,7 @@ export const PushResponse = z.object({
   server_time: z.iso.datetime(),
   results: z.array(PushResultItem),
   max_schema_version: z.number().int().positive().optional(),
+  release: ReleaseBlockSchema.nullable().optional(),
 })
 export type PushResponse = z.infer<typeof PushResponse>
 

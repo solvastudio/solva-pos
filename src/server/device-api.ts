@@ -11,7 +11,7 @@ import {
   RateLimitRejectedError,
   type DeviceContext,
 } from '~/modules/identity/public'
-import { PullRateLimitedError } from '~/modules/sync/public'
+import { PullRateLimitedError, UpdateRequiredError } from '~/modules/sync/public'
 import { getClientIp } from './auth/rate-limit/client-ip'
 import { getLimiters, type RateLimitersRegistry } from './auth/rate-limit/limiters'
 import { rateLimitedResponse } from './auth/rate-limit/rate-limited-response'
@@ -49,7 +49,7 @@ function parsePositiveIntHeader(raw: string | null): number | null {
 
 export function serverAppVersion(): string {
   if (typeof __APP_VERSION__ !== 'undefined') return __APP_VERSION__
-  return process.env.APP_VERSION ?? 'v0.0.0-dev'
+  return process.env.APP_VERSION ?? 'dev'
 }
 
 function readDeviceHeaders(request: Request): {
@@ -126,6 +126,24 @@ export function deviceRoute(
         }
         if (err instanceof PullRateLimitedError) {
           return rateLimitedResponse(err.retryAfterMs, 'transient', { ref: reqId })
+        }
+        if (err instanceof UpdateRequiredError) {
+          return Response.json(
+            {
+              error: {
+                code: 'UPDATE_REQUIRED',
+                ref: reqId,
+                class: 'schema',
+              },
+              release: err.release,
+            },
+            {
+              status: 426,
+              headers: {
+                'Cache-Control': 'no-store',
+              },
+            },
+          )
         }
         if (err instanceof EnrollConflictError) {
           return Response.json(

@@ -147,7 +147,7 @@ export default defineConfig(
 
   // 4. Server no-console
   {
-    files: ['src/server/**', 'src/functions/**', 'src/modules/**/server/**', 'src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**'],
+    files: ['src/server/**', 'src/functions/**', 'src/modules/**/server/**', 'src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/routes/health.ts'],
     rules: {
       'no-console': 'error',
     },
@@ -156,7 +156,7 @@ export default defineConfig(
   // 5. Client layering
   {
     files: ['src/pos/**', 'src/components/**', 'src/hooks/**', 'src/queries/**', 'src/routes/**', 'src/lib/**'],
-    ignores: ['src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**'],
+    ignores: ['src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/routes/health.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: CLIENT_SERVER_PATTERNS }],
     },
@@ -308,7 +308,7 @@ export default defineConfig(
   },
   {
     files: ['src/components/**', 'src/hooks/**', 'src/queries/**', 'src/routes/**'],
-    ignores: ['src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/components/ui/**'],
+    ignores: ['src/routes/api/**', 'src/routes/*/api/**', 'src/routes/*/admin/api/**', 'src/routes/platform/api/**', 'src/routes/health.ts', 'src/components/ui/**'],
     rules: {
       'no-restricted-imports': [
         'error',

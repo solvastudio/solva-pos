@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { STORAGE_PERSIST_STATUS } from './enums'
+import { ReleaseBlockSchema } from './release'
 
 const LAST_ERROR_CODE_RE = /^[A-Z][A-Z0-9_]{1,39}$/
 const LAST_ERROR_REF_RE = /^[A-Za-z0-9._-]{1,64}$/
@@ -95,7 +96,7 @@ export const PullPageSuccessResponse = z.object({
   next_cursor: FeedCursorSchema.nullable(),
   has_more: z.boolean(),
   max_schema_version: z.number().int().positive(),
-  release: z.null(),
+  release: ReleaseBlockSchema.nullable(),
   command_updates: z.array(PullCommandUpdateSchema).optional(),
   manifest: PullManifestSchema.optional(),
 })

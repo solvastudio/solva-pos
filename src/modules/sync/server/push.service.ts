@@ -11,7 +11,6 @@ import {
 } from '~/lib/contracts'
 import { canonicalJson, createIdGenerator } from '~/lib/kernel'
 import { withTenant } from '~/server/db'
-import { AppError } from '~/server/error-classify'
 import { createLogger } from '~/server/log'
 import { getContext, runWithContext } from '~/server/logging/log-context'
 import {
@@ -22,6 +21,12 @@ import {
 } from '../domain/command-types'
 import { getCommandHandler } from './command-registry'
 import { getDeviceStatusPort } from './device-status-port'
+import {
+  evaluateClientVersion,
+  getReleasePolicy,
+  releaseBlock,
+  UpdateRequiredError,
+} from './release.service'
 import {
   claimIdempotencyRow,
   completeIdempotencyAck,
@@ -442,12 +447,27 @@ export async function processPush(
   meta: PushRequestMeta,
   deps?: ProcessPushDeps,
 ): Promise<PushResponse> {
+  const receivedAtIso = (deps?.nowIso ?? (() => new Date().toISOString()))()
+  const policy = await getReleasePolicy()
+  const release = releaseBlock(policy)
+
   if (!SUPPORTED_SCHEMA_VERSIONS.includes(meta.schemaVersion)) {
-    throw new AppError('UPDATE_REQUIRED', `Unsupported schema version: ${meta.schemaVersion}`)
+    throw new UpdateRequiredError(release, `Unsupported schema version: ${meta.schemaVersion}`)
   }
 
-  const receivedAtIso = (deps?.nowIso ?? (() => new Date().toISOString()))()
   const safeAppVersion = normalizeSemverAppVersion(meta.appVersion)
+  const versionEval = evaluateClientVersion(
+    {
+      appVersion: safeAppVersion,
+      schemaVersion: meta.schemaVersion,
+      nowIso: receivedAtIso,
+    },
+    policy,
+  )
+  if (!versionEval.ok) {
+    throw new UpdateRequiredError(release, `Client rejected by release policy: ${versionEval.reason}`)
+  }
+
   const sorted = [...req.commands].sort((a, b) => a.device_seq - b.device_seq)
 
   const results: PushResultItem[] = []
@@ -498,5 +518,6 @@ export async function processPush(
     server_time: receivedAtIso,
     results,
     max_schema_version: SCHEMA_VERSION,
+    release,
   }
 }

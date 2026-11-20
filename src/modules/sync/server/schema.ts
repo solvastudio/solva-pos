@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   char,
   check,
   date,
@@ -187,5 +188,41 @@ export const dataFlag = pgTable(
       sql`${t.entityType} IN ('SALE', 'SALE_LINE', 'CREDIT_NOTE', 'STOCK_MOVEMENT', 'BILL', 'TRANSFER_LINE')`,
     ),
     check('ck_data_flag__status', sql`${t.status} IN ('OPEN', 'ACKNOWLEDGED', 'RESOLVED')`),
+  ],
+)
+
+const SEMVER_SQL_REGEX = '^v\\d+\\.\\d+\\.\\d+([-+][0-9A-Za-z.+-]+)?$'
+
+export const appRelease = pgTable(
+  'app_release',
+  {
+    appVersion: text('app_version').primaryKey(),
+    schemaVersion: integer('schema_version').notNull(),
+    releasedAt: isoTimestamptz('released_at')
+      .notNull()
+      .default(sql`now()`),
+    isMandatory: boolean('is_mandatory').notNull().default(false),
+    minSupportedSchemaVersion: integer('min_supported_schema_version').notNull(),
+    minSupportedAppVersion: text('min_supported_app_version'),
+    acceptPreviousUntil: isoTimestamptz('accept_previous_until'),
+    notes: text('notes'),
+  },
+  (t) => [
+    index('ix_app_release__released_at').on(sql`${t.releasedAt} DESC`),
+    check(
+      'ck_app_release__app_version',
+      sql.raw(`char_length(app_version) <= 30 AND app_version ~ '${SEMVER_SQL_REGEX}'`),
+    ),
+    check('ck_app_release__schema_version', sql`${t.schemaVersion} > 0`),
+    check(
+      'ck_app_release__min_schema',
+      sql`${t.minSupportedSchemaVersion} > 0 AND ${t.minSupportedSchemaVersion} <= ${t.schemaVersion}`,
+    ),
+    check(
+      'ck_app_release__min_app',
+      sql.raw(
+        `min_supported_app_version IS NULL OR (char_length(min_supported_app_version) <= 30 AND min_supported_app_version ~ '${SEMVER_SQL_REGEX}')`,
+      ),
+    ),
   ],
 )

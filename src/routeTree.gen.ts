@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantRouteImport } from './routes/$tenant'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
 import { Route as TenantJoinRouteImport } from './routes/$tenant/join'
 import { Route as TenantResetRouteImport } from './routes/$tenant/reset'
@@ -32,6 +33,7 @@ import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
 import { Route as ApiPosV1PullRouteImport } from './routes/api/pos/v1/pull'
 import { Route as ApiPosV1PushRouteImport } from './routes/api/pos/v1/push'
+import { Route as ApiPosV1ReleaseRouteImport } from './routes/api/pos/v1/release'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
 import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
@@ -44,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const TenantRoute = TenantRouteImport.update({
   id: '/$tenant',
   path: '/$tenant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TenantIndexRoute = TenantIndexRouteImport.update({
@@ -153,6 +160,11 @@ const ApiPosV1PushRoute = ApiPosV1PushRouteImport.update({
   path: '/api/pos/v1/push',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPosV1ReleaseRoute = ApiPosV1ReleaseRouteImport.update({
+  id: '/api/pos/v1/release',
+  path: '/api/pos/v1/release',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -172,6 +184,7 @@ const ApiPosV1PullFullStartRoute = ApiPosV1PullFullStartRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$tenant': typeof TenantRouteWithChildren
+  '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/reset': typeof TenantResetRoute
   '/ui': typeof DevUiRoute
@@ -192,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
+  '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -199,6 +213,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/reset': typeof TenantResetRoute
   '/ui': typeof DevUiRoute
@@ -218,6 +233,7 @@ export interface FileRoutesByTo {
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
+  '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -227,6 +243,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$tenant': typeof TenantRouteWithChildren
+  '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/reset': typeof TenantResetRoute
   '/_dev/ui': typeof DevUiRoute
@@ -247,6 +264,7 @@ export interface FileRoutesById {
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
+  '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -257,6 +275,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$tenant'
+    | '/health'
     | '/$tenant/join'
     | '/$tenant/reset'
     | '/ui'
@@ -277,6 +296,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
+    | '/api/pos/v1/release'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -284,6 +304,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/health'
     | '/$tenant/join'
     | '/$tenant/reset'
     | '/ui'
@@ -303,6 +324,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
+    | '/api/pos/v1/release'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -311,6 +333,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$tenant'
+    | '/health'
     | '/$tenant/join'
     | '/$tenant/reset'
     | '/_dev/ui'
@@ -331,6 +354,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
+    | '/api/pos/v1/release'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -340,6 +364,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TenantRoute: typeof TenantRouteWithChildren
+  HealthRoute: typeof HealthRoute
   DevUiRoute: typeof DevUiRoute
   PlatformLoginRoute: typeof PlatformLoginRoute
   PlatformIndexRoute: typeof PlatformIndexRoute
@@ -350,6 +375,7 @@ export interface RootRouteChildren {
   ApiPosV1PingRoute: typeof ApiPosV1PingRoute
   ApiPosV1PullRoute: typeof ApiPosV1PullRouteWithChildren
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
+  ApiPosV1ReleaseRoute: typeof ApiPosV1ReleaseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -366,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/$tenant'
       fullPath: '/$tenant'
       preLoaderRoute: typeof TenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$tenant/': {
@@ -515,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPosV1PushRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pos/v1/release': {
+      id: '/api/pos/v1/release'
+      path: '/api/pos/v1/release'
+      fullPath: '/api/pos/v1/release'
+      preLoaderRoute: typeof ApiPosV1ReleaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -598,6 +638,7 @@ const ApiPosV1PullRouteWithChildren = ApiPosV1PullRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TenantRoute: TenantRouteWithChildren,
+  HealthRoute: HealthRoute,
   DevUiRoute: DevUiRoute,
   PlatformLoginRoute: PlatformLoginRoute,
   PlatformIndexRoute: PlatformIndexRoute,
@@ -608,6 +649,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPosV1PingRoute: ApiPosV1PingRoute,
   ApiPosV1PullRoute: ApiPosV1PullRouteWithChildren,
   ApiPosV1PushRoute: ApiPosV1PushRoute,
+  ApiPosV1ReleaseRoute: ApiPosV1ReleaseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

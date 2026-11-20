@@ -13,7 +13,13 @@ export default defineConfig({
         resolve: { alias: rootAlias },
         test: {
           name: 'unit',
-          include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts', 'tests/arch/**/*.test.ts'],
+          include: [
+            'src/**/*.test.ts',
+            'src/**/*.test.tsx',
+            'scripts/**/*.test.ts',
+            'scripts/**/*.test.mjs',
+            'tests/arch/**/*.test.ts',
+          ],
           environment: 'node',
           setupFiles: ['./tests/setup-ui.ts'],
         },

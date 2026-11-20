@@ -1,0 +1,11 @@
+node_modules
+.git
+plans
+docs
+tests
+logs
+*.map
+.env*
+.output
+dist
+dist-release

@@ -155,6 +155,20 @@
       "when": 1795130707629,
       "tag": "0021_push_rls_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795132282099,
+      "tag": "0022_app_release",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795132283638,
+      "tag": "0023_app_release_grants",
+      "breakpoints": true
     }
   ]
 }

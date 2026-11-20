@@ -16,16 +16,18 @@ export interface RequestLogOptions {
 function runtimeAppVersion(explicit?: string): string {
   if (explicit) return explicit
   if (typeof __APP_VERSION__ !== 'undefined') return __APP_VERSION__
-  return process.env.APP_VERSION ?? 'v0.0.0-dev'
+  return process.env.APP_VERSION ?? 'dev'
 }
 
-function attachRequestIdHeader(response: Response, reqId: string): Response {
+function attachResponseHeaders(response: Response, reqId: string, appVersion: string): Response {
   try {
     response.headers.set('X-Request-Id', reqId)
+    response.headers.set('X-App-Version', appVersion)
     return response
   } catch {
     const headers = new Headers(response.headers)
     headers.set('X-Request-Id', reqId)
+    headers.set('X-App-Version', appVersion)
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -44,11 +46,12 @@ export async function handleRequestWithLog(
   const url = new URL(request.url)
   // Log pathname only (no query string so tokens/sensitive params cannot leak)
   const path = url.pathname.slice(0, MAX_PATH_LEN)
+  const appVersion = runtimeAppVersion(options.appVersion)
 
   const ctx: LogContext = {
     reqId,
     env: options.env ?? process.env.APP_ENV ?? 'development',
-    appVersion: runtimeAppVersion(options.appVersion),
+    appVersion,
   }
 
   return runWithContext(ctx, async () => {
@@ -60,11 +63,11 @@ export async function handleRequestWithLog(
       log.error({ err, method: request.method, path, status: 500, durationMs }, 'request failed')
       return Response.json(
         { error: { code: 'INTERNAL_ERROR', ref: reqId } },
-        { status: 500, headers: { 'X-Request-Id': reqId } },
+        { status: 500, headers: { 'X-Request-Id': reqId, 'X-App-Version': appVersion } },
       )
     }
 
-    const finished = attachRequestIdHeader(response, reqId)
+    const finished = attachResponseHeaders(response, reqId, appVersion)
     const durationMs = Math.round(performance.now() - startedAt)
 
     if (path !== '/health') {
