@@ -66,8 +66,14 @@ function main() {
     'tests/integration/audit.int.test.ts',
   ])
 
+  const isCi = Boolean(process.env.CI) && process.env.CI !== 'false' && process.env.CI !== '0'
   if (checkDockerReady()) {
     runStep('Nginx Reverse Proxy Security Check (F1-K11)', ['run', 'test:nginx'])
+  } else if (isCi) {
+    process.stderr.write(
+      '\n[gate:f1] FAILED: Docker daemon unavailable while CI is set; test:nginx is mandatory in CI.\n',
+    )
+    process.exit(1)
   } else {
     process.stdout.write('\n[gate:f1] WARNING: Docker daemon unavailable; skipping test:nginx locally.\n')
   }
