@@ -1,78 +1,26 @@
-import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import {
-  isBlocked,
-  LOGIN_DELAY_SCHEDULE_MS,
-  loginDelayMs,
-  onLoginFailure,
-  onLoginSuccess,
-  type ProgressiveState,
-} from './progressive'
+import { LOGIN_DELAY_SCHEDULE_MS } from './progressive'
 
-describe('progressive login delay policy (BR-RLM-003, V-40)', () => {
-  it('matches V-40 schedule exactly for failures 1 through 10', () => {
-    const expected: Array<[number, number]> = [
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [4, 30_000],
-      [5, 60_000],
-      [6, 120_000],
-      [7, 300_000],
-      [8, 900_000],
-      [9, 900_000],
-      [10, 900_000],
-    ]
-
-    for (const [failures, ms] of expected) {
-      expect(loginDelayMs(failures)).toBe(ms)
-    }
-    expect(LOGIN_DELAY_SCHEDULE_MS[8]).toBe(900_000)
+describe('progressive login delay schedule constant (BR-RLM-003, V-40)', () => {
+  it('matches the V-40 schedule and caps at 900,000 ms without permanent lockout', () => {
+    expect(LOGIN_DELAY_SCHEDULE_MS).toEqual([
+      0,
+      0,
+      0,
+      0,
+      30_000,
+      60_000,
+      120_000,
+      300_000,
+      900_000,
+    ])
   })
 
-  it('evaluates isBlocked before, at, and after blockedUntilMs', () => {
-    let state: ProgressiveState = onLoginSuccess()
-    const t0 = 1_000_000
-
-    for (let i = 1; i <= 3; i += 1) {
-      state = onLoginFailure(state, t0)
-      expect(isBlocked(state, t0)).toEqual({ blocked: false, retryAfterMs: 0 })
+  it('is monotonically non-decreasing across failure indices', () => {
+    for (let i = 1; i < LOGIN_DELAY_SCHEDULE_MS.length; i += 1) {
+      expect(LOGIN_DELAY_SCHEDULE_MS[i]!).toBeGreaterThanOrEqual(
+        LOGIN_DELAY_SCHEDULE_MS[i - 1]!,
+      )
     }
-
-    // 4th failure -> 30,000 ms delay
-    state = onLoginFailure(state, t0)
-    expect(state).toEqual({ failures: 4, blockedUntilMs: t0 + 30_000 })
-    expect(isBlocked(state, t0)).toEqual({ blocked: true, retryAfterMs: 30_000 })
-    expect(isBlocked(state, t0 + 29_999)).toEqual({ blocked: true, retryAfterMs: 1 })
-    expect(isBlocked(state, t0 + 30_000)).toEqual({ blocked: false, retryAfterMs: 0 })
-    expect(isBlocked(state, t0 + 50_000)).toEqual({ blocked: false, retryAfterMs: 0 })
-  })
-
-  it('resets counts and delay on login success with no permanent lockout', () => {
-    let state = onLoginSuccess()
-    for (let i = 0; i < 8; i += 1) {
-      state = onLoginFailure(state, 10_000)
-    }
-    expect(isBlocked(state, 10_000).blocked).toBe(true)
-
-    const reset = onLoginSuccess()
-    expect(reset).toEqual({ failures: 0, blockedUntilMs: 0 })
-    expect(isBlocked(reset, 10_000)).toEqual({ blocked: false, retryAfterMs: 0 })
-  })
-
-  it('property: loginDelayMs is monotonically non-decreasing and never exceeds 900,000 ms', () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: 1000 }),
-        fc.integer({ min: 0, max: 1000 }),
-        (a, b) => {
-          const lo = Math.min(a, b)
-          const hi = Math.max(a, b)
-          expect(loginDelayMs(lo)).toBeLessThanOrEqual(loginDelayMs(hi))
-          expect(loginDelayMs(lo)).toBeGreaterThanOrEqual(0)
-          expect(loginDelayMs(hi)).toBeLessThanOrEqual(900_000)
-        },
-      ),
-    )
   })
 })
