@@ -4,7 +4,8 @@ import { betterAuth } from 'better-auth'
 import { organization } from 'better-auth/plugins'
 import { authSchema, checkActiveMembership } from '~/modules/identity/public'
 import { getDb } from '~/server/db'
-import { requireAuthEnv } from '~/server/env'
+import { getPublicBaseUrl, requireAuthEnv } from '~/server/env'
+import { getTrustedOrigins } from './origin-check'
 
 function buildTenantCookiePrefix(slug: string): string {
   return `solva_s_${slug}`
@@ -21,6 +22,7 @@ function createTenantAuthInstance(slug: string, tenantId: string, authOrgId: str
 
   return betterAuth({
     secret: BETTER_AUTH_SECRET,
+    baseURL: getPublicBaseUrl(),
     basePath: `/${normalizedSlug}/admin/api/auth`,
     database: drizzleAdapter(getDb(), {
       provider: 'pg',
@@ -40,15 +42,7 @@ function createTenantAuthInstance(slug: string, tenantId: string, authOrgId: str
       enabled: false,
     },
     plugins: [organization()],
-    trustedOrigins: (request) => {
-      if (!request) return []
-      const url = new URL(request.url)
-      const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-      const host = forwardedHost || request.headers.get('host')?.trim()
-      const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
-      const proto = forwardedProto || url.protocol.replace(/:$/, '') || 'http'
-      return host ? [`${proto}://${host}`, url.origin] : [url.origin]
-    },
+    trustedOrigins: (request) => getTrustedOrigins(request),
     advanced: {
       cookiePrefix,
       // Keep cookie name prefix uniform (`solva_s_<slug>.session_token`) while

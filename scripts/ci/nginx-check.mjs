@@ -32,6 +32,7 @@ const server = http.createServer((req, res) => {
     url: req.url,
     xRealIp: req.headers['x-real-ip'] || null,
     xForwardedFor: req.headers['x-forwarded-for'] || null,
+    xForwardedHost: req.headers['x-forwarded-host'] || null,
     xTenantSlug: req.headers['x-tenant-slug'] ?? null,
   }));
 });
@@ -107,11 +108,12 @@ async function main() {
     const mapRes = await fetch(`${baseUrl}/assets/main.js.map`)
     assert.equal(mapRes.status, 404, '*.map inside /assets/ must return 404')
 
-    // 3. Spoofed X-Forwarded-For, X-Real-IP, and X-Tenant-Slug are overwritten/cleared on /acme
+    // 3. Spoofed X-Forwarded-For, X-Real-IP, X-Forwarded-Host, and X-Tenant-Slug are overwritten/cleared on /acme
     const acmeRes = await fetch(`${baseUrl}/acme`, {
       headers: {
         'X-Forwarded-For': '1.2.3.4',
         'X-Real-IP': '9.9.9.9',
+        'X-Forwarded-Host': 'evil.example',
         'X-Tenant-Slug': 'evil',
       },
     })
@@ -120,6 +122,7 @@ async function main() {
     assert.notEqual(acmeBody.xRealIp, '9.9.9.9', 'Spoofed X-Real-IP must be overwritten')
     assert.notEqual(acmeBody.xForwardedFor, '1.2.3.4', 'Spoofed X-Forwarded-For must be overwritten')
     assert.equal(acmeBody.xRealIp, acmeBody.xForwardedFor, 'XFF must be overwritten with remote addr')
+    assert.equal(acmeBody.xForwardedHost, null, 'Spoofed X-Forwarded-Host must be cleared')
     assert.equal(acmeBody.xTenantSlug, null, 'Spoofed X-Tenant-Slug must be cleared')
 
     // 4. Tenant _serverFn rewrite strips /<slug> and injects trusted X-Tenant-Slug

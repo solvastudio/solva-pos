@@ -175,8 +175,14 @@ export function requireAuthEnv(): {
 }
 
 export function getPublicBaseUrl(): string {
-  const configured = getEnv().PUBLIC_BASE_URL
-  return (configured ?? 'http://localhost:3000').replace(/\/+$/, '')
+  const env = getEnv()
+  if (env.PUBLIC_BASE_URL) {
+    return env.PUBLIC_BASE_URL.replace(/\/+$/, '')
+  }
+  if (env.APP_ENV === 'staging' || env.APP_ENV === 'production') {
+    throw new Error('Missing required environment variable: PUBLIC_BASE_URL')
+  }
+  return 'http://localhost:3000'
 }
 
 export function getSyncPushMaxFailureAttempts(): number {

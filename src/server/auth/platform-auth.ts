@@ -3,13 +3,15 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { betterAuth } from 'better-auth'
 import { platformAuthSchema } from '~/modules/identity/public'
 import { getDb } from '~/server/db'
-import { requireAuthEnv } from '~/server/env'
+import { getPublicBaseUrl, requireAuthEnv } from '~/server/env'
+import { getTrustedOrigins } from './origin-check'
 
 function createPlatformAuthInstance() {
   const { BETTER_AUTH_SECRET, AUTH_COOKIE_SECURE } = requireAuthEnv()
 
   return betterAuth({
     secret: BETTER_AUTH_SECRET,
+    baseURL: getPublicBaseUrl(),
     basePath: '/platform/api/auth',
     database: drizzleAdapter(getDb(), {
       provider: 'pg',
@@ -32,15 +34,7 @@ function createPlatformAuthInstance() {
     rateLimit: {
       enabled: false,
     },
-    trustedOrigins: (request) => {
-      if (!request) return []
-      const url = new URL(request.url)
-      const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
-      const host = forwardedHost || request.headers.get('host')?.trim()
-      const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
-      const proto = forwardedProto || url.protocol.replace(/:$/, '') || 'http'
-      return host ? [`${proto}://${host}`, url.origin] : [url.origin]
-    },
+    trustedOrigins: (request) => getTrustedOrigins(request),
     advanced: {
       cookiePrefix: 'solva_platform',
       useSecureCookies: false,
