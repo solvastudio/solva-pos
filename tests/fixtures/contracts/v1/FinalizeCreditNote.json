@@ -1,0 +1,54 @@
+{
+  "credit_note": {
+    "id": "01950000-0000-7000-8000-000000000701",
+    "shift_id": "01950000-0000-7000-8000-000000000201",
+    "created_by": "01950000-0000-7000-8000-000000000301",
+    "approved_by": "01950000-0000-7000-8000-000000000302",
+    "created_at_device": "2026-11-20T11:00:00.000Z",
+    "clock_offset_ms": 0,
+    "occurred_at": "2026-11-20T11:00:00.000Z",
+    "business_date": "2026-11-20",
+    "cn_no": "OUT01-POS01-NK-1126-000001",
+    "cn_prefix": "OUT01-POS01",
+    "cn_period": "1126",
+    "cn_seq": 1,
+    "original_sale_id": "01950000-0000-7000-8000-000000000101",
+    "original_invoice_no": "OUT01-POS01-1126-000001",
+    "reason_code": "DEFECTIVE",
+    "reason_text": "One carton seal was damaged",
+    "price_tax_mode": "EXCLUSIVE",
+    "cash_rounding_unit": 100,
+    "receipt_locale": "id-ID",
+    "net_total": 16110,
+    "service_total": 0,
+    "tax_total": 1772,
+    "refund_gross": 17882,
+    "rounding": 18
+  },
+  "lines": [
+    {
+      "id": "01950000-0000-7000-8000-000000007101",
+      "line_no": 1,
+      "sale_line_id": "01950000-0000-7000-8000-000000001003",
+      "qty_returned": "1.0000",
+      "qty_returned_base": "1.0000",
+      "refund_net": 16110,
+      "refund_service": 0,
+      "refund_tax": 1772,
+      "is_final_return": false,
+      "disposition": "KEMBALI_STOK"
+    }
+  ],
+  "refunds": [
+    {
+      "id": "01950000-0000-7000-8000-000000007201",
+      "seq": 1,
+      "method_id": "01950000-0000-7000-8000-000000006001",
+      "method_code": "CASH",
+      "method_name": "Tunai",
+      "method_kind": "CASH",
+      "amount_applied": 17900,
+      "reference": null
+    }
+  ]
+}

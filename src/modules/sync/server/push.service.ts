@@ -2,6 +2,9 @@ import '@tanstack/react-start/server-only'
 import { createHash, webcrypto } from 'node:crypto'
 import { ZodError } from 'zod'
 import {
+  ContractError,
+  hasRegisteredCommandSchema,
+  parseCommandPayload,
   SUPPORTED_SCHEMA_VERSIONS,
   SCHEMA_VERSION,
   type PushCommandEnvelope,
@@ -260,10 +263,17 @@ async function processSingleCommand(
       }
 
       try {
-        parsedPayload = handler.parse(cmd.payload, cmd.schema_version)
+        const contractPayload = hasRegisteredCommandSchema(cmd.type)
+          ? parseCommandPayload(cmd.type, cmd.schema_version, cmd.payload)
+          : cmd.payload
+        parsedPayload = handler.parse(contractPayload, cmd.schema_version)
       } catch (err: unknown) {
         if (err instanceof CommandRejected) {
           return recordAttention(err.reasonClass, err.reasonCode, err.detail ?? null)
+        }
+        if (err instanceof ContractError) {
+          const code = err.code === 'UPDATE_REQUIRED' ? 'SCHEMA_NOT_MIGRATABLE' : 'VALIDATION_FAILED'
+          return recordAttention('STRUCTURAL', code, err.message)
         }
         const msg =
           err instanceof ZodError

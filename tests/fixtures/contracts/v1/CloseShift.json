@@ -1,0 +1,10 @@
+{
+  "shift_id": "01950000-0000-7000-8000-000000000201",
+  "counted_cash": 1780000,
+  "count_submitted_at": "2026-11-20T21:00:00.000Z",
+  "closed_at": "2026-11-20T21:01:00.000Z",
+  "closed_at_device": "2026-11-20T21:01:00.000Z",
+  "expected_cash_device": 1782100,
+  "variance_device": -2100,
+  "close_note": "Short by Rp 2.100 on coin drawer"
+}

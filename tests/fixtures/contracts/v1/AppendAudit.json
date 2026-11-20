@@ -1,0 +1,18 @@
+{
+  "entry": {
+    "id": "01950000-0000-7000-8000-000000000901",
+    "action": "drawer.opened",
+    "entity_type": "register",
+    "entity_id": "01950000-0000-7000-8000-000000000951",
+    "before_data": null,
+    "after_data": { "reason": "shift_check" },
+    "reason_code": "MANUAL_OPEN",
+    "reason_text": "Checking register coins",
+    "actor_user_id": "01950000-0000-7000-8000-000000000301",
+    "approver_user_id": null,
+    "occurred_at_device": "2026-11-20T10:00:00.000Z",
+    "occurred_at": "2026-11-20T10:00:00.000Z",
+    "business_date": "2026-11-20",
+    "related_command_id": null
+  }
+}

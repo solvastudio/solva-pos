@@ -1,0 +1,8 @@
+{
+  "sale_id": "01950000-0000-7000-8000-000000000101",
+  "voided_at": "2026-11-20T09:30:00.000Z",
+  "voided_by": "01950000-0000-7000-8000-000000000301",
+  "void_approved_by": "01950000-0000-7000-8000-000000000302",
+  "reason_code": "WRONG_ITEM",
+  "reason_text": "Customer changed order before pickup"
+}

@@ -358,14 +358,25 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       },
     })
 
+    const waiterNowIso = new Date().toISOString()
     const waiterCmd: PushCommandEnvelope = {
       id: testIdGen.newId(),
       type: 'OpenShift',
       schema_version: 1,
       device_seq: 1,
       depends_on: [],
-      created_at_device: new Date().toISOString(),
-      payload: { opening_cash: 100000 },
+      created_at_device: waiterNowIso,
+      payload: {
+        shift: {
+          id: testIdGen.newId(),
+          created_by: fxB.actor.appUserId,
+          created_at_device: waiterNowIso,
+          clock_offset_ms: 0,
+          occurred_at: waiterNowIso,
+          business_date: '2026-11-20',
+          opening_cash: 100000,
+        },
+      },
     }
     const resWaiter = await processPush(
       fxB.syncDevice,
@@ -697,7 +708,17 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       device_seq: 1,
       depends_on: [],
       created_at_device: nowIso,
-      payload: { outlet_id: fx.outlet.id },
+      payload: {
+        shift: {
+          id: cmdId,
+          created_by: fx.actor.appUserId,
+          created_at_device: nowIso,
+          clock_offset_ms: 0,
+          occurred_at: nowIso,
+          business_date: '2026-11-20',
+          opening_cash: 100000,
+        },
+      },
     }
 
     try {
@@ -939,6 +960,42 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       expect(detail).toContain('55P03')
       // Drizzle query errors embed SQL text and bound parameters in their message; they must never be stored.
       expect(detail).not.toMatch(/params:|insert into|select |audit_chain_head|Failed query:/i)
+    })
+  })
+
+  it('rejects invalid FinalizeSale payload at contract layer as ATTENTION (VALIDATION_FAILED)', async () => {
+    const fx = await setupDeviceFixture(uniqueSlug('push-contract-val'))
+    registerCommandHandler({
+      type: 'FinalizeSale',
+      parse: (p) => p,
+      async handle() {
+        return { ok: true }
+      },
+    })
+
+    const cmdId = testIdGen.newId()
+    const nowIso = new Date().toISOString()
+    const invalidSaleCmd: PushCommandEnvelope = {
+      id: cmdId,
+      type: 'FinalizeSale',
+      schema_version: 1,
+      device_seq: 1,
+      depends_on: [],
+      created_at_device: nowIso,
+      payload: { sale: { id: cmdId, grand_total: 100.5 }, lines: [], payments: [] },
+    }
+
+    const res = await processPush(
+      fx.syncDevice,
+      { sent_at_device: nowIso, clock_offset_ms: 0, commands: [invalidSaleCmd] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-fs-bad' },
+    )
+    expect(res.results[0]).toEqual({
+      id: cmdId,
+      outcome: 'ATTENTION',
+      reason_class: 'STRUCTURAL',
+      reason_code: 'VALIDATION_FAILED',
+      ref: 'req-fs-bad',
     })
   })
 })

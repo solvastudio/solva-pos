@@ -1,0 +1,15 @@
+{
+  "movement": {
+    "id": "01950000-0000-7000-8000-000000000801",
+    "shift_id": "01950000-0000-7000-8000-000000000201",
+    "created_by": "01950000-0000-7000-8000-000000000301",
+    "created_at_device": "2026-11-20T12:00:00.000Z",
+    "clock_offset_ms": 0,
+    "occurred_at": "2026-11-20T12:00:00.000Z",
+    "business_date": "2026-11-20",
+    "direction": "OUT",
+    "amount": 50000,
+    "reason_code": "PETTY_CASH",
+    "reason_text": "Bought ice and paper bags for counter"
+  }
+}
