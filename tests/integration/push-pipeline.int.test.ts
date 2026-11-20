@@ -882,4 +882,63 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       expect(tracker.rows).toHaveLength(0)
     })
   })
+
+  it('uses a much higher bound for transient failures than for deterministic ones and stores a redacted detail', async () => {
+    const slug = uniqueSlug('push-lock-bound')
+    const fx = await setupDeviceFixture(slug)
+    await processPush(
+      fx.syncDevice,
+      { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [makeAuditCmd(1)] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-bound-prime' },
+    )
+
+    const contended = makeAuditCmd(2)
+    let releaseLock!: () => void
+    const lockReleased = new Promise<void>((resolve) => {
+      releaseLock = resolve
+    })
+    let lockAcquired!: () => void
+    const onLockAcquired = new Promise<void>((resolve) => {
+      lockAcquired = resolve
+    })
+    const lockHolder = withTenant(fx.tenantId, async (tx) => {
+      await tx.execute(
+        sql`SELECT last_seq FROM audit_chain_head WHERE tenant_id = ${fx.tenantId}::uuid FOR UPDATE`,
+      )
+      lockAcquired()
+      await lockReleased
+    })
+
+    await onLockAcquired
+    const outcomes: string[] = []
+    try {
+      // Deterministic bound is 2, transient bound is 5: attempts 2..4 must still be RETRY.
+      for (let i = 1; i <= 5; i += 1) {
+        const res = await processPush(
+          fx.syncDevice,
+          { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [contended] },
+          { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: `req-bnd-${i}` },
+          { lockTimeoutMs: 40, maxFailureAttempts: 2, maxTransientAttempts: 5 },
+        )
+        outcomes.push(res.results[0]!.outcome)
+      }
+    } finally {
+      releaseLock()
+      await lockHolder
+    }
+
+    expect(outcomes).toEqual(['RETRY', 'RETRY', 'RETRY', 'RETRY', 'ATTENTION'])
+
+    await withTenant(fx.tenantId, async (tx) => {
+      const att = await tx.execute(
+        sql`SELECT reason_class, reason_code, detail FROM attention_item WHERE command_id = ${contended.id}::uuid`,
+      )
+      expect(att.rows).toHaveLength(1)
+      expect(att.rows[0]!.reason_code).toBe('INTERNAL_ERROR')
+      const detail = String(att.rows[0]!.detail)
+      expect(detail).toContain('55P03')
+      // Drizzle query errors embed SQL text and bound parameters in their message; they must never be stored.
+      expect(detail).not.toMatch(/params:|insert into|select |audit_chain_head|Failed query:/i)
+    })
+  })
 })

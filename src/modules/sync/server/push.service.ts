@@ -11,8 +11,9 @@ import {
 } from '~/lib/contracts'
 import { canonicalJson, createIdGenerator } from '~/lib/kernel'
 import { withTenant } from '~/server/db'
-import { getSyncPushMaxFailureAttempts } from '~/server/env'
+import { getSyncPushMaxFailureAttempts, getSyncPushMaxTransientAttempts } from '~/server/env'
 import { createLogger } from '~/server/log'
+import { serializeError } from '~/server/logging/error-serializer'
 import { getContext, runWithContext } from '~/server/logging/log-context'
 import { getNotifier } from '~/server/notify/notifier'
 import {
@@ -65,7 +66,10 @@ export interface PushRequestMeta {
 export interface ProcessPushDeps {
   nowIso?: () => string
   lockTimeoutMs?: number
+  /** Attempts before a deterministic/internal handler failure is escalated to the attention queue. */
   maxFailureAttempts?: number
+  /** Much higher bound for transient DB failures (lock timeout, deadlock, connection loss). */
+  maxTransientAttempts?: number
 }
 
 class HoldDependencyError extends Error {
@@ -138,6 +142,23 @@ function sanitizeDetail(text: string | undefined): string | null {
   return text.slice(0, 500)
 }
 
+
+/**
+ * Builds a DB-safe diagnostic string for `attention_item.detail` (shown to managers).
+ * Never uses `Error.message` directly: Drizzle query errors embed SQL parameters
+ * (customer names, phones, amounts) in their message. `serializeError` already redacts
+ * those (NFR-OBS-002), so we reuse it and only keep type + sanitized message per cause level.
+ */
+export function safeFailureDetail(err: unknown): string {
+  const parts: string[] = []
+  let current: ReturnType<typeof serializeError> | undefined = serializeError(err)
+  for (let depth = 0; current && depth < 3; depth += 1) {
+    parts.push(`${current.type}: ${current.message}`)
+    current = current.cause
+  }
+  return parts.join(' <- ')
+}
+
 async function processSingleCommand(
   device: SyncDeviceIdentity,
   cmd: PushCommandEnvelope,
@@ -146,6 +167,7 @@ async function processSingleCommand(
   receivedAtIso: string,
   lockTimeoutMs?: number,
   maxFailureAttempts = 10,
+  maxTransientAttempts = 200,
 ): Promise<PushResultItem> {
   const startedAt = performance.now()
   const parentCtx = getContext() ?? {
@@ -426,7 +448,8 @@ async function processSingleCommand(
         const transientPg = isTransientPgError(err)
         const pgCode = transientPg ? extractPgErrorCode(err) : null
         const trackedErrorCode = pgCode ?? 'INTERNAL_ERROR'
-        const rawDetail = err instanceof Error ? err.message : String(err)
+        const safeDetail = safeFailureDetail(err)
+        const attemptLimit = transientPg ? maxTransientAttempts : maxFailureAttempts
 
         let attemptCount: number
         try {
@@ -449,11 +472,11 @@ async function processSingleCommand(
           return { id: cmd.id, outcome: 'RETRY' }
         }
 
-        if (attemptCount >= maxFailureAttempts) {
+        if (attemptCount >= attemptLimit) {
           const detailPrefix = transientPg
             ? `Repeated transient DB failure (${trackedErrorCode})`
             : `Repeated internal handler error (${attemptCount} attempts)`
-          const detail = `${detailPrefix}: ${rawDetail}`
+          const detail = `${detailPrefix}: ${safeDetail}`
           const attentionRes = await recordAttention(
             'STRUCTURAL',
             'INTERNAL_ERROR',
@@ -474,7 +497,7 @@ async function processSingleCommand(
               commandId: cmd.id,
               commandType: cmd.type,
               schemaVersion: cmd.schema_version,
-              reason: `attempt_${attemptCount}_of_${maxFailureAttempts}`,
+              reason: `attempt_${attemptCount}_of_${attemptLimit}`,
               outcome: 'RETRY',
               durationMs,
             },
@@ -489,7 +512,7 @@ async function processSingleCommand(
             commandId: cmd.id,
             commandType: cmd.type,
             schemaVersion: cmd.schema_version,
-            reason: `attempt_${attemptCount}_of_${maxFailureAttempts}`,
+            reason: `attempt_${attemptCount}_of_${attemptLimit}`,
             outcome: 'RETRY',
             durationMs,
           },
@@ -511,6 +534,10 @@ export async function processPush(
   const maxFailureAttempts = Math.max(
     1,
     deps?.maxFailureAttempts ?? getSyncPushMaxFailureAttempts(),
+  )
+  const maxTransientAttempts = Math.max(
+    maxFailureAttempts,
+    deps?.maxTransientAttempts ?? getSyncPushMaxTransientAttempts(),
   )
   const policy = await getReleasePolicy()
   const release = releaseBlock(policy)
@@ -550,6 +577,7 @@ export async function processPush(
       receivedAtIso,
       deps?.lockTimeoutMs,
       maxFailureAttempts,
+      maxTransientAttempts,
     )
     if (item.outcome === 'ACK') ackCount += 1
     if (item.outcome === 'RETRY') hasRetry = true

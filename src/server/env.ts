@@ -101,6 +101,7 @@ export const envSchema = z.object({
   RL_PUSH_CONCURRENCY: positiveIntEnv(8),
   RL_REPORT_CONCURRENCY_PER_TENANT: positiveIntEnv(2),
   SYNC_PUSH_MAX_FAILURE_ATTEMPTS: positiveIntEnv(10),
+  SYNC_PUSH_MAX_TRANSIENT_ATTEMPTS: positiveIntEnv(200),
 })
 
 export type AppEnv = z.infer<typeof envSchema>
@@ -187,6 +188,10 @@ export function getPublicBaseUrl(): string {
 
 export function getSyncPushMaxFailureAttempts(): number {
   return getEnv().SYNC_PUSH_MAX_FAILURE_ATTEMPTS
+}
+
+export function getSyncPushMaxTransientAttempts(): number {
+  return getEnv().SYNC_PUSH_MAX_TRANSIENT_ATTEMPTS
 }
 
 export function getSyncTokenSecret(): string {
