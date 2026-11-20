@@ -8,6 +8,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   smallint,
   text,
@@ -517,5 +518,30 @@ export const memberCode = pgTable(
       'ck_member_code__revoked_pair',
       sql`(${t.revokedAt} IS NULL) = (${t.revokeReason} IS NULL)`,
     ),
+  ],
+)
+
+export const featureFlag = pgTable(
+  'feature_flag',
+  {
+    ...stdMColumns(),
+    flagKey: text('flag_key').notNull(),
+    enabled: boolean('enabled').notNull(),
+    params: jsonb('params').$type<Record<string, unknown> | null>(),
+    note: text('note'),
+  },
+  (t) => [
+    unique('uq_feature_flag__tenant_id_id').on(t.tenantId, t.id),
+    unique('uq_feature_flag__tenant_key').on(t.tenantId, t.flagKey),
+    index('ix_feature_flag__feed').on(t.tenantId, t.version, t.id),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenant.id],
+      name: 'fk_feature_flag__tenant',
+    }),
+    check('ck_feature_flag__version', sql`${t.version} > 0`),
+    check('ck_feature_flag__key', sql`${t.flagKey} ~ '^[a-z][a-z0-9_.]{2,63}$'`),
+    check('ck_feature_flag__params_obj', sql`jsonb_typeof(${t.params}) = 'object'`),
+    check('ck_feature_flag__note_len', sql`char_length(${t.note}) <= 200`),
   ],
 )

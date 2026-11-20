@@ -183,6 +183,20 @@
       "when": 1795154942320,
       "tag": "0025_command_failure_attempt_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795158734137,
+      "tag": "0026_catalog_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795158736204,
+      "tag": "0027_catalog_constraints_rls",
+      "breakpoints": true
     }
   ]
 }
