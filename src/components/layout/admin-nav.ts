@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react'
 import {
+  Banknote,
+  CircleAlert,
   Layers,
   LayoutDashboard,
   Package,
@@ -15,6 +17,9 @@ import type { PermissionCode } from '~/modules/identity/shared'
 export interface AdminNavItem {
   id:
     | 'dashboard'
+    | 'reportSales'
+    | 'reportShifts'
+    | 'reportOperations'
     | 'catalog'
     | 'prices'
     | 'availability'
@@ -26,6 +31,9 @@ export interface AdminNavItem {
   path: '' | `/${string}`
   labelKey:
     | 'admin.nav.dashboard'
+    | 'admin.nav.reportSales'
+    | 'admin.nav.reportShifts'
+    | 'admin.nav.reportOperations'
     | 'admin.nav.catalog'
     | 'admin.nav.prices'
     | 'admin.nav.availability'
@@ -46,6 +54,30 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     labelKey: 'admin.nav.dashboard',
     icon: LayoutDashboard,
     phase: 'F1',
+  },
+  {
+    id: 'reportSales',
+    path: '/admin/reports/sales',
+    labelKey: 'admin.nav.reportSales',
+    icon: Banknote,
+    requiredPermission: 'report.view',
+    phase: 'F3',
+  },
+  {
+    id: 'reportShifts',
+    path: '/admin/reports/shifts',
+    labelKey: 'admin.nav.reportShifts',
+    icon: Store,
+    requiredPermission: 'report.view',
+    phase: 'F3',
+  },
+  {
+    id: 'reportOperations',
+    path: '/admin/reports/operations',
+    labelKey: 'admin.nav.reportOperations',
+    icon: CircleAlert,
+    requiredPermission: 'report.view',
+    phase: 'F3',
   },
   {
     id: 'catalog',
