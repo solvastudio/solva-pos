@@ -1,12 +1,33 @@
 import type { ComponentType } from 'react'
-import { LayoutDashboard, Settings, User, Users } from '~/components/ui/icons'
+import {
+  Layers,
+  LayoutDashboard,
+  Package,
+  Settings,
+  Store,
+  Tag,
+  User,
+  Users,
+} from '~/components/ui/icons'
 import type { PermissionCode } from '~/modules/identity/shared'
 
 export interface AdminNavItem {
-  id: 'dashboard' | 'settings' | 'users' | 'account'
+  id:
+    | 'dashboard'
+    | 'catalog'
+    | 'prices'
+    | 'availability'
+    | 'features'
+    | 'settings'
+    | 'users'
+    | 'account'
   path: '' | `/${string}`
   labelKey:
     | 'admin.nav.dashboard'
+    | 'admin.nav.catalog'
+    | 'admin.nav.prices'
+    | 'admin.nav.availability'
+    | 'admin.nav.features'
     | 'admin.nav.settings'
     | 'admin.nav.users'
     | 'admin.nav.account'
@@ -22,6 +43,38 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     labelKey: 'admin.nav.dashboard',
     icon: LayoutDashboard,
     phase: 'F1',
+  },
+  {
+    id: 'catalog',
+    path: '/admin/catalog',
+    labelKey: 'admin.nav.catalog',
+    icon: Package,
+    requiredPermission: 'catalog.manage',
+    phase: 'F2',
+  },
+  {
+    id: 'prices',
+    path: '/admin/prices',
+    labelKey: 'admin.nav.prices',
+    icon: Tag,
+    requiredPermission: 'catalog.manage',
+    phase: 'F2',
+  },
+  {
+    id: 'availability',
+    path: '/admin/availability',
+    labelKey: 'admin.nav.availability',
+    icon: Store,
+    requiredPermission: 'catalog.manage',
+    phase: 'F2',
+  },
+  {
+    id: 'features',
+    path: '/admin/features',
+    labelKey: 'admin.nav.features',
+    icon: Layers,
+    requiredPermission: 'flag.manage',
+    phase: 'F2',
   },
   {
     id: 'settings',

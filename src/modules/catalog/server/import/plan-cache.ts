@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { AppError } from '~/server/error-classify'
-import type { ImportKind } from './types'
+import type { CommitImportResult, ImportKind } from './types'
 
 export const IMPORT_PLAN_TTL_MS = 15 * 60 * 1000
 export const MAX_ACTIVE_PLANS_PER_USER = 5
@@ -15,12 +15,27 @@ interface CachedPlanEntry<TPlan = unknown> {
   plan: TPlan
 }
 
+interface IdempotentCommitEntry {
+  key: string
+  tenantId: string
+  userId: string
+  kind: ImportKind
+  expiresAtMs: number
+  result: CommitImportResult
+}
+
 const planStore = new Map<string, CachedPlanEntry>()
+const idempotencyStore = new Map<string, IdempotentCommitEntry>()
 
 function purgeExpired(nowMs: number): void {
   for (const [token, entry] of planStore.entries()) {
     if (entry.expiresAtMs <= nowMs) {
       planStore.delete(token)
+    }
+  }
+  for (const [key, entry] of idempotencyStore.entries()) {
+    if (entry.expiresAtMs <= nowMs) {
+      idempotencyStore.delete(key)
     }
   }
 }
@@ -87,6 +102,42 @@ export function consumeImportPlan<TPlan>(params: {
   return entry.plan as TPlan
 }
 
+export function getIdempotentImportResult(params: {
+  idempotencyKey: string
+  tenantId: string
+  userId: string
+  kind: ImportKind
+  nowMs?: number
+}): CommitImportResult | null {
+  const nowMs = params.nowMs ?? Date.now()
+  purgeExpired(nowMs)
+  const compositeKey = `${params.tenantId}:${params.userId}:${params.kind}:${params.idempotencyKey}`
+  const found = idempotencyStore.get(compositeKey)
+  return found ? found.result : null
+}
+
+export function storeIdempotentImportResult(params: {
+  idempotencyKey: string
+  tenantId: string
+  userId: string
+  kind: ImportKind
+  result: CommitImportResult
+  nowMs?: number
+}): void {
+  const nowMs = params.nowMs ?? Date.now()
+  purgeExpired(nowMs)
+  const compositeKey = `${params.tenantId}:${params.userId}:${params.kind}:${params.idempotencyKey}`
+  idempotencyStore.set(compositeKey, {
+    key: compositeKey,
+    tenantId: params.tenantId,
+    userId: params.userId,
+    kind: params.kind,
+    expiresAtMs: nowMs + IMPORT_PLAN_TTL_MS,
+    result: params.result,
+  })
+}
+
 export function __clearImportPlansForTests(): void {
   planStore.clear()
+  idempotencyStore.clear()
 }

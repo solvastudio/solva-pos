@@ -8,6 +8,7 @@ export type AvailabilityStatus = (typeof AVAILABILITY_STATUSES)[number]
 
 export * from './domain/availability'
 export * from './domain/price'
+export * from './domain/price-adjust'
 export * from './domain/search-tokens'
 export * from './domain/variants'
 
@@ -92,3 +93,225 @@ export type CreateUomInput = z.input<typeof createUomSchema>
 export type UpdateUomInput = z.input<typeof updateUomSchema>
 export type CreateProductInput = z.input<typeof createProductSchema>
 export type UpdateProductInput = z.input<typeof updateProductSchema>
+
+export interface CategoryView {
+  id: string
+  parentId: string | null
+  name: string
+  sortOrder: number
+}
+
+export interface UomView {
+  id: string
+  code: string
+  name: string
+  allowFraction: boolean
+}
+
+export interface ProductView {
+  id: string
+  categoryId: string
+  code: string
+  name: string
+  productType: ProductType
+  hasVariants: boolean
+  baseUomId: string
+  trackStock: boolean
+  taxable: boolean
+  isActive: boolean
+  isOpenPrice: boolean
+  sortOrder: number
+}
+
+export interface SkuView {
+  id: string
+  productId: string
+  skuCode: string
+  variantLabel: string | null
+  isDefault: boolean
+  isActive: boolean
+  sortOrder: number
+}
+
+export interface SkuUomView {
+  id: string
+  skuId: string
+  uomId: string
+  conversionFactor: string
+  isBase: boolean
+  barcode: string | null
+}
+
+export interface PriceEntryView {
+  id: string
+  skuId: string
+  uomId: string
+  outletId: string | null
+  price: number
+  currency: string
+}
+
+export interface AvailabilityEntryView {
+  id: string
+  outletId: string
+  productId: string
+  skuId: string | null
+  status: AvailabilityStatus
+  changedAt: string
+}
+
+export interface OutletSummaryView {
+  id: string
+  code: string
+  name: string
+}
+
+export interface AdminProductListItem {
+  id: string
+  code: string
+  name: string
+  categoryId: string
+  categoryPath: string
+  productType: ProductType
+  skuCount: number
+  priceRange: { min: number; max: number } | null
+  availability: { available: number; total: number }
+  isActive: boolean
+}
+
+export interface AdminProductListResult {
+  items: AdminProductListItem[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface AdminProductDetail {
+  product: ProductView
+  attributes: Array<{
+    attribute: { id: string; productId: string; name: string; sortOrder: number }
+    values: Array<{ id: string; attributeId: string; value: string; sortOrder: number }>
+  }>
+  skus: SkuView[]
+  skuAttributeLinks: Array<{ skuId: string; attributeValueId: string }>
+  skuUoms: SkuUomView[]
+  prices: PriceEntryView[]
+  availability: AvailabilityEntryView[]
+  outlets: OutletSummaryView[]
+}
+
+export interface PriceMatrixRow {
+  productId: string
+  productCode: string
+  productName: string
+  categoryPath: string
+  isOpenPrice: boolean
+  skuId: string
+  skuCode: string
+  variantLabel: string | null
+  uomId: string
+  uomCode: string
+  uomName: string
+  isBase: boolean
+  defaultPrice: number | null
+  outletPrices: Record<string, number | null>
+}
+
+export interface PriceMatrixResult {
+  rows: PriceMatrixRow[]
+  outlets: OutletSummaryView[]
+  canEditDefault: boolean
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface AvailabilityMatrixRow {
+  productId: string
+  productCode: string
+  productName: string
+  categoryPath: string
+  isActive: boolean
+  skus: Array<{
+    id: string
+    skuCode: string
+    variantLabel: string | null
+    isActive: boolean
+  }>
+  productStatuses: Record<string, AvailabilityStatus>
+  skuOverrides: Record<string, AvailabilityStatus>
+  effectiveCounts: Record<string, { available: number; total: number }>
+}
+
+export interface AvailabilityMatrixResult {
+  rows: AvailabilityMatrixRow[]
+  outlets: OutletSummaryView[]
+  scopedOutletIds: string[] | null
+  total: number
+  page: number
+  pageSize: number
+}
+
+export type ImportKind = 'catalog' | 'price' | 'availability'
+
+export type ImportRowErrorCode =
+  | 'REQUIRED'
+  | 'INVALID_FORMAT'
+  | 'UNKNOWN_UOM'
+  | 'UNKNOWN_OUTLET'
+  | 'UNKNOWN_SKU'
+  | 'UNKNOWN_PRODUCT'
+  | 'DUPLICATE_BARCODE'
+  | 'DUPLICATE_SKU_CODE'
+  | 'CATEGORY_DEPTH'
+  | 'VARIANT_LIMIT'
+  | 'BASE_UOM_LOCKED'
+  | 'PRICE_RANGE'
+  | 'OUTLET_OUT_OF_SCOPE'
+
+export interface RowError {
+  row: number
+  column: string
+  code: ImportRowErrorCode
+  messageKey: string
+}
+
+export interface EntityDiffCounts {
+  create: number
+  update: number
+  unchanged: number
+  deactivate?: number
+}
+
+export interface ImportReport {
+  valid: boolean
+  token?: string
+  warnings: string[]
+  errors: RowError[]
+  totalErrors: number
+  summary: Record<string, EntityDiffCounts>
+}
+
+export interface CommitImportResult {
+  version: number | null
+  versionBumped: boolean
+  created: Record<string, number>
+  updated: Record<string, number>
+  unchanged: Record<string, number>
+}
+
+export type FeatureFlagJson =
+  | string
+  | number
+  | boolean
+  | null
+  | FeatureFlagJson[]
+  | { [key: string]: FeatureFlagJson }
+
+export interface FeatureFlagView {
+  id: string
+  flagKey: string
+  enabled: boolean
+  params: Record<string, FeatureFlagJson> | null
+  note: string | null
+}

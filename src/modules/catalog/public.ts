@@ -39,7 +39,11 @@ export {
   commitCatalogImport,
   previewCatalogImport,
 } from './server/import/catalog-import'
-export { __clearImportPlansForTests } from './server/import/plan-cache'
+export {
+  __clearImportPlansForTests,
+  getIdempotentImportResult,
+  storeIdempotentImportResult,
+} from './server/import/plan-cache'
 export { commitPriceImport, previewPriceImport } from './server/import/price-import'
 export type {
   CommitImportResult,
@@ -49,6 +53,21 @@ export type {
   ImportRowErrorCode,
   RowError,
 } from './server/import/types'
+export { type OutletSummary } from './server/query.repo'
+export {
+  getAdminProductDetail,
+  getAvailabilityMatrix,
+  getPriceMatrix,
+  listAdminProducts,
+  listCatalogOutlets,
+  type AdminProductDetail,
+  type AdminProductListItem,
+  type AdminProductListResult,
+  type AvailabilityMatrixResult,
+  type AvailabilityMatrixRow,
+  type PriceMatrixResult,
+  type PriceMatrixRow,
+} from './server/query.service'
 export { type PriceEntryRow } from './server/price.repo'
 export {
   clearOutletPrice,

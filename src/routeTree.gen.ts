@@ -35,6 +35,9 @@ import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/t
 import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants.new'
 import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/admin/_authed/index'
 import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
+import { Route as TenantAdminAuthedAvailabilityRouteImport } from './routes/$tenant/admin/_authed/availability'
+import { Route as TenantAdminAuthedFeaturesRouteImport } from './routes/$tenant/admin/_authed/features'
+import { Route as TenantAdminAuthedPricesRouteImport } from './routes/$tenant/admin/_authed/prices'
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as ApiPosV1DeviceLogRouteImport } from './routes/api/pos/v1/device-log'
@@ -44,6 +47,10 @@ import { Route as ApiPosV1PullRouteImport } from './routes/api/pos/v1/pull'
 import { Route as ApiPosV1PushRouteImport } from './routes/api/pos/v1/push'
 import { Route as ApiPosV1ReleaseRouteImport } from './routes/api/pos/v1/release'
 import { Route as ApiPosV1SignalsRouteImport } from './routes/api/pos/v1/signals'
+import { Route as TenantAdminAuthedCatalogIndexRouteImport } from './routes/$tenant/admin/_authed/catalog/index'
+import { Route as TenantAdminAuthedCatalogProductIdRouteImport } from './routes/$tenant/admin/_authed/catalog/$productId'
+import { Route as TenantAdminAuthedCatalogImportRouteImport } from './routes/$tenant/admin/_authed/catalog/import'
+import { Route as TenantAdminAuthedCatalogNewRouteImport } from './routes/$tenant/admin/_authed/catalog/new'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
 import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
@@ -180,6 +187,23 @@ const TenantAdminAuthedAccountRoute =
     path: '/account',
     getParentRoute: () => TenantAdminAuthedRoute,
   } as any)
+const TenantAdminAuthedAvailabilityRoute =
+  TenantAdminAuthedAvailabilityRouteImport.update({
+    id: '/availability',
+    path: '/availability',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedFeaturesRoute =
+  TenantAdminAuthedFeaturesRouteImport.update({
+    id: '/features',
+    path: '/features',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedPricesRoute = TenantAdminAuthedPricesRouteImport.update({
+  id: '/prices',
+  path: '/prices',
+  getParentRoute: () => TenantAdminAuthedRoute,
+} as any)
 const TenantAdminAuthedSettingsRoute =
   TenantAdminAuthedSettingsRouteImport.update({
     id: '/settings',
@@ -226,6 +250,30 @@ const ApiPosV1SignalsRoute = ApiPosV1SignalsRouteImport.update({
   path: '/api/pos/v1/signals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TenantAdminAuthedCatalogIndexRoute =
+  TenantAdminAuthedCatalogIndexRouteImport.update({
+    id: '/catalog/',
+    path: '/catalog/',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedCatalogProductIdRoute =
+  TenantAdminAuthedCatalogProductIdRouteImport.update({
+    id: '/catalog/$productId',
+    path: '/catalog/$productId',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedCatalogImportRoute =
+  TenantAdminAuthedCatalogImportRouteImport.update({
+    id: '/catalog/import',
+    path: '/catalog/import',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedCatalogNewRoute =
+  TenantAdminAuthedCatalogNewRouteImport.update({
+    id: '/catalog/new',
+    path: '/catalog/new',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -268,6 +316,9 @@ export interface FileRoutesByFullPath {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/availability': typeof TenantAdminAuthedAvailabilityRoute
+  '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
+  '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
@@ -278,7 +329,11 @@ export interface FileRoutesByFullPath {
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/catalog/$productId': typeof TenantAdminAuthedCatalogProductIdRoute
+  '/$tenant/admin/catalog/import': typeof TenantAdminAuthedCatalogImportRoute
+  '/$tenant/admin/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/admin/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -305,6 +360,9 @@ export interface FileRoutesByTo {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/availability': typeof TenantAdminAuthedAvailabilityRoute
+  '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
+  '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
@@ -315,7 +373,11 @@ export interface FileRoutesByTo {
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/catalog/$productId': typeof TenantAdminAuthedCatalogProductIdRoute
+  '/$tenant/admin/catalog/import': typeof TenantAdminAuthedCatalogImportRoute
+  '/$tenant/admin/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/admin/catalog': typeof TenantAdminAuthedCatalogIndexRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -346,6 +408,9 @@ export interface FileRoutesById {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/_authed/availability': typeof TenantAdminAuthedAvailabilityRoute
+  '/$tenant/admin/_authed/features': typeof TenantAdminAuthedFeaturesRoute
+  '/$tenant/admin/_authed/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
@@ -356,7 +421,11 @@ export interface FileRoutesById {
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
   '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
+  '/$tenant/admin/_authed/catalog/$productId': typeof TenantAdminAuthedCatalogProductIdRoute
+  '/$tenant/admin/_authed/catalog/import': typeof TenantAdminAuthedCatalogImportRoute
+  '/$tenant/admin/_authed/catalog/new': typeof TenantAdminAuthedCatalogNewRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/admin/_authed/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -388,6 +457,9 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos/'
     | '/$tenant/admin/account'
+    | '/$tenant/admin/availability'
+    | '/$tenant/admin/features'
+    | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
     | '/api/pos/v1/device-log'
@@ -398,7 +470,11 @@ export interface FileRouteTypes {
     | '/api/pos/v1/release'
     | '/api/pos/v1/signals'
     | '/$tenant/admin/'
+    | '/$tenant/admin/catalog/$productId'
+    | '/$tenant/admin/catalog/import'
+    | '/$tenant/admin/catalog/new'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/admin/catalog/'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesByTo: FileRoutesByTo
@@ -425,6 +501,9 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos'
     | '/$tenant/admin/account'
+    | '/$tenant/admin/availability'
+    | '/$tenant/admin/features'
+    | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
     | '/api/pos/v1/device-log'
@@ -435,7 +514,11 @@ export interface FileRouteTypes {
     | '/api/pos/v1/release'
     | '/api/pos/v1/signals'
     | '/$tenant/admin'
+    | '/$tenant/admin/catalog/$productId'
+    | '/$tenant/admin/catalog/import'
+    | '/$tenant/admin/catalog/new'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/admin/catalog'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   id:
@@ -465,6 +548,9 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos/'
     | '/$tenant/admin/_authed/account'
+    | '/$tenant/admin/_authed/availability'
+    | '/$tenant/admin/_authed/features'
+    | '/$tenant/admin/_authed/prices'
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
     | '/api/pos/v1/device-log'
@@ -475,7 +561,11 @@ export interface FileRouteTypes {
     | '/api/pos/v1/release'
     | '/api/pos/v1/signals'
     | '/$tenant/admin/_authed/'
+    | '/$tenant/admin/_authed/catalog/$productId'
+    | '/$tenant/admin/_authed/catalog/import'
+    | '/$tenant/admin/_authed/catalog/new'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/admin/_authed/catalog/'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesById: FileRoutesById
@@ -684,6 +774,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedAccountRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/$tenant/admin/_authed/availability': {
+      id: '/$tenant/admin/_authed/availability'
+      path: '/availability'
+      fullPath: '/$tenant/admin/availability'
+      preLoaderRoute: typeof TenantAdminAuthedAvailabilityRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/features': {
+      id: '/$tenant/admin/_authed/features'
+      path: '/features'
+      fullPath: '/$tenant/admin/features'
+      preLoaderRoute: typeof TenantAdminAuthedFeaturesRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/prices': {
+      id: '/$tenant/admin/_authed/prices'
+      path: '/prices'
+      fullPath: '/$tenant/admin/prices'
+      preLoaderRoute: typeof TenantAdminAuthedPricesRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
     '/$tenant/admin/_authed/settings': {
       id: '/$tenant/admin/_authed/settings'
       path: '/settings'
@@ -747,6 +858,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPosV1SignalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$tenant/admin/_authed/catalog/': {
+      id: '/$tenant/admin/_authed/catalog/'
+      path: '/catalog'
+      fullPath: '/$tenant/admin/catalog/'
+      preLoaderRoute: typeof TenantAdminAuthedCatalogIndexRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/catalog/$productId': {
+      id: '/$tenant/admin/_authed/catalog/$productId'
+      path: '/catalog/$productId'
+      fullPath: '/$tenant/admin/catalog/$productId'
+      preLoaderRoute: typeof TenantAdminAuthedCatalogProductIdRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/catalog/import': {
+      id: '/$tenant/admin/_authed/catalog/import'
+      path: '/catalog/import'
+      fullPath: '/$tenant/admin/catalog/import'
+      preLoaderRoute: typeof TenantAdminAuthedCatalogImportRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/catalog/new': {
+      id: '/$tenant/admin/_authed/catalog/new'
+      path: '/catalog/new'
+      fullPath: '/$tenant/admin/catalog/new'
+      preLoaderRoute: typeof TenantAdminAuthedCatalogNewRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -795,16 +934,31 @@ const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(
 
 interface TenantAdminAuthedRouteChildren {
   TenantAdminAuthedAccountRoute: typeof TenantAdminAuthedAccountRoute
+  TenantAdminAuthedAvailabilityRoute: typeof TenantAdminAuthedAvailabilityRoute
+  TenantAdminAuthedFeaturesRoute: typeof TenantAdminAuthedFeaturesRoute
+  TenantAdminAuthedPricesRoute: typeof TenantAdminAuthedPricesRoute
   TenantAdminAuthedSettingsRoute: typeof TenantAdminAuthedSettingsRoute
   TenantAdminAuthedUsersRoute: typeof TenantAdminAuthedUsersRoute
   TenantAdminAuthedIndexRoute: typeof TenantAdminAuthedIndexRoute
+  TenantAdminAuthedCatalogProductIdRoute: typeof TenantAdminAuthedCatalogProductIdRoute
+  TenantAdminAuthedCatalogImportRoute: typeof TenantAdminAuthedCatalogImportRoute
+  TenantAdminAuthedCatalogNewRoute: typeof TenantAdminAuthedCatalogNewRoute
+  TenantAdminAuthedCatalogIndexRoute: typeof TenantAdminAuthedCatalogIndexRoute
 }
 
 const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
   TenantAdminAuthedAccountRoute: TenantAdminAuthedAccountRoute,
+  TenantAdminAuthedAvailabilityRoute: TenantAdminAuthedAvailabilityRoute,
+  TenantAdminAuthedFeaturesRoute: TenantAdminAuthedFeaturesRoute,
+  TenantAdminAuthedPricesRoute: TenantAdminAuthedPricesRoute,
   TenantAdminAuthedSettingsRoute: TenantAdminAuthedSettingsRoute,
   TenantAdminAuthedUsersRoute: TenantAdminAuthedUsersRoute,
   TenantAdminAuthedIndexRoute: TenantAdminAuthedIndexRoute,
+  TenantAdminAuthedCatalogProductIdRoute:
+    TenantAdminAuthedCatalogProductIdRoute,
+  TenantAdminAuthedCatalogImportRoute: TenantAdminAuthedCatalogImportRoute,
+  TenantAdminAuthedCatalogNewRoute: TenantAdminAuthedCatalogNewRoute,
+  TenantAdminAuthedCatalogIndexRoute: TenantAdminAuthedCatalogIndexRoute,
 }
 
 const TenantAdminAuthedRouteWithChildren =
