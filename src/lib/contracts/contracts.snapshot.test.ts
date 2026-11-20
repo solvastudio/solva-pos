@@ -186,6 +186,14 @@ const REQUIRED_FIELDS_BY_VERSION: Record<number, Record<string, Record<string, s
       variance_device: 'integer',
       close_note: 'string|null',
     },
+    ReportPinState: {
+      user_id: 'string',
+      failed_count: 'integer',
+      lock_tier: 'integer',
+      locked_until: 'string|null',
+      last_failed_at: 'string|null',
+      pin_epoch_seen: 'integer',
+    },
   },
 }
 
@@ -337,5 +345,11 @@ describe('contracts JSON Schema snapshots & version-bump enforcement', () => {
       unrepresentable: 'any',
     }) as JsonSchemaNode
     assertMatchesVersionContract('CloseShift', closeShift, baseline['CloseShift']!)
+
+    const reportPinState = z.toJSONSchema(COMMAND_PAYLOAD_SCHEMAS.ReportPinState[1]!, {
+      io: 'input',
+      unrepresentable: 'any',
+    }) as JsonSchemaNode
+    assertMatchesVersionContract('ReportPinState', reportPinState, baseline['ReportPinState']!)
   })
 })

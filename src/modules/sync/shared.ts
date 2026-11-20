@@ -13,6 +13,7 @@ export const FULL_RESYNC_ENTITY_ORDER = [
   'role_permission',
   'app_user',
   'user_outlet',
+  'staff_pin',
   'category',
   'uom',
   'product',

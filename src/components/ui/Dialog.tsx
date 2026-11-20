@@ -13,6 +13,8 @@ export interface DialogProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   variant?: 'dialog' | 'sheet'
   dismissible?: boolean
+  overlayClassName?: string
+  contentClassName?: string
   children: ReactNode
   footer?: ReactNode
 }
@@ -32,6 +34,8 @@ export function Dialog({
   size = 'md',
   variant = 'dialog',
   dismissible = true,
+  overlayClassName,
+  contentClassName,
   children,
   footer,
 }: DialogProps) {
@@ -51,7 +55,7 @@ export function Dialog({
       }}
     >
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-modal-backdrop bg-scrim" />
+        <RadixDialog.Overlay className={cn('fixed inset-0 z-modal-backdrop bg-scrim', overlayClassName)} />
         <RadixDialog.Content
           onEscapeKeyDown={(e) => {
             if (!dismissible) e.preventDefault()
@@ -66,6 +70,7 @@ export function Dialog({
             contentLayout,
             SIZE_CLASSES[size],
             'z-modal flex max-h-[90dvh] flex-col border border-line bg-surface p-6 text-ink shadow-modal focus:outline-none',
+            contentClassName,
           )}
         >
           <div className="flex items-start justify-between gap-4">

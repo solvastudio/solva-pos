@@ -10,6 +10,7 @@ import {
   normalizeSlug,
 } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
+import { writeMaster } from '~/modules/sync/public'
 import { getLimiters } from '~/server/auth/rate-limit/limiters'
 import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { getPublicBaseUrl } from '~/server/env'
@@ -43,6 +44,12 @@ import {
   RateLimitRejectedError,
 } from './device-auth'
 import { getEnrollmentCounterProvider } from './enrollment-counters.port'
+import {
+  listActiveCredentialsForOutlet,
+  listActiveStaffPinDeviceIds,
+  tombstoneStaffPinsByDevice,
+} from './pin.repo'
+import { deriveStaffPinsForDevice } from './pin.service'
 import {
   revokeDeviceSchema,
   type CreatePairingCodeResult,
@@ -278,6 +285,20 @@ export async function enrollDevice(
         deviceId,
       )
 
+      const pinCreds = await listActiveCredentialsForOutlet(tx, resolved.tenantId, reg.outletId)
+      if (pinCreds.length > 0) {
+        await writeMaster(tx, { actorUserId: claimed.createdBy }, async (w) => {
+          await deriveStaffPinsForDevice(tx, w, {
+            tenantId: resolved.tenantId,
+            deviceId,
+            outletId: reg.outletId,
+            nowIso,
+            credentials: pinCreds,
+          })
+          return true
+        })
+      }
+
       log.info(
         {
           tenantId: resolved.tenantId,
@@ -358,6 +379,14 @@ export async function revokeDevice(
       nowIso,
     })
 
+    const activePinIds = await listActiveStaffPinDeviceIds(tx, actor.tenantId, deviceId)
+    if (activePinIds.length > 0) {
+      await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+        await tombstoneStaffPinsByDevice(tx, w, actor.tenantId, deviceId, nowIso)
+        return true
+      })
+    }
+
     await appendAudit(
       tx,
       {
@@ -409,6 +438,14 @@ export async function revokeDeviceInTx(
     reasonCode: params.reasonCode,
     nowIso: params.nowIso,
   })
+
+  const activePinIds = await listActiveStaffPinDeviceIds(tx, actor.tenantId, params.deviceId)
+  if (activePinIds.length > 0) {
+    await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+      await tombstoneStaffPinsByDevice(tx, w, actor.tenantId, params.deviceId, params.nowIso)
+      return true
+    })
+  }
 
   await appendAudit(
     tx,

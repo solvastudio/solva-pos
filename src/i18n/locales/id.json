@@ -315,8 +315,27 @@
       "emptyDesc": "Coba ubah pencarian atau filter.",
       "actionChangeAccess": "Ubah peran/outlet",
       "actionReset": "Terbitkan kode atur ulang",
+      "actionSetPin": "Atur PIN terminal",
+      "actionResetPin": "Reset PIN terminal & buka kunci",
       "actionRemove": "Keluarkan dari {{tenant}}",
       "actionCancelInvite": "Batalkan undangan",
+      "pinStatus": {
+        "active": "Ada",
+        "unset": "Belum",
+        "locked": "Perlu reset"
+      },
+      "pin": {
+        "setTitle": "Atur PIN terminal untuk {{name}}",
+        "resetTitle": "Reset PIN terminal & buka kunci untuk {{name}}",
+        "inputLabel": "PIN terminal (4–6 digit)",
+        "hint": "Gunakan 4–6 digit angka. Hindari angka berulang atau berurutan seperti 0000, 1234, atau 4321.",
+        "confirmLabel": "Konfirmasi simpan PIN",
+        "policyLength": "PIN harus 4 sampai 6 digit.",
+        "policyDigits": "PIN hanya boleh berisi angka 0–9.",
+        "policyWeak": "PIN terlalu lemah (hindari digit sama semua atau urut seperti 1234).",
+        "saved": "PIN terminal tersimpan dan akan turun ke perangkat outlet.",
+        "save": "Simpan PIN"
+      },
       "invite": {
         "title": "Undang anggota",
         "emailLabel": "Email",
@@ -1051,7 +1070,28 @@
         }
       }
     },
+    "numpad": {
+      "digit": "{{digit}}",
+      "digitAria": "Angka {{digit}}",
+      "backspace": "Hapus digit terakhir",
+      "submit": "OK",
+      "groupLabel": "Papan tombol angka"
+    },
     "login": {
+      "title": "Masuk Staf",
+      "subtitle": "Pilih nama Anda lalu masukkan PIN 4–6 digit.",
+      "selectStaff": "Pilih staf",
+      "selectedStaffLabel": "Masuk sebagai {{name}}",
+      "changeStaff": "Ganti staf",
+      "pinDotsAria": "{{count}} dari {{max}} digit terisi",
+      "pinEnteredCount": "{{count}} digit",
+      "pinWrong": "PIN salah. Sisa percobaan: {{n}}.",
+      "pinLocked": "Tunggu sekitar {{menit}} menit atau minta manager mereset.",
+      "needsReset": "PIN terkunci setelah 15 kali gagal. Minta manager mereset PIN di Back Office.",
+      "cryptoFailed": "Tidak dapat memverifikasi PIN di perangkat ini ({{ref}}).",
+      "noStaff": "Belum ada staf dengan PIN terminal yang tersinkron di outlet ini.",
+      "leaseWarning": "Lease: sisa {{days}} hari",
+      "appVersion": "Solva POS {{version}}",
       "placeholder": {
         "title": "Masuk dengan PIN — segera hadir",
         "body": "Pairing perangkat dan boot offline sudah aktif. Layar PIN staf hadir di Fase 43.",
@@ -1059,6 +1099,35 @@
         "noStaff": "Belum ada daftar staf tersinkron.",
         "appVersion": "Solva POS {{version}}"
       }
+    },
+    "lock": {
+      "title": "Layar Terkunci",
+      "subtitle": "Terkunci untuk {{name}} di {{tenant}} karena tidak aktif. Keranjang dan bill tetap utuh.",
+      "unlockHint": "Masukkan PIN {{name}} untuk melanjutkan.",
+      "overrideButton": "Buka oleh manager (Hanya tutup shift)",
+      "overrideTitle": "Buka kunci oleh manager — tutup shift",
+      "overrideWarning": "Draf keranjang yang aktif di layar akan dibuang, lalu langsung diarahkan ke penutupan shift.",
+      "overrideConfirmLabel": "Konfirmasi buang keranjang & tutup shift"
+    },
+    "supervisor": {
+      "title": "Persetujuan PIN Supervisor",
+      "approverLabel": "Pilih penyetuju",
+      "reasonLabel": "Alasan",
+      "reasonPlaceholder": "Masukkan alasan (wajib)",
+      "reasonRequired": "Alasan wajib diisi.",
+      "noEligible": "Tidak ada supervisor di outlet ini yang berwenang menyetujui tindakan ini.",
+      "selfForbidden": "Penyetuju harus berbeda dari kasir peminta.",
+      "missingPermission": "Staf yang dipilih tidak memiliki izin persetujuan.",
+      "limitExceeded": "Batas diskon staf yang dipilih di bawah persentase yang diminta."
+    },
+    "argonBench": {
+      "title": "Kalibrasi Performa Argon2id Perangkat",
+      "subtitle": "Mengukur 20× computePinHash untuk kalibrasi target NFR-PERF-007 (250–500 ms).",
+      "run": "Jalankan Uji 20×",
+      "running": "Menjalankan {{done}} / 20...",
+      "p50": "Latensi p50: {{ms}} ms",
+      "p95": "Latensi p95: {{ms}} ms",
+      "params": "Parameter saat ini: memori {{mem}} KiB, iterasi {{iter}}, paralelisme {{par}}"
     },
     "shell": {
       "registerFallback": "Terminal Kasir",

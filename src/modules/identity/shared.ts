@@ -5,6 +5,7 @@ import { isPermissionCode, type PermissionCode } from './domain/permissions'
 export * from './domain/permissions'
 export * from './domain/default-roles'
 export * from './domain/invoice-prefix'
+export * from './domain/pin-policy'
 
 export const PRICE_TAX_MODES = ['INCLUSIVE', 'EXCLUSIVE'] as const
 export type PriceTaxMode = (typeof PRICE_TAX_MODES)[number]
@@ -235,13 +236,15 @@ export interface MemberAssignmentView {
   roleName: string
 }
 
+export type MemberPinStatus = 'unset' | 'active' | 'locked'
+
 export interface MemberDirectoryView {
   appUserId: string
   displayName: string
   email: string | null
   membershipStatus: 'ACTIVE' | 'PENDING'
   isActive: boolean
-  pinStatus: 'unknown'
+  pinStatus: MemberPinStatus
   assignments: readonly MemberAssignmentView[]
 }
 

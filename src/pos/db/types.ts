@@ -213,26 +213,47 @@ export interface AppUserRecord extends IdRecord {
 export interface RoleRecord extends IdRecord {
   code: string
   name: string
+  discount_limit_pct?: string | number
   deleted_at: string | null
 }
 
 export interface RolePermissionRecord extends IdRecord {
   role_id: string
   permission_code: string
+  deleted_at?: string | null
+}
+
+export interface PinKdfParamsRecord {
+  memorySize: number
+  iterations: number
+  parallelism: number
+  hashLength: number
 }
 
 export interface StaffPinRecord extends IdRecord {
   user_id: string
-  role_id: string
+  device_salt: string
   pin_hash: string
-  pin_salt: string
-  is_active: boolean
+  kdf_algo: 'ARGON2ID' | 'PBKDF2_SHA256'
+  kdf_params: PinKdfParamsRecord
+  kdf_salt: string
+  pin_epoch: number
   deleted_at: string | null
+}
+
+export interface StaffPinStateRecord {
+  user_id: string
+  device_id: string
+  failed_count: number
+  lock_tier: 0 | 1 | 2 | 3
+  locked_until: string | null
+  last_failed_at: string | null
+  pin_epoch_seen: number
 }
 
 export interface UserOutletRecord extends IdRecord {
   user_id: string
-  outlet_id: string
+  outlet_id: string | null
   role_id: string
   deleted_at: string | null
 }

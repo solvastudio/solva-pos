@@ -21,6 +21,7 @@ import type {
   SkuRecord,
   SkuUomRecord,
   StaffPinRecord,
+  StaffPinStateRecord,
   UomRecord,
   UserOutletRecord,
 } from './types'
@@ -77,7 +78,7 @@ export class SolvaDb extends Dexie {
   bill_item!: Table<IdRecord, string>
   bill_item_modifier!: Table<IdRecord, string>
   bill_event!: Table<IdRecord, string>
-  staff_pin_state!: Table<Record<string, unknown>, [string, string]>
+  staff_pin_state!: Table<StaffPinStateRecord, [string, string]>
 
   // Infrastructure stores
   outbox_command!: Table<OutboxCommandRow, string>

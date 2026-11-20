@@ -18,6 +18,7 @@ import {
   revokeActiveMemberCodes,
   softDeleteAppUserAndOutlets,
 } from './member-code.repo'
+import { tombstoneStaffPinsByUser } from './pin.repo'
 
 export async function removeMember(
   actor: IdentityAuthActor,
@@ -47,6 +48,7 @@ export async function removeMember(
 
     await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
       await softDeleteAppUserAndOutlets(tx, w, appUserId, nowIso)
+      await tombstoneStaffPinsByUser(tx, w, actor.tenantId, appUserId, nowIso)
       return true
     })
 

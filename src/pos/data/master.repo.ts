@@ -142,7 +142,7 @@ export async function getStaffPinForUser(
   userId: string,
 ): Promise<StaffPinRecord | null> {
   const row = await db.staff_pin.where('user_id').equals(userId).first()
-  return row && row.is_active && !row.deleted_at ? row : null
+  return row && !row.deleted_at ? row : null
 }
 
 export async function getRolePermissions(

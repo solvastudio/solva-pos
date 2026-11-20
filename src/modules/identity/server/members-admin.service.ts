@@ -27,6 +27,8 @@ import {
   replaceUserOutlets,
   type MemberAssignmentDbRow,
 } from './member-directory.repo'
+import { listPinStatusesForTenant } from './pin.repo'
+import { deriveStaffPinsForUser } from './pin.service'
 
 export interface ListMembersFilter {
   search?: string
@@ -68,6 +70,7 @@ export async function listMembers(
     const pendingUserIds = users.filter((u) => u.membershipStatus === 'PENDING').map((u) => u.id)
     const pendingEmails = await listPendingInviteEmailsForUsers(tx, actor.tenantId, pendingUserIds)
     const allAssignments = await listMemberOutletAssignments(tx, actor.tenantId)
+    const pinStatuses = await listPinStatusesForTenant(tx, actor.tenantId)
 
     const assignmentsByUser = new Map<string, MemberAssignmentDbRow[]>()
     for (const row of allAssignments) {
@@ -109,7 +112,7 @@ export async function listMembers(
         email,
         membershipStatus: user.membershipStatus === 'PENDING' ? 'PENDING' : 'ACTIVE',
         isActive: user.isActive,
-        pinStatus: 'unknown',
+        pinStatus: pinStatuses.get(user.id) ?? 'unset',
         assignments: memberAssignments.map((a) => ({
           outletId: a.outletId,
           outletCode: a.outletCode,
@@ -211,12 +214,18 @@ export async function changeMemberRoleAndOutlets(
       tx,
       { actorUserId: actor.appUserId },
       async (w) => {
-        return replaceUserOutlets(tx, w, {
+        const res = await replaceUserOutlets(tx, w, {
           appUserId: parsed.appUserId,
           assignments: parsed.assignments,
           newId: () => identityIdGen.newId(),
           nowIso,
         })
+        await deriveStaffPinsForUser(tx, w, {
+          tenantId: actor.tenantId,
+          userId: parsed.appUserId,
+          nowIso,
+        })
+        return res
       },
     )
 
@@ -245,6 +254,8 @@ export async function changeMemberRoleAndOutlets(
         ? await listPendingInviteEmailsForUsers(tx, actor.tenantId, [parsed.appUserId])
         : new Map<string, string>()
 
+    const pinStatuses = await listPinStatusesForTenant(tx, actor.tenantId)
+
     return {
       appUserId: parsed.appUserId,
       displayName: updatedUser?.displayName ?? '',
@@ -254,7 +265,7 @@ export async function changeMemberRoleAndOutlets(
           : (activeEmails.get(parsed.appUserId) ?? null),
       membershipStatus: updatedUser?.membershipStatus === 'PENDING' ? 'PENDING' : 'ACTIVE',
       isActive: updatedUser?.isActive ?? true,
-      pinStatus: 'unknown',
+      pinStatus: pinStatuses.get(parsed.appUserId) ?? 'unset',
       assignments: updatedAssignments.map((a) => ({
         outletId: a.outletId,
         outletCode: a.outletCode,

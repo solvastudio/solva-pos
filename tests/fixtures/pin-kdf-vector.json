@@ -1,0 +1,13 @@
+{
+  "pin": "4827",
+  "kdf_salt": "ABEiM0RVZneImaq7zN3u_w",
+  "device_salt": "_-7dzLuqmYh3ZlVEMyIRAA",
+  "kdf_params": {
+    "memorySize": 1024,
+    "iterations": 1,
+    "parallelism": 1,
+    "hashLength": 32
+  },
+  "verifier": "WiIb2jizZryy7qgeGOs8Gnkfeh_vwX4cftj8GjOIk9s",
+  "pin_hash": "mbhN4CkcE3hgtce2KOZgd81ENTNZst_a21b6XoGR4Ao"
+}

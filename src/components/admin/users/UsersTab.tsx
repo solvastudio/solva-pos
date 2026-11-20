@@ -11,6 +11,7 @@ import {
   Field,
   Input,
   KeyRound,
+  Lock,
   Plus,
   Search,
   Select,
@@ -40,6 +41,7 @@ import {
 } from '~/queries/identity.queries'
 import { qk } from '~/queries/keys'
 import { OneTimeCodeDialog } from './OneTimeCodeDialog'
+import { PinDialog } from './PinDialog'
 
 const FILTER_ALL = '__ALL__'
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
@@ -127,6 +129,7 @@ export function UsersTab({
 
   const [removeTarget, setRemoveTarget] = useState<MemberDirectoryView | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [pinTarget, setPinTarget] = useState<MemberDirectoryView | null>(null)
 
   const originPrefix = typeof window !== 'undefined' ? window.location.origin : ''
   const localeForDate = i18n.language === 'en-US' ? 'en-US' : 'id-ID'
@@ -392,7 +395,20 @@ export function UsersTab({
     {
       id: 'pin',
       header: t('admin.users.colPin'),
-      cell: () => t('common.dash'),
+      cell: (row) => {
+        if (row.membershipStatus !== 'ACTIVE') return t('common.dash')
+        if (row.pinStatus === 'locked') {
+          return (
+            <span className="inline-flex items-center gap-1.5 text-body-sm font-medium text-danger-ink">
+              <Lock className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>{t('admin.users.pinStatus.locked')}</span>
+            </span>
+          )
+        }
+        return row.pinStatus === 'active'
+          ? t('admin.users.pinStatus.active')
+          : t('admin.users.pinStatus.unset')
+      },
     },
     {
       id: 'action',
@@ -411,6 +427,11 @@ export function UsersTab({
             </Button>
           ) : (
             <>
+              <Button variant="ghost" size="md" onClick={() => setPinTarget(row)}>
+                {row.pinStatus === 'unset'
+                  ? t('admin.users.actionSetPin')
+                  : t('admin.users.actionResetPin')}
+              </Button>
               <Button variant="ghost" size="md" onClick={() => openEditAccessDialog(row)}>
                 {t('admin.users.actionChangeAccess')}
               </Button>
@@ -906,6 +927,14 @@ export function UsersTab({
           <div />
         )}
       </Dialog>
+
+      {pinTarget ? (
+        <PinDialog
+          tenantSlug={tenantSlug}
+          target={pinTarget}
+          onOpenChange={(open) => !open && setPinTarget(null)}
+        />
+      ) : null}
 
       {codeModal ? (
         <OneTimeCodeDialog

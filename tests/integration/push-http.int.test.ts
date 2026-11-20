@@ -17,7 +17,7 @@ import {
   type IdentityAuthActor,
 } from '~/modules/identity/public'
 import { PERMISSION_CODES } from '~/modules/identity/shared'
-import { registerCommandHandler } from '~/modules/sync/public'
+import { __clearCommandHandlersForTests, registerCommandHandler } from '~/modules/sync/public'
 import { handlePush } from '~/routes/api/pos/v1/push'
 import { resetLimitersForTests } from '~/server/auth/rate-limit/limiters'
 import { __resetPushLimitsForTests } from '~/server/auth/rate-limit/push-limits'
@@ -274,6 +274,7 @@ describe('POST /api/pos/v1/push HTTP integration', () => {
       await gate
     }
 
+    __clearCommandHandlersForTests()
     registerCommandHandler({
       type: 'ReportPinState',
       parse: (p) => p,
@@ -290,7 +291,14 @@ describe('POST /api/pos/v1/push HTTP integration', () => {
       device_seq: seq,
       depends_on: [],
       created_at_device: new Date().toISOString(),
-      payload: { pin_locked: false },
+      payload: {
+        user_id: testIdGen.newId(),
+        failed_count: 0,
+        lock_tier: 0,
+        locked_until: null,
+        last_failed_at: null,
+        pin_epoch_seen: 1,
+      },
     })
 
     const responsesPromise = Promise.all(

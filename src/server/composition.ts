@@ -13,6 +13,7 @@ import {
   identityFeedSources,
   registerEnrollmentCounterProvider,
   registerOutletCreatedHook,
+  reportPinStateCommandHandler,
   touchDeviceStatus,
 } from '~/modules/identity/public'
 import {
@@ -54,6 +55,7 @@ export function composeServer(): void {
     registerFeedSource(source)
   }
   registerCommandHandler(appendAuditCommandHandler)
+  registerCommandHandler(reportPinStateCommandHandler)
   registerCommandHandler(finalizeSaleCommandHandler)
   registerCommandHandler(voidSaleCommandHandler)
   registerCommandHandler(finalizeCreditNoteCommandHandler)

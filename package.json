@@ -49,6 +49,7 @@
     "dexie": "4.4.7",
     "dexie-react-hooks": "4.4.0",
     "drizzle-orm": "0.45.4",
+    "hash-wasm": "^4.13.0",
     "i18next": "26.5.11",
     "lucide-react": "1.63.0",
     "pg": "8.23.1",

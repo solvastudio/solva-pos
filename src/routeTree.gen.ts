@@ -40,6 +40,7 @@ import { Route as TenantAdminAuthedFeaturesRouteImport } from './routes/$tenant/
 import { Route as TenantAdminAuthedPricesRouteImport } from './routes/$tenant/admin/_authed/prices'
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
+import { Route as TenantPosDevArgonBenchRouteImport } from './routes/$tenant/pos/_dev/argon-bench'
 import { Route as ApiPosV1DeviceLogRouteImport } from './routes/api/pos/v1/device-log'
 import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
@@ -215,6 +216,11 @@ const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => TenantAdminAuthedRoute,
 } as any)
+const TenantPosDevArgonBenchRoute = TenantPosDevArgonBenchRouteImport.update({
+  id: '/_dev/argon-bench',
+  path: '/argon-bench',
+  getParentRoute: () => TenantPosRoute,
+} as any)
 const ApiPosV1DeviceLogRoute = ApiPosV1DeviceLogRouteImport.update({
   id: '/api/pos/v1/device-log',
   path: '/api/pos/v1/device-log',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -413,6 +421,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
+  '/$tenant/pos/_dev/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -462,6 +471,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/$tenant/pos/argon-bench'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/$tenant/pos/argon-bench'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -553,6 +564,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/prices'
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
+    | '/$tenant/pos/_dev/argon-bench'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -809,6 +821,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedUsersRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/$tenant/pos/_dev/argon-bench': {
+      id: '/$tenant/pos/_dev/argon-bench'
+      path: '/argon-bench'
+      fullPath: '/$tenant/pos/argon-bench'
+      preLoaderRoute: typeof TenantPosDevArgonBenchRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
     '/api/pos/v1/device-log': {
       id: '/api/pos/v1/device-log'
       path: '/api/pos/v1/device-log'
@@ -917,6 +936,7 @@ interface TenantPosRouteChildren {
   TenantPosPairRoute: typeof TenantPosPairRoute
   TenantPosSystemRoute: typeof TenantPosSystemRoute
   TenantPosIndexRoute: typeof TenantPosIndexRoute
+  TenantPosDevArgonBenchRoute: typeof TenantPosDevArgonBenchRoute
 }
 
 const TenantPosRouteChildren: TenantPosRouteChildren = {
@@ -926,6 +946,7 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosPairRoute: TenantPosPairRoute,
   TenantPosSystemRoute: TenantPosSystemRoute,
   TenantPosIndexRoute: TenantPosIndexRoute,
+  TenantPosDevArgonBenchRoute: TenantPosDevArgonBenchRoute,
 }
 
 const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(

@@ -4,12 +4,14 @@ import { upcastStoredPayload, type CommandUpcasterMap } from '../upcasters'
 import { AppendAuditPayloadV1 } from './append-audit'
 import { FinalizeCreditNotePayloadV1 } from './finalize-credit-note'
 import { FinalizeSalePayloadV1 } from './finalize-sale'
+import { ReportPinStatePayloadV1 } from './report-pin-state'
 import { CloseShiftPayloadV1, OpenShiftPayloadV1, RecordCashMovementPayloadV1 } from './shift'
 import { VoidSalePayloadV1 } from './void-sale'
 
 export * from './append-audit'
 export * from './finalize-credit-note'
 export * from './finalize-sale'
+export * from './report-pin-state'
 export * from './shift'
 export * from './void-sale'
 
@@ -40,7 +42,7 @@ export const COMMAND_PAYLOAD_SCHEMAS: Record<CommandType, Record<number, z.ZodTy
   HandOverBill: {},
   AcceptBill: {},
   CancelBillHandover: {},
-  ReportPinState: {},
+  ReportPinState: { 1: ReportPinStatePayloadV1 },
 }
 
 export function hasRegisteredCommandSchema(type: CommandType): boolean {

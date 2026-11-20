@@ -4,7 +4,10 @@ import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
 import { changeLocale } from '~/i18n'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
+import { getMeta, setMeta } from '~/pos/data/meta.repo'
 import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
+import { createIdleLockController } from '~/pos/session/idle-lock'
+import { clearSession, getSessionState } from '~/pos/session/session'
 import { startSyncEngine, type SyncController } from '~/pos/sync'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
@@ -80,6 +83,45 @@ function PosLayoutComponent() {
     const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
     notifyPosBootOk({ appVersion, dbVersion: 1 })
   }, [bootResult, tenant])
+
+  // 10-minute monotonic inactivity lock (BR-AUT-015, FLOW-20) preserving active cart/bill state
+  useEffect(() => {
+    if (bootResult.kind !== 'READY') return
+    const { db } = bootResult
+
+    const ctrl = createIdleLockController({
+      isActive: () => getSessionState().staff !== null,
+      isPaused: () => {
+        const st = getSessionState()
+        return st.paymentInProgress || st.supervisorDialogOpen
+      },
+      onLock: async () => {
+        const staff = getSessionState().staff
+        if (!staff) return
+        const clock = await getMeta(db, 'clock')
+        const lockedAt = new Date(Date.now() + (clock?.offset_ms ?? 0)).toISOString()
+        await setMeta(db, 'idle_lock', {
+          locked: true,
+          locked_staff_id: staff.staffId,
+          locked_at: lockedAt,
+        })
+        clearSession()
+        void navigate({ href: `/${tenant.toLowerCase()}/pos/login` })
+      },
+    })
+
+    const onActivity = () => ctrl.markActivity()
+    window.addEventListener('pointerdown', onActivity)
+    window.addEventListener('keydown', onActivity)
+    window.addEventListener('solva:scan', onActivity)
+
+    return () => {
+      ctrl.stop()
+      window.removeEventListener('pointerdown', onActivity)
+      window.removeEventListener('keydown', onActivity)
+      window.removeEventListener('solva:scan', onActivity)
+    }
+  }, [bootResult, navigate, tenant])
 
   // Start background Sync Engine strictly after first paint and only on active primary lock.
   useEffect(() => {

@@ -315,8 +315,27 @@
       "emptyDesc": "Try adjusting your search or filter.",
       "actionChangeAccess": "Edit role & outlets",
       "actionReset": "Issue reset code",
+      "actionSetPin": "Set terminal PIN",
+      "actionResetPin": "Reset terminal PIN & unlock",
       "actionRemove": "Remove from {{tenant}}",
       "actionCancelInvite": "Cancel invitation",
+      "pinStatus": {
+        "active": "Set",
+        "unset": "Not set",
+        "locked": "Needs reset"
+      },
+      "pin": {
+        "setTitle": "Set terminal PIN for {{name}}",
+        "resetTitle": "Reset terminal PIN & unlock for {{name}}",
+        "inputLabel": "Terminal PIN (4–6 digits)",
+        "hint": "Use 4–6 digits. Avoid repeated or sequential numbers like 0000, 1234, or 4321.",
+        "confirmLabel": "Confirm save PIN",
+        "policyLength": "PIN must be 4 to 6 digits.",
+        "policyDigits": "PIN may contain digits 0–9 only.",
+        "policyWeak": "PIN is too weak (avoid identical or sequential digits like 1234).",
+        "saved": "Terminal PIN saved and synced to active outlet devices.",
+        "save": "Save PIN"
+      },
       "invite": {
         "title": "Invite member",
         "emailLabel": "Email",
@@ -1051,7 +1070,28 @@
         }
       }
     },
+    "numpad": {
+      "digit": "{{digit}}",
+      "digitAria": "Digit {{digit}}",
+      "backspace": "Delete last digit",
+      "submit": "Confirm",
+      "groupLabel": "Numeric keypad"
+    },
     "login": {
+      "title": "Staff Sign In",
+      "subtitle": "Select your name and enter your 4–6 digit PIN.",
+      "selectStaff": "Choose staff",
+      "selectedStaffLabel": "Signing in as {{name}}",
+      "changeStaff": "Switch staff",
+      "pinDotsAria": "{{count}} of {{max}} digits entered",
+      "pinEnteredCount": "{{count}} digits",
+      "pinWrong": "Incorrect PIN. Remaining attempts: {{n}}.",
+      "pinLocked": "Wait about {{menit}} minutes or ask a manager to reset.",
+      "needsReset": "PIN locked after 15 failed attempts. Ask a manager to reset your PIN.",
+      "cryptoFailed": "Unable to verify PIN on this device ({{ref}}).",
+      "noStaff": "No staff members with a terminal PIN have synced to this outlet yet.",
+      "leaseWarning": "Lease: {{days}} day(s) remaining",
+      "appVersion": "Solva POS {{version}}",
       "placeholder": {
         "title": "Sign in with PIN — coming soon",
         "body": "Device pairing and offline boot are active. Staff PIN login arrives in Fase 43.",
@@ -1059,6 +1099,35 @@
         "noStaff": "No staff list synced yet.",
         "appVersion": "Solva POS {{version}}"
       }
+    },
+    "lock": {
+      "title": "Screen Locked",
+      "subtitle": "Locked for {{name}} at {{tenant}} due to inactivity. Cart and current order are preserved.",
+      "unlockHint": "Enter {{name}}'s PIN to continue where you left off.",
+      "overrideButton": "Manager override (Close shift only)",
+      "overrideTitle": "Unlock override — close shift",
+      "overrideWarning": "Active cart drafts on this screen will be discarded. You will be taken directly to the close shift screen.",
+      "overrideConfirmLabel": "Confirm discard cart & close shift"
+    },
+    "supervisor": {
+      "title": "Supervisor PIN Approval",
+      "approverLabel": "Choose supervisor",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Enter reason (required)",
+      "reasonRequired": "Reason is required.",
+      "noEligible": "No supervisor in this outlet is eligible to approve this action.",
+      "selfForbidden": "Supervisor must differ from the requesting cashier.",
+      "missingPermission": "Selected staff does not have approval permission.",
+      "limitExceeded": "Selected staff's discount limit is below the requested discount."
+    },
+    "argonBench": {
+      "title": "Argon2id Device Calibration Benchmark",
+      "subtitle": "Measures 20× computePinHash iterations for calibration against NFR-PERF-007 (250–500 ms target).",
+      "run": "Run 20× Benchmark",
+      "running": "Running {{done}} / 20...",
+      "p50": "p50 latency: {{ms}} ms",
+      "p95": "p95 latency: {{ms}} ms",
+      "params": "Current params: memory {{mem}} KiB, iterations {{iter}}, parallelism {{par}}"
     },
     "shell": {
       "registerFallback": "Cashier Terminal",

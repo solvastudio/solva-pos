@@ -6,6 +6,7 @@ export default defineConfig({
     './src/modules/*/server/schema.ts',
     './src/modules/identity/server/auth-schema.ts',
     './src/modules/identity/server/device-schema.ts',
+    './src/modules/identity/server/pin-schema.ts',
     './src/modules/identity/server/platform-auth-schema.ts',
   ],
   out: './drizzle',

@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import { buildFeedSource, omitWireColumns, type FeedSource } from '~/modules/sync/public'
+import { staffPin } from './pin-schema'
 import {
   appUser,
   cashMaster,
@@ -16,6 +17,12 @@ import {
   tenant,
   userOutlet,
 } from './schema'
+
+function encodeBytesBase64Url(val: unknown): unknown {
+  if (Buffer.isBuffer(val)) return val.toString('base64url')
+  if (val instanceof Uint8Array) return Buffer.from(val).toString('base64url')
+  return val
+}
 
 /**
  * Constructs `FeedSource` adapters for all 12 Identity master entities in sync-order,
@@ -237,6 +244,28 @@ export function identityFeedSources(): FeedSource[] {
               LIMIT 1`,
         )
         return res.rows.length > 0
+      },
+    }),
+
+    buildFeedSource({
+      entity: 'staff_pin',
+      table: staffPin,
+      columns: {
+        id: staffPin.id,
+        tenantId: staffPin.tenantId,
+        version: staffPin.version,
+        deletedAt: staffPin.deletedAt,
+      },
+      selectScopeWhere: (scope) => eq(staffPin.deviceId, scope.deviceId),
+      inScope: (row, scope) => row.device_id === scope.deviceId,
+      project: (row) => {
+        const clean = omitWireColumns(row, ['tenant_id', 'device_id', 'created_at'])
+        return {
+          ...clean,
+          device_salt: encodeBytesBase64Url(clean.device_salt),
+          pin_hash: encodeBytesBase64Url(clean.pin_hash),
+          kdf_salt: encodeBytesBase64Url(clean.kdf_salt),
+        }
       },
     }),
   ]
