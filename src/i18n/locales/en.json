@@ -1244,6 +1244,49 @@
       "enter": "Enter — Confirm dialog",
       "esc": "Esc — Close dialog or clear search",
       "ctrlK": "Ctrl+K — Show shortcuts"
+    },
+    "pay": {
+      "title": "Payment",
+      "backToCart": "Back to cart",
+      "billLabel": "Bill total",
+      "paidLabel": "Paid",
+      "remainingLabel": "Remaining",
+      "roundingLabel": "Cash rounding",
+      "changeLabel": "Change",
+      "methodHeading": "Payment method",
+      "cashName": "Cash",
+      "cashInputLabel": "Cash received",
+      "nonCashInputLabel": "Payment amount",
+      "exactCash": "Exact ({{amount}})",
+      "addPayment": "Add payment",
+      "referenceLabel": "Reference (optional)",
+      "referencePlaceholder": "Approval or trace number",
+      "paymentsListHeading": "Added payments",
+      "removePayment": "Remove payment",
+      "nonCashExceedsError": "Non-cash amount cannot exceed remaining balance.",
+      "underpaidDisabledReason": "Total payment does not cover the bill yet.",
+      "finishButton": "Complete Sale",
+      "processing": "Saving sale...",
+      "errorGeneric": "Unable to complete sale. Try again.",
+      "errorShiftRequired": "Open a shift before completing a sale.",
+      "errorPrefixMissing": "Invoice prefix is not configured for this register."
+    },
+    "done": {
+      "title": "Sale Completed",
+      "invoiceLabel": "Invoice No.",
+      "totalLabel": "Total",
+      "changeLabel": "Change",
+      "printStatusLabel": "Receipt status",
+      "printStatuses": {
+        "QUEUED": "Print queued",
+        "PRINTING": "Printing",
+        "DONE": "Printed",
+        "FAILED": "Print failed"
+      },
+      "printFailedBanner": "Receipt could not be printed, but your transaction is safely saved.",
+      "reprintButton": "Reprint Receipt",
+      "newSaleButton": "New Transaction",
+      "notFound": "Transaction could not be found on this device."
     }
   },
   "system": {

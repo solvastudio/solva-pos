@@ -1244,6 +1244,49 @@
       "enter": "Enter — Konfirmasi dialog",
       "esc": "Esc — Tutup dialog atau hapus pencarian",
       "ctrlK": "Ctrl+K — Tampilkan pintasan"
+    },
+    "pay": {
+      "title": "Pembayaran",
+      "backToCart": "Kembali ke keranjang",
+      "billLabel": "Tagihan",
+      "paidLabel": "Dibayar",
+      "remainingLabel": "Sisa",
+      "roundingLabel": "Pembulatan",
+      "changeLabel": "Kembalian",
+      "methodHeading": "Metode pembayaran",
+      "cashName": "Tunai",
+      "cashInputLabel": "Uang diterima",
+      "nonCashInputLabel": "Nominal pembayaran",
+      "exactCash": "Uang pas ({{amount}})",
+      "addPayment": "Tambah metode",
+      "referenceLabel": "Referensi (opsional)",
+      "referencePlaceholder": "Nomor persetujuan / referensi",
+      "paymentsListHeading": "Pembayaran ditambahkan",
+      "removePayment": "Hapus pembayaran",
+      "nonCashExceedsError": "Nominal non-tunai tidak boleh melebihi sisa tagihan.",
+      "underpaidDisabledReason": "Pembayaran belum mencukupi total tagihan.",
+      "finishButton": "Selesai",
+      "processing": "Menyimpan penjualan...",
+      "errorGeneric": "Gagal menyelesaikan penjualan. Coba lagi.",
+      "errorShiftRequired": "Buka shift terlebih dahulu sebelum menyelesaikan penjualan.",
+      "errorPrefixMissing": "Prefiks invoice belum diatur untuk register ini."
+    },
+    "done": {
+      "title": "Penjualan Selesai",
+      "invoiceLabel": "Nomor Invoice",
+      "totalLabel": "Total",
+      "changeLabel": "Kembalian",
+      "printStatusLabel": "Status cetak",
+      "printStatuses": {
+        "QUEUED": "Antrean cetak",
+        "PRINTING": "Mencetak",
+        "DONE": "Tercetak",
+        "FAILED": "Gagal cetak"
+      },
+      "printFailedBanner": "Struk gagal dicetak, namun transaksi sudah tersimpan aman.",
+      "reprintButton": "Cetak ulang",
+      "newSaleButton": "Transaksi baru",
+      "notFound": "Transaksi tidak ditemukan di perangkat ini."
     }
   },
   "system": {

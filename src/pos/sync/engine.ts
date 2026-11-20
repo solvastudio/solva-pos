@@ -51,6 +51,10 @@ export function getGlobalSyncStore(): SyncStateStore {
   return sharedStore
 }
 
+export function kickActiveSync(reason: SyncKickReason = 'manual'): void {
+  activeController?.kick(reason)
+}
+
 /**
  * Starts the full client sync engine for the active primary tab only.
  * Resets stale `SENDING` commands on startup, wires clock, connectivity probe,

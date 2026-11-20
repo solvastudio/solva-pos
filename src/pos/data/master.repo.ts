@@ -6,7 +6,11 @@ import type {
   AppUserRecord,
   CashMasterRecord,
   CategoryRecord,
+  LegalEntityRecord,
+  OutletReceiptSettingRecord,
   OutletRecord,
+  PaymentMethodRecord,
+  RegisterInvoicePrefixRecord,
   RolePermissionRecord,
   RoleRecord,
   StaffPinRecord,
@@ -182,4 +186,43 @@ export async function getRoleForUserAtOutlet(
   if (!exact) return null
   const role = await db.role.get(exact.role_id)
   return role && !role.deleted_at ? role : null
+}
+
+export async function getLegalEntity(
+  db: SolvaDb,
+  id: string,
+): Promise<LegalEntityRecord | null> {
+  const row = await db.legal_entity.get(id)
+  return row && !row.deleted_at ? row : null
+}
+
+export async function listRegisterPrefixes(
+  db: SolvaDb,
+  registerId: string,
+): Promise<RegisterInvoicePrefixRecord[]> {
+  const rows = await db.register_invoice_prefix
+    .where('register_id')
+    .equals(registerId)
+    .toArray()
+  return rows.filter((r) => !r.deleted_at)
+}
+
+export async function getOutletReceiptSetting(
+  db: SolvaDb,
+  outletId: string,
+): Promise<OutletReceiptSettingRecord | null> {
+  const row = await db.outlet_receipt_setting
+    .where('outlet_id')
+    .equals(outletId)
+    .first()
+  return row && !row.deleted_at ? row : null
+}
+
+export async function listActivePaymentMethods(
+  db: SolvaDb,
+): Promise<PaymentMethodRecord[]> {
+  const rows = await db.payment_method.toArray()
+  return rows
+    .filter((r) => r.is_active && !r.deleted_at)
+    .sort((a, b) => a.sort_order - b.sort_order)
 }

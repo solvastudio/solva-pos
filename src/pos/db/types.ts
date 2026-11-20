@@ -223,6 +223,7 @@ export interface ShiftRecord extends IdRecord {
   status: 'OPEN' | 'CLOSED' | 'FORCE_CLOSED'
   opening_cash: number
   opened_by: string
+  open_command_id?: string | null
   created_at_device: string
   occurred_at: string
   business_date: string
@@ -239,6 +240,154 @@ export interface CartDraftRecord extends IdRecord {
   bill_key: string
   payload?: unknown
   updated_at?: string
+}
+
+export interface LegalEntityRecord extends IdRecord {
+  name: string
+  npwp: string | null
+  is_pkp: boolean
+  pkp_since?: string | null
+  address?: string | null
+  deleted_at?: string | null
+}
+
+export interface RegisterInvoicePrefixRecord extends IdRecord {
+  register_id: string
+  effective_month: string
+  invoice_prefix: string
+  deleted_at?: string | null
+}
+
+export interface OutletReceiptSettingRecord extends IdRecord {
+  outlet_id: string
+  receipt_locale: 'id-ID' | 'en-US' | string
+  header_text?: string | null
+  footer_text?: string | null
+  logo_sha256?: string | null
+  deleted_at?: string | null
+}
+
+export interface PaymentMethodRecord extends IdRecord {
+  code: string
+  name: string
+  kind: 'CASH' | 'NON_CASH' | string
+  requires_reference: boolean
+  sort_order: number
+  is_active: boolean
+  deleted_at?: string | null
+}
+
+export interface SaleRecord extends IdRecord {
+  tenant_id: string
+  outlet_id: string
+  register_id: string
+  device_id: string
+  shift_id: string
+  status: 'PAID' | 'VOID'
+  created_by: string
+  created_at_device: string
+  clock_offset_ms: number
+  occurred_at: string
+  business_date: string
+  invoice_no: string
+  invoice_prefix: string
+  invoice_period: string
+  invoice_seq: number
+  legal_entity_id: string
+  legal_entity_npwp: string | null
+  legal_entity_is_pkp: boolean
+  price_tax_mode: 'INCLUSIVE' | 'EXCLUSIVE'
+  tax_profile: 'NONE' | 'PPN' | 'PB1'
+  tax_rate: string
+  tax_rate_id: string | null
+  service_charge_rate: string
+  service_charge_taxable: boolean
+  cash_rounding_unit: number
+  receipt_locale: 'id-ID' | 'en-US'
+  currency: 'IDR'
+  gross_total: number
+  line_discount_total: number
+  bill_discount_type: 'PERCENT' | 'NOMINAL' | null
+  bill_discount_pct: string | null
+  bill_discount_input: number | null
+  bill_discount_total: number
+  discount_approved_by: string | null
+  net_subtotal: number
+  service_charge: number
+  tax_base: number
+  tax_amount: number
+  dpp: number
+  grand_total: number
+  rounding: number
+  total_due: number
+  customer_name: string | null
+  customer_phone: string | null
+  catalog_cursor: number | null
+  bill_id: string | null
+  bill_ref: string | null
+  sync_status: 'PENDING' | 'SYNCED' | 'FAILED'
+  synced_at: string | null
+  server_result: Record<string, unknown> | null
+  print_state: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
+}
+
+export interface SaleLineRecord extends IdRecord {
+  sale_id: string
+  line_no: number
+  line_kind: 'ITEM' | 'SHARE' | 'STOCK_BASIS'
+  product_id: string | null
+  sku_id: string | null
+  uom_id: string | null
+  sku_code: string
+  item_name: string
+  uom_code: string
+  qty: string
+  conversion_factor: string
+  qty_base: string
+  unit_price: number
+  price_source: 'OUTLET' | 'TENANT_DEFAULT' | 'OPEN_PRICE'
+  is_open_price: boolean
+  taxable: boolean
+  discount_type: 'PERCENT' | 'NOMINAL' | null
+  discount_pct: string | null
+  discount_input: number | null
+  discount_approved_by: string | null
+  line_gross: number
+  line_discount: number
+  line_net: number
+  bill_discount_alloc: number
+  service_alloc: number
+  tax_alloc: number
+  note: string | null
+  source_bill_item_id: string | null
+  modifiers: Array<Record<string, unknown>>
+}
+
+export interface SalePaymentRecord extends IdRecord {
+  sale_id: string
+  shift_id: string
+  seq: number
+  method_id: string
+  method_code: string
+  method_name: string
+  method_kind: 'CASH' | 'NON_CASH'
+  amount_applied: number
+  cash_tendered: number | null
+  change_given: number | null
+  reference: string | null
+  is_rounding_settler: boolean
+}
+
+export interface PrintJobRecord {
+  id: string
+  kind: 'RECEIPT' | 'CREDIT_NOTE' | 'SHIFT_REPORT'
+  status: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
+  entity_id: string
+  receipt_locale: 'id-ID' | 'en-US'
+  attempts: number
+  last_error: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface CashMasterRecord extends IdRecord {

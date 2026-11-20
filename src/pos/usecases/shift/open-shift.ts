@@ -93,6 +93,7 @@ export async function openShift(
     status: 'OPEN',
     opening_cash: input.openingCash,
     opened_by: input.staffId,
+    open_command_id: commandId,
     created_at_device: createdAtDevice,
     occurred_at: occurredAt,
     business_date: bDate,

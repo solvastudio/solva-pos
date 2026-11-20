@@ -6,21 +6,30 @@ export const OPEN_SHIFT_QUICK_AMOUNTS: readonly Money[] = [
   toMoney(500_000),
 ]
 
-const CASH_DENOMS = [1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000]
+const QUICK_CASH_STEPS = [5_000, 10_000, 50_000, 100_000]
 
 /**
- * Generates exact + convenient clean denomination quick-cash buttons >= `totalDue`.
+ * Suggests exact payment + up to 3 clean higher denominations (multiples of 5k / 10k / 50k / 100k)
+ * per Fase 45 CMP-31 (`Uang pas` + 3 nearest ceilings above `remaining`).
  */
-export function computeCashQuickAmounts(totalDue: Money): Money[] {
-  const seen = new Set<number>([totalDue])
-  for (const step of CASH_DENOMS) {
-    if (step > totalDue) {
-      seen.add(step)
-    } else {
-      const roundedUp = Math.ceil(totalDue / step) * step
-      if (roundedUp >= totalDue) seen.add(roundedUp)
-    }
-    if (seen.size >= 4) break
+export function suggestCashAmounts(remaining: Money): Money[] {
+  if (!Number.isSafeInteger(remaining) || remaining <= 0) {
+    return []
   }
-  return [...seen].sort((a, b) => a - b).slice(0, 4).map((v) => toMoney(v))
+  const exact = remaining as number
+  const candidates = new Set<number>()
+  for (const step of QUICK_CASH_STEPS) {
+    const rounded = Math.ceil(exact / step) * step
+    if (rounded > exact) {
+      candidates.add(rounded)
+    }
+  }
+  if (candidates.size < 3) {
+    for (const step of QUICK_CASH_STEPS) {
+      const next = Math.ceil(exact / step) * step + step
+      if (next > exact) candidates.add(next)
+    }
+  }
+  const higher = [...candidates].sort((a, b) => a - b).slice(0, 3)
+  return [exact, ...higher].map((v) => toMoney(v))
 }

@@ -10,15 +10,23 @@ import type {
   FeatureFlagRecord,
   IdRecord,
   ItemOutletAvailabilityRecord,
+  LegalEntityRecord,
   LocalCounterRow,
   MetaRow,
   OutboxCommandRow,
+  OutletReceiptSettingRecord,
   OutletRecord,
+  PaymentMethodRecord,
   PriceEntryRecord,
+  PrintJobRecord,
   ProductRecord,
   PullStageRow,
+  RegisterInvoicePrefixRecord,
   RolePermissionRecord,
   RoleRecord,
+  SaleLineRecord,
+  SalePaymentRecord,
+  SaleRecord,
   ShiftRecord,
   SkuRecord,
   SkuUomRecord,
@@ -43,13 +51,13 @@ export class SolvaDb extends Dexie {
   meta!: Table<MetaRow, string>
 
   // Master stores
-  legal_entity!: Table<IdRecord, string>
+  legal_entity!: Table<LegalEntityRecord, string>
   outlet!: Table<OutletRecord, string>
   tax_rate_history!: Table<TaxRateHistoryRecord, string>
-  register_invoice_prefix!: Table<IdRecord, string>
-  outlet_receipt_setting!: Table<IdRecord, string>
+  register_invoice_prefix!: Table<RegisterInvoicePrefixRecord, string>
+  outlet_receipt_setting!: Table<OutletReceiptSettingRecord, string>
   cash_master!: Table<CashMasterRecord, string>
-  payment_method!: Table<IdRecord, string>
+  payment_method!: Table<PaymentMethodRecord, string>
   feature_flag!: Table<FeatureFlagRecord, string>
   app_user!: Table<AppUserRecord, string>
   role!: Table<RoleRecord, string>
@@ -69,10 +77,10 @@ export class SolvaDb extends Dexie {
   fnb_table!: Table<IdRecord, string>
 
   // Transaction stores
-  sale!: Table<IdRecord, string>
-  sale_line!: Table<IdRecord, string>
+  sale!: Table<SaleRecord, string>
+  sale_line!: Table<SaleLineRecord, string>
   sale_line_modifier!: Table<IdRecord, string>
-  sale_payment!: Table<IdRecord, string>
+  sale_payment!: Table<SalePaymentRecord, string>
   credit_note!: Table<IdRecord, string>
   credit_note_line!: Table<IdRecord, string>
   credit_note_refund!: Table<IdRecord, string>
@@ -87,7 +95,7 @@ export class SolvaDb extends Dexie {
   // Infrastructure stores
   outbox_command!: Table<OutboxCommandRow, string>
   local_counter!: Table<LocalCounterRow, string>
-  print_job!: Table<IdRecord, string>
+  print_job!: Table<PrintJobRecord, string>
   device_log!: Table<DeviceLogRow, number>
   stock_snapshot!: Table<StockSnapshotRecord, string>
   bill_snapshot!: Table<Record<string, unknown>, string>

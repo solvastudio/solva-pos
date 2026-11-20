@@ -3,7 +3,12 @@ import type { SolvaDb } from '../db/solva-db'
 import { createSyncClock } from './clock'
 import { runFullResync } from './full-resync'
 
-export { getGlobalSyncStore, startSyncEngine, type SyncController } from './engine'
+export {
+  getGlobalSyncStore,
+  kickActiveSync,
+  startSyncEngine,
+  type SyncController,
+} from './engine'
 export type { DerivedSyncIndicator, SyncBannerItem, SyncState } from './sync-state'
 export { deriveSyncIndicator } from './sync-state'
 
