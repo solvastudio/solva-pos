@@ -100,6 +100,7 @@ export const envSchema = z.object({
   RL_FULL_RESYNC_PER_HOUR: positiveIntEnv(1),
   RL_PUSH_CONCURRENCY: positiveIntEnv(8),
   RL_REPORT_CONCURRENCY_PER_TENANT: positiveIntEnv(2),
+  SYNC_PUSH_MAX_FAILURE_ATTEMPTS: positiveIntEnv(10),
 })
 
 export type AppEnv = z.infer<typeof envSchema>
@@ -176,6 +177,10 @@ export function requireAuthEnv(): {
 export function getPublicBaseUrl(): string {
   const configured = getEnv().PUBLIC_BASE_URL
   return (configured ?? 'http://localhost:3000').replace(/\/+$/, '')
+}
+
+export function getSyncPushMaxFailureAttempts(): number {
+  return getEnv().SYNC_PUSH_MAX_FAILURE_ATTEMPTS
 }
 
 export function getSyncTokenSecret(): string {

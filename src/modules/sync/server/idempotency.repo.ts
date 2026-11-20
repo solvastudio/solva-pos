@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
-import { attentionItem, idempotencyCommand } from './schema'
+import { attentionItem, commandFailureAttempt, idempotencyCommand } from './schema'
 
 export interface ExistingIdempotencyRow {
   commandId: string
@@ -189,6 +189,7 @@ export async function insertAttentionRecord(
     appVersion: string | null
     receivedAtIso: string
     durationMs: number
+    attemptCount?: number
   },
 ): Promise<void> {
   await tx
@@ -210,7 +211,7 @@ export async function insertAttentionRecord(
       receivedAt: params.receivedAtIso,
       processedAt: params.receivedAtIso,
       durationMs: params.durationMs,
-      attemptCount: 1,
+      attemptCount: Math.max(1, params.attemptCount ?? 1),
       requestRef: params.requestRef,
       appVersion: params.appVersion,
     })
@@ -237,6 +238,53 @@ export async function insertAttentionRecord(
       updatedAt: params.receivedAtIso,
     })
     .onConflictDoNothing({ target: attentionItem.commandId })
+}
+
+export async function recordCommandFailureAttempt(
+  tx: TenantTx,
+  params: {
+    tenantId: string
+    commandId: string
+    lastErrorCode: string
+    updatedAtIso: string
+  },
+): Promise<number> {
+  const rows = await tx
+    .insert(commandFailureAttempt)
+    .values({
+      commandId: params.commandId,
+      tenantId: params.tenantId,
+      attemptCount: 1,
+      lastErrorCode: params.lastErrorCode,
+      updatedAt: params.updatedAtIso,
+    })
+    .onConflictDoUpdate({
+      target: commandFailureAttempt.commandId,
+      where: eq(commandFailureAttempt.tenantId, params.tenantId),
+      set: {
+        attemptCount: sql`${commandFailureAttempt.attemptCount} + 1`,
+        lastErrorCode: params.lastErrorCode,
+        updatedAt: params.updatedAtIso,
+      },
+    })
+    .returning({ attemptCount: commandFailureAttempt.attemptCount })
+
+  return rows[0]?.attemptCount ?? 1
+}
+
+export async function deleteCommandFailureAttempt(
+  tx: TenantTx,
+  tenantId: string,
+  commandId: string,
+): Promise<void> {
+  await tx
+    .delete(commandFailureAttempt)
+    .where(
+      and(
+        eq(commandFailureAttempt.tenantId, tenantId),
+        eq(commandFailureAttempt.commandId, commandId),
+      ),
+    )
 }
 
 export async function findCommandStatusesForDevice(

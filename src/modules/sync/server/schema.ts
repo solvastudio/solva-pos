@@ -226,3 +226,21 @@ export const appRelease = pgTable(
     ),
   ],
 )
+
+export const commandFailureAttempt = pgTable(
+  'command_failure_attempt',
+  {
+    commandId: uuidId('command_id').primaryKey(),
+    tenantId: uuidId('tenant_id').notNull(),
+    attemptCount: integer('attempt_count').notNull().default(1),
+    lastErrorCode: text('last_error_code').notNull(),
+    updatedAt: isoTimestamptz('updated_at')
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    unique('uq_command_failure_attempt__tenant_cmd').on(t.tenantId, t.commandId),
+    index('ix_command_failure_attempt__tenant_updated').on(t.tenantId, t.updatedAt),
+    check('ck_command_failure_attempt__count', sql`${t.attemptCount} >= 1`),
+  ],
+)

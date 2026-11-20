@@ -169,6 +169,20 @@
       "when": 1795132283638,
       "tag": "0023_app_release_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795154940599,
+      "tag": "0024_command_failure_attempt",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795154942320,
+      "tag": "0025_command_failure_attempt_rls",
+      "breakpoints": true
     }
   ]
 }

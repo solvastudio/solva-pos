@@ -28,8 +28,10 @@ import { composeServer, resetCompositionForTests } from '~/server/composition'
 import { resetLimitersForTests } from '~/server/auth/rate-limit/limiters'
 import { __resetPushLimitsForTests } from '~/server/auth/rate-limit/push-limits'
 import { closePools, withTenant } from '~/server/db'
+import { resetEnvForTests } from '~/server/env'
 import { AppError } from '~/server/error-classify'
 import { captureLogs } from '~/server/logging/logger-core'
+import { __resetNotifierForTests, createNotifier } from '~/server/notify/notifier'
 import { uniqueSlug } from './helpers/tenants'
 
 const testIdGen = createIdGenerator({
@@ -658,5 +660,226 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
     } finally {
       logs.stop()
     }
+  })
+
+  it('escalates repeated handler TypeError after N attempts to ATTENTION (INTERNAL_ERROR) with rate-limited Telegram alert and idempotency', async () => {
+    const slug = uniqueSlug('push-escalate')
+    const fx = await setupDeviceFixture(slug)
+
+    const sentAlerts: string[] = []
+    let mockNowMs = Date.UTC(2026, 10, 20, 12, 0, 0)
+    const mockNotifier = createNotifier({
+      enabled: true,
+      now: () => mockNowMs,
+      send: async (text) => {
+        sentAlerts.push(text)
+        return true
+      },
+    })
+    __resetNotifierForTests(mockNotifier)
+
+    let handleCalls = 0
+    registerCommandHandler({
+      type: 'OpenShift',
+      parse: (raw) => raw,
+      handle: async () => {
+        handleCalls += 1
+        throw new TypeError('cannot read property xyz')
+      },
+    })
+
+    const cmdId = testIdGen.newId()
+    const nowIso = new Date().toISOString()
+    const cmd: PushCommandEnvelope = {
+      id: cmdId,
+      type: 'OpenShift',
+      schema_version: 1,
+      device_seq: 1,
+      depends_on: [],
+      created_at_device: nowIso,
+      payload: { outlet_id: fx.outlet.id },
+    }
+
+    try {
+      // Attempts 1..9 must stay RETRY with persistent attempt_count incrementing across rolled-back txs.
+      for (let attempt = 1; attempt <= 9; attempt += 1) {
+        const res = await processPush(
+          fx.syncDevice,
+          { sent_at_device: nowIso, clock_offset_ms: 0, commands: [cmd] },
+          { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: `req-te-${attempt}` },
+        )
+        expect(res.results[0]).toEqual({ id: cmdId, outcome: 'RETRY' })
+
+        await withTenant(fx.tenantId, async (tx) => {
+          const tracker = await tx.execute(
+            sql`SELECT attempt_count, last_error_code FROM command_failure_attempt WHERE command_id = ${cmdId}::uuid`,
+          )
+          expect(tracker.rows).toHaveLength(1)
+          expect(Number(tracker.rows[0]!.attempt_count)).toBe(attempt)
+          const idem = await tx.execute(
+            sql`SELECT 1 FROM idempotency_command WHERE command_id = ${cmdId}::uuid`,
+          )
+          expect(idem.rows).toHaveLength(0)
+        })
+      }
+
+      // 10th attempt (default N=10) escalates to ATTENTION STRUCTURAL INTERNAL_ERROR.
+      const escalated = await processPush(
+        fx.syncDevice,
+        { sent_at_device: nowIso, clock_offset_ms: 0, commands: [cmd] },
+        { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-te-10' },
+      )
+      expect(escalated.results[0]).toEqual({
+        id: cmdId,
+        outcome: 'ATTENTION',
+        reason_class: 'STRUCTURAL',
+        reason_code: 'INTERNAL_ERROR',
+        ref: 'req-te-10',
+      })
+      expect(handleCalls).toBe(10)
+
+      await mockNotifier.flushForTests()
+      expect(sentAlerts).toHaveLength(1)
+      expect(sentAlerts[0]).toContain('code=INTERNAL_ERROR')
+
+      await withTenant(fx.tenantId, async (tx) => {
+        const idem = await tx.execute(
+          sql`SELECT status, attempt_count FROM idempotency_command WHERE command_id = ${cmdId}::uuid`,
+        )
+        expect(idem.rows).toHaveLength(1)
+        expect(idem.rows[0]!.status).toBe('ATTENTION')
+        expect(Number(idem.rows[0]!.attempt_count)).toBe(10)
+
+        const att = await tx.execute(
+          sql`SELECT reason_class, reason_code, status FROM attention_item WHERE command_id = ${cmdId}::uuid`,
+        )
+        expect(att.rows).toHaveLength(1)
+        expect(att.rows[0]!.reason_class).toBe('STRUCTURAL')
+        expect(att.rows[0]!.reason_code).toBe('INTERNAL_ERROR')
+        expect(att.rows[0]!.status).toBe('OPEN')
+
+        const tracker = await tx.execute(
+          sql`SELECT 1 FROM command_failure_attempt WHERE command_id = ${cmdId}::uuid`,
+        )
+        expect(tracker.rows).toHaveLength(0)
+      })
+
+      // Replay after escalation is idempotent and does NOT re-invoke the buggy handler.
+      const replay = await processPush(
+        fx.syncDevice,
+        { sent_at_device: nowIso, clock_offset_ms: 0, commands: [cmd] },
+        { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-te-11' },
+      )
+      expect(replay.results[0]).toEqual({
+        id: cmdId,
+        outcome: 'ATTENTION',
+        reason_class: 'STRUCTURAL',
+        reason_code: 'INTERNAL_ERROR',
+        ref: 'req-te-10',
+      })
+      expect(handleCalls).toBe(10)
+
+      // Env override (SYNC_PUSH_MAX_FAILURE_ATTEMPTS=2) triggers earlier escalation and respects Telegram cooldown.
+      const prevLimit = process.env.SYNC_PUSH_MAX_FAILURE_ATTEMPTS
+      process.env.SYNC_PUSH_MAX_FAILURE_ATTEMPTS = '2'
+      resetEnvForTests()
+      mockNowMs += 5_000 // still within 10-min Telegram cooldown
+      try {
+        const cmd2: PushCommandEnvelope = {
+          ...cmd,
+          id: testIdGen.newId(),
+          device_seq: 2,
+        }
+        const r1 = await processPush(
+          fx.syncDevice,
+          { sent_at_device: nowIso, clock_offset_ms: 0, commands: [cmd2] },
+          { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-env-1' },
+        )
+        expect(r1.results[0]!.outcome).toBe('RETRY')
+        const r2 = await processPush(
+          fx.syncDevice,
+          { sent_at_device: nowIso, clock_offset_ms: 0, commands: [cmd2] },
+          { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-env-2' },
+        )
+        expect(r2.results[0]!.outcome).toBe('ATTENTION')
+        await mockNotifier.flushForTests()
+        expect(sentAlerts).toHaveLength(1)
+      } finally {
+        if (prevLimit === undefined) delete process.env.SYNC_PUSH_MAX_FAILURE_ATTEMPTS
+        else process.env.SYNC_PUSH_MAX_FAILURE_ATTEMPTS = prevLimit
+        resetEnvForTests()
+      }
+    } finally {
+      __resetNotifierForTests()
+    }
+  })
+
+  it('keeps genuine transient lock timeout as RETRY without premature escalation and cleans tracker on ACK', async () => {
+    const slug = uniqueSlug('push-lock-nonesc')
+    const fx = await setupDeviceFixture(slug)
+    await processPush(
+      fx.syncDevice,
+      { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [makeAuditCmd(1)] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-lock-prime' },
+    )
+
+    const contended = makeAuditCmd(2)
+    let releaseLock!: () => void
+    const lockReleased = new Promise<void>((resolve) => {
+      releaseLock = resolve
+    })
+    let lockAcquired!: () => void
+    const onLockAcquired = new Promise<void>((resolve) => {
+      lockAcquired = resolve
+    })
+
+    const lockHolder = withTenant(fx.tenantId, async (tx) => {
+      await tx.execute(
+        sql`SELECT last_seq FROM audit_chain_head WHERE tenant_id = ${fx.tenantId}::uuid FOR UPDATE`,
+      )
+      lockAcquired()
+      await lockReleased
+    })
+
+    await onLockAcquired
+    try {
+      for (let i = 1; i <= 3; i += 1) {
+        const res = await processPush(
+          fx.syncDevice,
+          { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [contended] },
+          { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: `req-lck-${i}` },
+          { lockTimeoutMs: 40 },
+        )
+        expect(res.results[0]).toEqual({ id: contended.id, outcome: 'RETRY' })
+      }
+    } finally {
+      releaseLock()
+      await lockHolder
+    }
+
+    await withTenant(fx.tenantId, async (tx) => {
+      const att = await tx.execute(
+        sql`SELECT 1 FROM attention_item WHERE command_id = ${contended.id}::uuid`,
+      )
+      expect(att.rows).toHaveLength(0)
+      const tracker = await tx.execute(
+        sql`SELECT attempt_count FROM command_failure_attempt WHERE command_id = ${contended.id}::uuid`,
+      )
+      expect(Number(tracker.rows[0]!.attempt_count)).toBe(3)
+    })
+
+    const acked = await processPush(
+      fx.syncDevice,
+      { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [contended] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-lck-ack' },
+    )
+    expect(acked.results[0]!.outcome).toBe('ACK')
+
+    await withTenant(fx.tenantId, async (tx) => {
+      const tracker = await tx.execute(
+        sql`SELECT 1 FROM command_failure_attempt WHERE command_id = ${contended.id}::uuid`,
+      )
+      expect(tracker.rows).toHaveLength(0)
+    })
   })
 })

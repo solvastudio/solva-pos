@@ -11,8 +11,10 @@ import {
 } from '~/lib/contracts'
 import { canonicalJson, createIdGenerator } from '~/lib/kernel'
 import { withTenant } from '~/server/db'
+import { getSyncPushMaxFailureAttempts } from '~/server/env'
 import { createLogger } from '~/server/log'
 import { getContext, runWithContext } from '~/server/logging/log-context'
+import { getNotifier } from '~/server/notify/notifier'
 import {
   CommandRejected,
   WAITER_FORBIDDEN_TYPES,
@@ -30,11 +32,13 @@ import {
 import {
   claimIdempotencyRow,
   completeIdempotencyAck,
+  deleteCommandFailureAttempt,
   findAttentionReasonByCommandId,
   findIdempotencyByCommandId,
   findParentCommandStatuses,
   incrementAttemptCount,
   insertAttentionRecord,
+  recordCommandFailureAttempt,
 } from './idempotency.repo'
 
 const log = createLogger('sync.push')
@@ -61,6 +65,7 @@ export interface PushRequestMeta {
 export interface ProcessPushDeps {
   nowIso?: () => string
   lockTimeoutMs?: number
+  maxFailureAttempts?: number
 }
 
 class HoldDependencyError extends Error {
@@ -90,18 +95,21 @@ function normalizeSemverAppVersion(raw: string | null): string | null {
   return trimmed
 }
 
-function isTransientPgError(err: unknown): boolean {
+function extractPgErrorCode(err: unknown): string | null {
   let curr: unknown = err
   for (let i = 0; i < 5 && curr && typeof curr === 'object'; i += 1) {
     const rec = curr as { code?: unknown; cause?: unknown }
     if (typeof rec.code === 'string') {
-      if (TRANSIENT_PG_CODES.has(rec.code) || rec.code.startsWith('08')) {
-        return true
-      }
+      return rec.code
     }
     curr = rec.cause
   }
-  return false
+  return null
+}
+
+function isTransientPgError(err: unknown): boolean {
+  const code = extractPgErrorCode(err)
+  return code !== null && (TRANSIENT_PG_CODES.has(code) || code.startsWith('08'))
 }
 
 function assertPayloadMatchesDeviceScope(payload: unknown, device: SyncDeviceIdentity): void {
@@ -137,6 +145,7 @@ async function processSingleCommand(
   meta: { appVersion: string | null; requestRef: string },
   receivedAtIso: string,
   lockTimeoutMs?: number,
+  maxFailureAttempts = 10,
 ): Promise<PushResultItem> {
   const startedAt = performance.now()
   const parentCtx = getContext() ?? {
@@ -169,6 +178,7 @@ async function processSingleCommand(
         reasonClass: 'STRUCTURAL' | 'AUTHORIZATION',
         reasonCode: string,
         detail: string | null,
+        attemptCount?: number,
       ): Promise<PushResultItem> => {
         const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
         await withTenant(
@@ -195,7 +205,9 @@ async function processSingleCommand(
               appVersion: meta.appVersion,
               receivedAtIso,
               durationMs,
+              attemptCount,
             })
+            await deleteCommandFailureAttempt(tx, device.tenantId, cmd.id)
           },
           { statementTimeoutMs: 10_000, lockTimeoutMs },
         )
@@ -346,6 +358,7 @@ async function processSingleCommand(
               processedAtIso: receivedAtIso,
               durationMs,
             })
+            await deleteCommandFailureAttempt(tx, device.tenantId, cmd.id)
 
             return {
               id: cmd.id,
@@ -410,12 +423,58 @@ async function processSingleCommand(
           return recordAttention(err.reasonClass, err.reasonCode, err.detail ?? null)
         }
 
-        if (isTransientPgError(err)) {
+        const transientPg = isTransientPgError(err)
+        const pgCode = transientPg ? extractPgErrorCode(err) : null
+        const trackedErrorCode = pgCode ?? 'INTERNAL_ERROR'
+        const rawDetail = err instanceof Error ? err.message : String(err)
+
+        let attemptCount: number
+        try {
+          attemptCount = await withTenant(
+            device.tenantId,
+            async (tx) =>
+              recordCommandFailureAttempt(tx, {
+                tenantId: device.tenantId,
+                commandId: cmd.id,
+                lastErrorCode: trackedErrorCode,
+                updatedAtIso: receivedAtIso,
+              }),
+            { statementTimeoutMs: 5_000 },
+          )
+        } catch (trackErr: unknown) {
+          log.warn(
+            { err: trackErr, commandId: cmd.id, outcome: 'RETRY' },
+            'failed to persist command failure attempt count',
+          )
+          return { id: cmd.id, outcome: 'RETRY' }
+        }
+
+        if (attemptCount >= maxFailureAttempts) {
+          const detailPrefix = transientPg
+            ? `Repeated transient DB failure (${trackedErrorCode})`
+            : `Repeated internal handler error (${attemptCount} attempts)`
+          const detail = `${detailPrefix}: ${rawDetail}`
+          const attentionRes = await recordAttention(
+            'STRUCTURAL',
+            'INTERNAL_ERROR',
+            detail,
+            attemptCount,
+          )
+          getNotifier().notify('error_spike', {
+            code: 'INTERNAL_ERROR',
+            ref: meta.requestRef,
+            count: attemptCount,
+          })
+          return attentionRes
+        }
+
+        if (transientPg) {
           log.warn(
             {
               commandId: cmd.id,
               commandType: cmd.type,
               schemaVersion: cmd.schema_version,
+              reason: `attempt_${attemptCount}_of_${maxFailureAttempts}`,
               outcome: 'RETRY',
               durationMs,
             },
@@ -430,6 +489,7 @@ async function processSingleCommand(
             commandId: cmd.id,
             commandType: cmd.type,
             schemaVersion: cmd.schema_version,
+            reason: `attempt_${attemptCount}_of_${maxFailureAttempts}`,
             outcome: 'RETRY',
             durationMs,
           },
@@ -448,6 +508,10 @@ export async function processPush(
   deps?: ProcessPushDeps,
 ): Promise<PushResponse> {
   const receivedAtIso = (deps?.nowIso ?? (() => new Date().toISOString()))()
+  const maxFailureAttempts = Math.max(
+    1,
+    deps?.maxFailureAttempts ?? getSyncPushMaxFailureAttempts(),
+  )
   const policy = await getReleasePolicy()
   const release = releaseBlock(policy)
 
@@ -485,6 +549,7 @@ export async function processPush(
       },
       receivedAtIso,
       deps?.lockTimeoutMs,
+      maxFailureAttempts,
     )
     if (item.outcome === 'ACK') ackCount += 1
     if (item.outcome === 'RETRY') hasRetry = true
