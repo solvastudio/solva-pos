@@ -118,3 +118,8 @@ export {
   type SetFeatureFlagInput,
 } from './server/feature-flag.service'
 export { identityFeedSources } from './server/feed'
+export {
+  findRegisterPrefixForBusinessDate,
+  getTaxRateHistory,
+  validateSaleIdentityRefs,
+} from './server/sales-read.repo'

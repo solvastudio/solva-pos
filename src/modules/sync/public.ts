@@ -87,3 +87,8 @@ export {
   type ProcessPushDeps,
   type PushRequestMeta,
 } from './server/push.service'
+export {
+  createAttentionItem,
+  createDataFlag,
+  type DataFlagEntityType,
+} from './server/idempotency.repo'

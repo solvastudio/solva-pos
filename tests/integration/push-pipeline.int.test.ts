@@ -965,13 +965,6 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
 
   it('rejects invalid FinalizeSale payload at contract layer as ATTENTION (VALIDATION_FAILED)', async () => {
     const fx = await setupDeviceFixture(uniqueSlug('push-contract-val'))
-    registerCommandHandler({
-      type: 'FinalizeSale',
-      parse: (p) => p,
-      async handle() {
-        return { ok: true }
-      },
-    })
 
     const cmdId = testIdGen.newId()
     const nowIso = new Date().toISOString()

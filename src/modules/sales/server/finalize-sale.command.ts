@@ -1,0 +1,254 @@
+import '@tanstack/react-start/server-only'
+import { parseCommandPayload, type FinalizeSalePayloadV1, type FlagCode } from '~/lib/contracts'
+import { formatInvoiceNo, invoicePeriod } from '~/lib/kernel'
+import { filterMissingCatalogRefs } from '~/modules/catalog/public'
+import { findRegisterPrefixForBusinessDate, validateSaleIdentityRefs } from '~/modules/identity/public'
+import { getShiftForCommand } from '~/modules/shift/public'
+import {
+  CommandRejected,
+  createAttentionItem,
+  createDataFlag,
+  type CommandContext,
+  type CommandHandler,
+} from '~/modules/sync/public'
+import type { TenantTx } from '~/server/db'
+import { createLogger } from '~/server/log'
+import { registerReceivedNumber } from './invoice-series.service'
+import { evaluateSaleBusinessFlags } from './sale-flags.service'
+import { verifyFinalizeSalePayload } from './sale-verify.adapter'
+import { insertSaleFacts } from './sale.repo'
+
+const log = createLogger('sales.finalize_sale')
+
+/**
+ * Handles `FinalizeSale` inside a single tenant transaction following the canonical
+ * locking order (idempotency -> invoice_series -> facts/flags) (SCHEMA §5.4.3).
+ */
+export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, TenantTx> = {
+  type: 'FinalizeSale',
+
+  parse(payload: unknown, schemaVersion: number): FinalizeSalePayloadV1 {
+    return parseCommandPayload('FinalizeSale', schemaVersion, payload) as FinalizeSalePayloadV1
+  },
+
+  async handle(
+    tx: TenantTx,
+    ctx: CommandContext,
+    payload: FinalizeSalePayloadV1,
+  ): Promise<Record<string, unknown>> {
+    const s = payload.sale
+    const tenantId = ctx.device.tenantId
+
+    // 1. Structural & reference validation (without extra locks)
+    const totalPaid = payload.payments.reduce((acc, p) => acc + p.amount_applied, 0)
+    const expectedTotalDue = s.grand_total + s.rounding
+    if (totalPaid !== expectedTotalDue) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'PAYMENT_MISMATCH',
+        `Payment total ${totalPaid} != due ${expectedTotalDue}`,
+      )
+    }
+
+    if (s.invoice_period !== invoicePeriod(s.business_date)) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'VALIDATION_FAILED',
+        `invoice_period ${s.invoice_period} does not match business_date ${s.business_date}`,
+      )
+    }
+
+    let formattedExpectedNo: string
+    try {
+      formattedExpectedNo = formatInvoiceNo({
+        prefix: s.invoice_prefix,
+        kind: 'INVOICE',
+        period: s.invoice_period,
+        seq: s.invoice_seq,
+      })
+    } catch {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'VALIDATION_FAILED',
+        'Invalid invoice_prefix/period/seq components',
+      )
+    }
+    if (s.invoice_no !== formattedExpectedNo) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'VALIDATION_FAILED',
+        `invoice_no ${s.invoice_no} mismatches formatted ${formattedExpectedNo}`,
+      )
+    }
+
+    const shift = await getShiftForCommand(tx, s.shift_id)
+    if (!shift) {
+      throw new CommandRejected('STRUCTURAL', 'UNKNOWN_REFERENCE', `Unknown shift_id ${s.shift_id}`)
+    }
+    if (shift.registerId !== ctx.device.registerId) {
+      throw new CommandRejected(
+        'AUTHORIZATION',
+        'FORBIDDEN',
+        'Shift belongs to another register',
+      )
+    }
+
+    const userIds = [s.created_by]
+    if (s.discount_approved_by) userIds.push(s.discount_approved_by)
+    for (const l of payload.lines) {
+      if (l.discount_approved_by) userIds.push(l.discount_approved_by)
+    }
+
+    const idCheck = await validateSaleIdentityRefs(tx, {
+      tenantId,
+      userIds,
+      legalEntityId: s.legal_entity_id,
+      paymentMethodIds: payload.payments.map((p) => p.method_id),
+    })
+    if (idCheck.missingUserId) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown user_id ${idCheck.missingUserId}`,
+      )
+    }
+    if (idCheck.missingLegalEntity) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown legal_entity_id ${s.legal_entity_id}`,
+      )
+    }
+    if (idCheck.missingMethodId) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown method_id ${idCheck.missingMethodId}`,
+      )
+    }
+
+    const skuIds = payload.lines.map((l) => l.sku_id).filter((v): v is string => v !== null)
+    const uomIds = payload.lines.map((l) => l.uom_id).filter((v): v is string => v !== null)
+    const catCheck = await filterMissingCatalogRefs(tx, { tenantId, skuIds, uomIds })
+    if (catCheck.missingSkuId) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown sku_id ${catCheck.missingSkuId}`,
+      )
+    }
+    if (catCheck.missingUomId) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown uom_id ${catCheck.missingUomId}`,
+      )
+    }
+
+    const effectivePrefix = await findRegisterPrefixForBusinessDate(
+      tx,
+      tenantId,
+      ctx.device.registerId,
+      s.business_date,
+    )
+    if (effectivePrefix && effectivePrefix !== s.invoice_prefix) {
+      log.warn(
+        {
+          commandId: ctx.commandId,
+          reason: 'invoice_prefix_mismatch',
+        },
+        'sale accepted with non-matching register invoice_prefix snapshot',
+      )
+    }
+
+    // 2. Lock invoice_series and resolve gap / -Dn conflict
+    const seriesOutcome = await registerReceivedNumber(tx, {
+      tenantId,
+      outletId: ctx.device.outletId,
+      registerId: ctx.device.registerId,
+      docType: 'INVOICE',
+      docId: s.id,
+      prefix: s.invoice_prefix,
+      period: s.invoice_period,
+      seq: s.invoice_seq,
+      receivedAtIso: ctx.receivedAtIso,
+    })
+
+    // 3. Persist sale facts identically to payload (never alter client amounts)
+    await insertSaleFacts(tx, {
+      ctx,
+      payload,
+      finalInvoiceNo: seriesOutcome.finalNo,
+      invoiceConflictIdx: seriesOutcome.conflictIdx,
+    })
+
+    const flags = new Set<FlagCode>()
+
+    if (seriesOutcome.isConflict) {
+      await createDataFlag(tx, {
+        tenantId,
+        outletId: ctx.device.outletId,
+        businessDate: s.business_date,
+        flagCode: 'NOMOR_KONFLIK',
+        entityType: 'SALE',
+        entityId: s.id,
+        commandId: ctx.commandId,
+        detail: {
+          invoice_seq: s.invoice_seq,
+          conflict_idx: seriesOutcome.conflictIdx,
+        },
+      })
+      raisedAdd(flags, 'NOMOR_KONFLIK')
+
+      await createAttentionItem(tx, ctx, {
+        commandType: 'FinalizeSale',
+        reasonClass: 'STRUCTURAL',
+        reasonCode: 'SERIES_CONFLICT',
+        detail: `Duplicate invoice sequence ${s.invoice_period}-${s.invoice_seq} assigned -D${seriesOutcome.conflictIdx}`,
+        payload: {
+          sale_id: s.id,
+          invoice_seq: s.invoice_seq,
+          conflict_idx: seriesOutcome.conflictIdx,
+        },
+      })
+    }
+
+    // 4. Server figure verification (SELISIH_HITUNG flag if discrepancy; skipped on F5 SHARE/STOCK_BASIS)
+    const verifySummary = verifyFinalizeSalePayload(payload)
+    if (verifySummary.skipped) {
+      log.info({ commandId: ctx.commandId, reason: 'non_item_split_lines' }, 'verifySale skipped for non-ITEM split lines')
+    } else if (!verifySummary.ok) {
+      await createDataFlag(tx, {
+        tenantId,
+        outletId: ctx.device.outletId,
+        businessDate: s.business_date,
+        flagCode: 'SELISIH_HITUNG',
+        entityType: 'SALE',
+        entityId: s.id,
+        diffAmount: verifySummary.diffAmount,
+        commandId: ctx.commandId,
+        detail: { paths: verifySummary.paths },
+      })
+      raisedAdd(flags, 'SELISIH_HITUNG')
+    }
+
+    // 5. Business condition flags (HARGA_STALE, ITEM_NONAKTIF, ITEM_TIDAK_TERSEDIA, TARIF_BERBEDA)
+    const businessFlags = await evaluateSaleBusinessFlags(tx, ctx, payload)
+    for (const f of businessFlags) {
+      flags.add(f)
+    }
+
+    return {
+      sale_id: s.id,
+      invoice_no: seriesOutcome.finalNo,
+      invoice_conflict_idx: seriesOutcome.conflictIdx,
+      received_at: ctx.receivedAtIso,
+      flags: [...flags],
+      cost_total: null,
+    }
+  },
+}
+
+function raisedAdd(set: Set<FlagCode>, code: FlagCode): void {
+  set.add(code)
+}

@@ -128,3 +128,9 @@ export {
   type RemoveAttributeValueInput,
   type UpdateSkuInput,
 } from './server/variant.service'
+export {
+  filterMissingCatalogRefs,
+  getCurrentPrice,
+  getEffectiveAvailabilityRow,
+  getProductSkuState,
+} from './server/catalog-read.repo'

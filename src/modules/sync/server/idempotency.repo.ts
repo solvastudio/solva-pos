@@ -1,7 +1,20 @@
 import '@tanstack/react-start/server-only'
+import { webcrypto } from 'node:crypto'
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import type { AttentionReasonClass, CommandType, FlagCode } from '~/lib/contracts'
+import { createIdGenerator } from '~/lib/kernel'
 import type { TenantTx } from '~/server/db'
-import { attentionItem, commandFailureAttempt, idempotencyCommand } from './schema'
+import type { CommandContext } from '../domain/command-types'
+import { attentionItem, commandFailureAttempt, dataFlag, idempotencyCommand } from './schema'
+
+const syncRepoIdGen = createIdGenerator({
+  nowMs: () => Date.now(),
+  nextUint32: () => {
+    const buf = new Uint32Array(1)
+    webcrypto.getRandomValues(buf)
+    return buf[0]!
+  },
+})
 
 export interface ExistingIdempotencyRow {
   commandId: string
@@ -308,4 +321,107 @@ export async function findCommandStatusesForDevice(
       ),
     )
   return rows.map((r) => ({ id: r.id, status: r.status }))
+}
+
+/**
+ * Inserts an informational `attention_item` inside an ACKed command transaction (e.g. SERIES_CONFLICT)
+ * without altering the parent `idempotency_command` status.
+ */
+export async function createAttentionItem(
+  tx: TenantTx,
+  ctx: CommandContext,
+  params: {
+    commandType?: CommandType
+    reasonClass: AttentionReasonClass
+    reasonCode: string
+    detail?: string | null
+    payload?: Record<string, unknown>
+  },
+): Promise<void> {
+  const safeDetail = params.detail ? params.detail.slice(0, 500) : null
+  await tx
+    .insert(attentionItem)
+    .values({
+      id: syncRepoIdGen.newId(),
+      tenantId: ctx.device.tenantId,
+      outletId: ctx.device.outletId,
+      registerId: ctx.device.registerId,
+      deviceId: ctx.device.deviceId,
+      commandId: ctx.commandId,
+      commandType: params.commandType ?? 'FinalizeSale',
+      reasonClass: params.reasonClass,
+      reasonCode: params.reasonCode,
+      detail: safeDetail,
+      payload: params.payload ?? {},
+      blockedByCommandId: null,
+      status: 'OPEN',
+      requestRef: ctx.requestRef,
+      createdAt: ctx.receivedAtIso,
+      updatedAt: ctx.receivedAtIso,
+    })
+    .onConflictDoNothing({ target: attentionItem.commandId })
+}
+
+export type DataFlagEntityType =
+  | 'SALE'
+  | 'SALE_LINE'
+  | 'CREDIT_NOTE'
+  | 'STOCK_MOVEMENT'
+  | 'BILL'
+  | 'TRANSFER_LINE'
+
+/**
+ * Idempotently records a non-blocking business/accounting discrepancy in `data_flag`
+ * (`UNIQUE (tenant_id, entity_type, entity_id, flag_code)`).
+ */
+export async function createDataFlag(
+  tx: TenantTx,
+  params: {
+    tenantId?: string
+    outletId: string
+    businessDate: string
+    flagCode: FlagCode
+    severity?: 'INFO' | 'WARN'
+    entityType: DataFlagEntityType
+    entityId: string
+    parentId?: string | null
+    diffAmount?: number | null
+    detail?: Record<string, unknown> | null
+    commandId?: string | null
+  },
+): Promise<boolean> {
+  let tenantId = params.tenantId
+  if (!tenantId) {
+    const res = await tx.execute(
+      sql`SELECT NULLIF(current_setting('app.tenant_id', true), '')::text AS tid`,
+    )
+    tenantId = (res.rows[0] as { tid?: string | null } | undefined)?.tid ?? undefined
+    if (!tenantId) {
+      throw new Error('createDataFlag requires active tenant context or tenantId')
+    }
+  }
+
+  const inserted = await tx
+    .insert(dataFlag)
+    .values({
+      id: syncRepoIdGen.newId(),
+      tenantId,
+      outletId: params.outletId,
+      businessDate: params.businessDate,
+      flagCode: params.flagCode,
+      severity: params.severity ?? 'WARN',
+      entityType: params.entityType,
+      entityId: params.entityId,
+      parentId: params.parentId ?? null,
+      diffAmount: params.diffAmount ?? null,
+      detail: params.detail ?? null,
+      commandId: params.commandId ?? null,
+      status: 'OPEN',
+    })
+    .onConflictDoNothing({
+      target: [dataFlag.tenantId, dataFlag.entityType, dataFlag.entityId, dataFlag.flagCode],
+    })
+    .returning({ id: dataFlag.id })
+
+  return inserted.length === 1
 }

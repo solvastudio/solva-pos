@@ -13,7 +13,7 @@ import {
   registerOutletCreatedHook,
   touchDeviceStatus,
 } from '~/modules/identity/public'
-import { hasSalesForProductOrSku } from '~/modules/sales/public'
+import { finalizeSaleCommandHandler, hasSalesForProductOrSku } from '~/modules/sales/public'
 import {
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
@@ -38,6 +38,7 @@ export function composeServer(): void {
     registerFeedSource(source)
   }
   registerCommandHandler(appendAuditCommandHandler)
+  registerCommandHandler(finalizeSaleCommandHandler)
   registerDeviceStatusPort({
     touchDeviceStatus,
     extendCredentialIfNeeded,
