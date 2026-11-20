@@ -13,6 +13,7 @@ import {
   registerOutletCreatedHook,
   touchDeviceStatus,
 } from '~/modules/identity/public'
+import { hasSalesForProductOrSku } from '~/modules/sales/public'
 import {
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
@@ -42,7 +43,7 @@ export function composeServer(): void {
     extendCredentialIfNeeded,
   })
   registerHasTransactionsPort({
-    hasTransactions: async () => false,
+    hasTransactions: hasSalesForProductOrSku,
   })
   registerOutletCreatedHook((tx, w, outlet) =>
     createDefaultAvailabilityForOutlet(tx, w, outlet.id),

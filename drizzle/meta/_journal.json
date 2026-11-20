@@ -204,6 +204,20 @@
       "when": 1795160765355,
       "tag": "0028_tombstone_purge_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795178035292,
+      "tag": "0029_sales_shift_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795178046056,
+      "tag": "0030_sales_shift_constraints_rls",
+      "breakpoints": true
     }
   ]
 }
