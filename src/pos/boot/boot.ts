@@ -129,6 +129,7 @@ export async function bootPos(slug: string, deps: BootPosDeps = {}): Promise<Boo
     'tenant',
     'storage',
     'device_flags',
+    'sync_flags',
   ])
 
   if (!meta.device) {
@@ -154,10 +155,11 @@ export async function bootPos(slug: string, deps: BootPosDeps = {}): Promise<Boo
     lastSuccessSyncAtMs: lastSyncMs !== null && Number.isFinite(lastSyncMs) ? lastSyncMs : null,
     maxSeenTimeMs: Number.isFinite(maxSeenTimeMs) ? maxSeenTimeMs : 0,
     flags: {
-      revoked: meta.device_flags?.revoked,
-      credentialExpired: meta.device_flags?.credential_expired,
-      tenantSuspended: meta.device_flags?.tenant_suspended,
-      updateRequired: isClientVersionBelowMin(meta.min_supported ?? null),
+      revoked: meta.sync_flags?.revoked ?? meta.device_flags?.revoked,
+      credentialExpired: meta.sync_flags?.credential_expired ?? meta.device_flags?.credential_expired,
+      tenantSuspended: meta.sync_flags?.tenant_suspended ?? meta.device_flags?.tenant_suspended,
+      updateRequired:
+        meta.sync_flags?.update_required || isClientVersionBelowMin(meta.min_supported ?? null),
     },
   })
 

@@ -8,6 +8,7 @@ import type {
   IdRecord,
   LocalCounterRow,
   MetaRow,
+  OutboxCommandRow,
   OutletRecord,
   ProductRecord,
   PullStageRow,
@@ -72,7 +73,7 @@ export class SolvaDb extends Dexie {
   staff_pin_state!: Table<Record<string, unknown>, [string, string]>
 
   // Infrastructure stores
-  outbox_command!: Table<IdRecord, string>
+  outbox_command!: Table<OutboxCommandRow, string>
   local_counter!: Table<LocalCounterRow, string>
   print_job!: Table<IdRecord, string>
   device_log!: Table<DeviceLogRow, number>

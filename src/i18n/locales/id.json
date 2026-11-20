@@ -67,11 +67,18 @@
     "leaseWarning_one": "Sambungkan ke internet dalam {{count}} jam agar perangkat tidak terkunci.",
     "leaseWarning_other": "Sambungkan ke internet dalam {{count}} jam agar perangkat tidak terkunci.",
     "updateAvailable": "Pembaruan tersedia.",
-    "updateRequired": "Pembaruan wajib. Shift baru tidak dapat dibuka sebelum diperbarui."
+    "updateRequired": "Pembaruan wajib. Shift baru tidak dapat dibuka sebelum diperbarui.",
+    "clockWarning": "Jam perangkat berbeda jauh dari waktu server. Periksa pengaturan tanggal & waktu."
   },
   "status": {
     "sync": {
       "synced": "Tersinkron {{jam}}",
+      "online": "Online",
+      "offline": "Offline",
+      "syncing": "Menyinkronkan…",
+      "needsAttention": "Perlu perhatian ({{count}})",
+      "deviceLocked": "Perangkat terkunci",
+      "pendingCount": "{{count}} tertunda",
       "serverBusy": "Server sibuk — mencoba lagi"
     }
   },
@@ -816,6 +823,10 @@
         "noStaff": "Belum ada daftar staf tersinkron.",
         "appVersion": "Solva POS {{version}}"
       }
+    },
+    "shell": {
+      "registerFallback": "Terminal Kasir",
+      "syncNow": "Sinkron sekarang"
     }
   },
   "system": {

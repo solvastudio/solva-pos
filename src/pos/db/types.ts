@@ -24,6 +24,9 @@ export const META_SCHEMAS = {
     offset_ms: z.number().int(),
     offset_at: z.string().min(1),
     max_seen_time: z.string().min(1),
+    measured_at_device: z.number().optional(),
+    rtt_ms: z.number().optional(),
+    server_time_at_measure: z.number().optional(),
   }),
   last_success_sync_at: z.string().min(1).nullable(),
   locale: z.enum(['id-ID', 'en-US']),
@@ -49,6 +52,13 @@ export const META_SCHEMAS = {
           id: z.string(),
         })
         .nullable(),
+      cursor: z
+        .object({
+          version: z.number().int().nonnegative(),
+          id: z.string(),
+        })
+        .nullable()
+        .optional(),
       stage_cursor: z.number().int().nonnegative(),
       pages: z.number().int().nonnegative(),
     })
@@ -76,6 +86,13 @@ export const META_SCHEMAS = {
     revoked: z.boolean().optional(),
     credential_expired: z.boolean().optional(),
     tenant_suspended: z.boolean().optional(),
+  }),
+  sync_flags: z.object({
+    revoked: z.boolean().optional(),
+    credential_expired: z.boolean().optional(),
+    tenant_suspended: z.boolean().optional(),
+    update_required: z.boolean().optional(),
+    server_max_schema: z.number().int().positive().optional(),
   }),
 } as const
 
@@ -140,6 +157,27 @@ export interface PullStageRow {
   id: string
   version: number
   payload: Record<string, unknown>
+}
+
+export interface OutboxCommandRow {
+  id: string
+  type: string
+  payload: unknown
+  schema_version: number
+  device_seq: number
+  register_id: string
+  status: 'PENDING' | 'SENDING' | 'ACKED' | 'NEEDS_ATTENTION'
+  dependency_key: string | null
+  depends_on: string[]
+  attempts: number
+  next_retry_at: string | null
+  last_error_class: 'TRANSIENT' | 'STRUCTURAL' | 'AUTHORIZATION' | 'SCHEMA' | null
+  last_error_code: string | null
+  last_error_ref: string | null
+  result: Record<string, unknown> | null
+  created_at_device: string
+  app_version: string
+  acked_at?: string | null
 }
 
 export interface IdRecord {

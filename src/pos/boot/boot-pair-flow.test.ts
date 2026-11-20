@@ -79,6 +79,7 @@ describe('pos/boot + pair integration flow', () => {
         fetch: enrollFetch as unknown as typeof fetch,
         nowMs: () => Date.UTC(2026, 10, 20, 4, 0, 0),
         requestStoragePersist: async () => 'GRANTED',
+        startSync: () => ({ subscribe: (cb) => { cb({ step: 1, total: 1, label: 'ok' }); return () => {} }, done: Promise.resolve('OK') }),
         saveDeviceIdHint: (_tid, did) => storageHelper().set('device_id', did),
       },
     )

@@ -5,6 +5,7 @@ import { changeLocale } from '~/i18n'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
 import { getCachedBootPos } from '~/pos/hooks/use-boot'
+import { startSyncEngine, type SyncController } from '~/pos/sync'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
 import type { UpdateManager, UpdateStatus } from '~/pwa/update-manager'
@@ -78,6 +79,61 @@ function PosLayoutComponent() {
     const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
     notifyPosBootOk({ appVersion, dbVersion: 1 })
   }, [bootResult, tenant])
+
+  // Start background Sync Engine strictly after first paint and only on active primary lock.
+  useEffect(() => {
+    if (bootResult.kind !== 'READY') return
+    if (
+      bootResult.state.kind !== 'OK' &&
+      bootResult.state.kind !== 'LEASE_WARNING' &&
+      bootResult.state.kind !== 'UPDATE_REQUIRED'
+    ) {
+      return
+    }
+
+    let cancelled = false
+    let controller: SyncController | null = null
+
+    const startAfterPaint = () => {
+      if (cancelled) return
+      void startSyncEngine({
+        db: bootResult.db,
+        tenantId: bootResult.tenantId,
+        deviceId: bootResult.device.device_id,
+        isPrimaryLock: true,
+      }).then((ctrl) => {
+        if (cancelled) {
+          ctrl.stop()
+          return
+        }
+        controller = ctrl
+      })
+    }
+
+    const g = globalThis as typeof globalThis & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    let idleId: number | null = null
+    let timerId: ReturnType<typeof setTimeout> | null = null
+
+    if (typeof g.requestIdleCallback === 'function') {
+      idleId = g.requestIdleCallback(startAfterPaint, { timeout: 500 })
+    } else {
+      timerId = setTimeout(startAfterPaint, 0)
+    }
+
+    return () => {
+      cancelled = true
+      if (idleId !== null && typeof g.cancelIdleCallback === 'function') {
+        g.cancelIdleCallback(idleId)
+      }
+      if (timerId !== null) {
+        clearTimeout(timerId)
+      }
+      controller?.stop()
+    }
+  }, [bootResult])
 
   useEffect(() => {
     let cancelled = false

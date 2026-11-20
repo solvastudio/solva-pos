@@ -67,11 +67,18 @@
     "leaseWarning_one": "Connect to the internet within {{count}} hour so this device doesn't lock.",
     "leaseWarning_other": "Connect to the internet within {{count}} hours so this device doesn't lock.",
     "updateAvailable": "An update is available.",
-    "updateRequired": "Update required. You can't open a new shift until you update."
+    "updateRequired": "Update required. You can't open a new shift until you update.",
+    "clockWarning": "Device clock differs significantly from server time. Check date & time settings."
   },
   "status": {
     "sync": {
       "synced": "Synced {{jam}}",
+      "online": "Online",
+      "offline": "Offline",
+      "syncing": "Syncing…",
+      "needsAttention": "Needs attention ({{count}})",
+      "deviceLocked": "Device locked",
+      "pendingCount": "{{count}} pending",
       "serverBusy": "Server busy — retrying"
     }
   },
@@ -816,6 +823,10 @@
         "noStaff": "No staff list synced yet.",
         "appVersion": "Solva POS {{version}}"
       }
+    },
+    "shell": {
+      "registerFallback": "Cashier Terminal",
+      "syncNow": "Sync now"
     }
   },
   "system": {

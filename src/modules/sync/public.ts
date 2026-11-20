@@ -56,6 +56,14 @@ export {
 export { ingestDeviceLog } from './server/device-log.service'
 export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
 export {
+  createSignalsHub,
+  DEFAULT_SIGNAL_COALESCE_MS,
+  DEFAULT_SIGNAL_PING_MS,
+  getSignalsHub,
+  type SignalConnection,
+  type SignalsHub,
+} from './server/signals-hub'
+export {
   CommandRejected,
   WAITER_FORBIDDEN_TYPES,
   type CommandContext,

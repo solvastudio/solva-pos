@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { LangToggle } from '~/components/layout/LangToggle'
-import { TenantBadge } from '~/components/layout/TenantBadge'
+import { PosShell } from '~/components/layout/PosShell'
 import { Card } from '~/components/ui'
 import { APP_VERSION } from '~/lib/app-version'
 import { listActiveStaff } from '~/pos/data/master.repo'
@@ -38,38 +37,39 @@ function PosLoginPlaceholderRouteComponent() {
   }, [bootResult])
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10">
-      <Card className="w-full max-w-dialog-md p-6 md:p-8">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <TenantBadge variant="compact" name={tenantName} slug={tenant} />
-          <LangToggle />
-        </div>
+    <PosShell tenantName={tenantName} tenantSlug={tenant}>
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+        <Card className="w-full max-w-dialog-md p-6 md:p-8">
+          <h1 className="text-h2 font-semibold text-ink">{t('pos.login.placeholder.title')}</h1>
+          <p className="mt-2 text-body text-ink-soft">{t('pos.login.placeholder.body')}</p>
 
-        <h1 className="text-h2 font-semibold text-ink">{t('pos.login.placeholder.title')}</h1>
-        <p className="mt-2 text-body text-ink-soft">{t('pos.login.placeholder.body')}</p>
+          <div className="mt-6 rounded-card border border-line bg-surface-sunken p-4">
+            <p className="text-label font-medium text-ink">
+              {t('pos.login.placeholder.staffHeading')}
+            </p>
+            {staffNames.length === 0 ? (
+              <p className="mt-2 text-caption text-ink-soft">
+                {t('pos.login.placeholder.noStaff')}
+              </p>
+            ) : (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {staffNames.map((name, idx) => (
+                  <li
+                    key={`${name}-${idx}`}
+                    className="rounded-md border border-line bg-surface px-3 py-1.5 text-body font-medium text-ink"
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-        <div className="mt-6 rounded-card border border-line bg-surface-sunken p-4">
-          <p className="text-label font-medium text-ink">{t('pos.login.placeholder.staffHeading')}</p>
-          {staffNames.length === 0 ? (
-            <p className="mt-2 text-caption text-ink-soft">{t('pos.login.placeholder.noStaff')}</p>
-          ) : (
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {staffNames.map((name, idx) => (
-                <li
-                  key={`${name}-${idx}`}
-                  className="rounded-md border border-line bg-surface px-3 py-1.5 text-body font-medium text-ink"
-                >
-                  {name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <footer className="mt-6 border-t border-line pt-4 text-center text-caption text-ink-muted">
-          {t('pos.login.placeholder.appVersion', { version: appVersion })}
-        </footer>
-      </Card>
-    </div>
+          <footer className="mt-6 border-t border-line pt-4 text-center text-caption text-ink-muted">
+            {t('pos.login.placeholder.appVersion', { version: appVersion })}
+          </footer>
+        </Card>
+      </div>
+    </PosShell>
   )
 }

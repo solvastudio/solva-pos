@@ -61,6 +61,13 @@ describe('pos/data/meta.repo', () => {
       tenant: { id: T, name: 'Kopi Satu', default_locale: 'id-ID' },
       sync_protocol_version: 1,
       device_flags: { revoked: false, credential_expired: false, tenant_suspended: false },
+      sync_flags: {
+        revoked: false,
+        credential_expired: false,
+        tenant_suspended: false,
+        update_required: false,
+        server_max_schema: 1,
+      },
     }
 
     for (const key of Object.keys(samples) as MetaKey[]) {

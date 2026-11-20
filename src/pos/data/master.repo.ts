@@ -1,6 +1,6 @@
 import type { Transaction } from 'dexie'
 import { SolvaDb } from '../db/solva-db'
-import type { MasterStoreName } from '../db/schema-v1'
+import { MASTER_STORE_NAMES, type MasterStoreName } from '../db/schema-v1'
 import type {
   AppUserRecord,
   CashMasterRecord,
@@ -8,9 +8,12 @@ import type {
   RolePermissionRecord,
   StaffPinRecord,
 } from '../db/types'
+import { setMeta } from './meta.repo'
+
+const MASTER_SET = new Set<string>(MASTER_STORE_NAMES)
 
 export interface PullMasterRow {
-  entity: MasterStoreName
+  entity: string
   op: 'upsert' | 'delete'
   id: string
   payload?: Record<string, unknown>
@@ -36,6 +39,18 @@ function enrichMasterPayload(
     const code = typeof record.code === 'string' ? record.code : null
     record.search_tokens = buildProductSearchTokens(name, code)
   }
+  if (entity === 'tax_rate_history') {
+    record.outlet_key =
+      typeof record.outlet_id === 'string' && record.outlet_id ? record.outlet_id : '*'
+  }
+  if (entity === 'price_entry') {
+    record.outlet_key =
+      typeof record.outlet_id === 'string' && record.outlet_id ? record.outlet_id : '*'
+  }
+  if (entity === 'item_outlet_availability') {
+    record.sku_key =
+      typeof record.sku_id === 'string' && record.sku_id ? record.sku_id : '*'
+  }
   if (entity === 'sku_uom' && (record.barcode === null || record.barcode === '')) {
     // IndexedDB cannot uniquely index null/empty strings without colliding across rows.
     delete record.barcode
@@ -56,14 +71,35 @@ export async function applyMasterRows(
   const deletes = new Map<MasterStoreName, string[]>()
 
   for (const row of rows) {
+    if (row.entity === 'tenant' && row.op === 'upsert' && row.payload) {
+      const name = typeof row.payload.name === 'string' ? row.payload.name : ''
+      const locale =
+        row.payload.default_locale === 'en-US' || row.payload.default_locale === 'id-ID'
+          ? row.payload.default_locale
+          : 'id-ID'
+      if (name) {
+        await setMeta(tx, 'tenant', {
+          id: row.id,
+          name,
+          default_locale: locale,
+        })
+      }
+      continue
+    }
+
+    if (!MASTER_SET.has(row.entity)) {
+      continue
+    }
+    const entity = row.entity as MasterStoreName
+
     if (row.op === 'delete') {
-      const list = deletes.get(row.entity) ?? []
+      const list = deletes.get(entity) ?? []
       list.push(row.id)
-      deletes.set(row.entity, list)
+      deletes.set(entity, list)
     } else if (row.payload) {
-      const list = upserts.get(row.entity) ?? []
-      list.push(enrichMasterPayload(row.entity, row.id, row.payload))
-      upserts.set(row.entity, list)
+      const list = upserts.get(entity) ?? []
+      list.push(enrichMasterPayload(entity, row.id, row.payload))
+      upserts.set(entity, list)
     }
   }
 
@@ -74,6 +110,34 @@ export async function applyMasterRows(
   for (const [entity, ids] of deletes.entries()) {
     await tx.table(entity).bulkDelete(ids)
   }
+}
+
+/**
+ * Clears all 24 master tables inside a full-resync apply transaction.
+ * Never clears `meta`, local transaction stores, `outbox_command`, or `device_log`.
+ */
+export async function clearMasterStoresInTx(tx: Transaction): Promise<void> {
+  for (const storeName of MASTER_STORE_NAMES) {
+    await tx.table(storeName).clear()
+  }
+}
+
+export async function countMasterEntities(
+  db: SolvaDb,
+  entities: readonly string[],
+): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {}
+  for (const entity of entities) {
+    if (entity === 'tenant') {
+      const t = await db.meta.get('tenant')
+      counts[entity] = t ? 1 : 0
+      continue
+    }
+    if (MASTER_SET.has(entity)) {
+      counts[entity] = await db.table(entity).count()
+    }
+  }
+  return counts
 }
 
 export async function getOutlet(db: SolvaDb, outletId: string): Promise<OutletRecord | null> {

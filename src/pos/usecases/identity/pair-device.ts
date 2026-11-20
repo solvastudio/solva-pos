@@ -42,7 +42,7 @@ export interface PairDeviceDeps {
   openDb?: (tenantId: string) => Promise<SolvaDb>
   remember?: typeof rememberTenant
   requestStoragePersist?: (db: SolvaDb) => Promise<unknown>
-  startSync?: (db: SolvaDb) => InitialSyncHandle
+  startSync?: (db: SolvaDb, deps?: { fetch?: typeof fetch }) => InitialSyncHandle
   saveDeviceIdHint?: (tenantId: string, deviceId: string) => void
 }
 
@@ -180,7 +180,7 @@ export async function pairDevice(
   const persistFn = deps.requestStoragePersist ?? ((d: SolvaDb) => requestPersist(d))
   await persistFn(db)
 
-  const syncHandle = startSync(db)
+  const syncHandle = startSync(db, { fetch: fetchFn })
   return {
     ok: true,
     tenantId: enrolled.tenant.id,

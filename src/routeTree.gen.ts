@@ -42,6 +42,7 @@ import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
 import { Route as ApiPosV1PullRouteImport } from './routes/api/pos/v1/pull'
 import { Route as ApiPosV1PushRouteImport } from './routes/api/pos/v1/push'
 import { Route as ApiPosV1ReleaseRouteImport } from './routes/api/pos/v1/release'
+import { Route as ApiPosV1SignalsRouteImport } from './routes/api/pos/v1/signals'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
 import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
@@ -214,6 +215,11 @@ const ApiPosV1ReleaseRoute = ApiPosV1ReleaseRouteImport.update({
   path: '/api/pos/v1/release',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPosV1SignalsRoute = ApiPosV1SignalsRouteImport.update({
+  id: '/api/pos/v1/signals',
+  path: '/api/pos/v1/signals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
+  '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
+  '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -337,6 +345,7 @@ export interface FileRoutesById {
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
   '/api/pos/v1/push': typeof ApiPosV1PushRoute
   '/api/pos/v1/release': typeof ApiPosV1ReleaseRoute
+  '/api/pos/v1/signals': typeof ApiPosV1SignalsRoute
   '/$tenant/admin/_authed/': typeof TenantAdminAuthedIndexRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
@@ -377,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/api/pos/v1/release'
+    | '/api/pos/v1/signals'
     | '/$tenant/admin/'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -412,6 +422,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/api/pos/v1/release'
+    | '/api/pos/v1/signals'
     | '/$tenant/admin'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/api/pos/v1/pull'
     | '/api/pos/v1/push'
     | '/api/pos/v1/release'
+    | '/api/pos/v1/signals'
     | '/$tenant/admin/_authed/'
     | '/$tenant/admin/api/auth/$'
     | '/api/pos/v1/pull/full/page'
@@ -472,6 +484,7 @@ export interface RootRouteChildren {
   ApiPosV1PullRoute: typeof ApiPosV1PullRouteWithChildren
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
   ApiPosV1ReleaseRoute: typeof ApiPosV1ReleaseRoute
+  ApiPosV1SignalsRoute: typeof ApiPosV1SignalsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -707,6 +720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPosV1ReleaseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pos/v1/signals': {
+      id: '/api/pos/v1/signals'
+      path: '/api/pos/v1/signals'
+      fullPath: '/api/pos/v1/signals'
+      preLoaderRoute: typeof ApiPosV1SignalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -827,6 +847,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPosV1PullRoute: ApiPosV1PullRouteWithChildren,
   ApiPosV1PushRoute: ApiPosV1PushRoute,
   ApiPosV1ReleaseRoute: ApiPosV1ReleaseRoute,
+  ApiPosV1SignalsRoute: ApiPosV1SignalsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

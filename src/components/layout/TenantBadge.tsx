@@ -30,10 +30,12 @@ export function TenantBadge({ name, slug, variant }: TenantBadgeProps) {
 
   return (
     <div
-      aria-label={t('tenant.badgeLabel', { name: displayName })}
       title={displayName}
       className={cn('flex min-w-0 items-center', variant === 'hero' ? 'gap-4' : 'gap-2.5')}
     >
+      {variant === 'compact' && (
+        <span className="sr-only">{t('tenant.badgeLabel', { name: displayName })}</span>
+      )}
       <div
         aria-hidden="true"
         className={cn(

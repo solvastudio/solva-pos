@@ -64,6 +64,7 @@ describe('pos/usecases/identity/pair-device', () => {
         fetch: mockFetch as unknown as typeof fetch,
         nowMs: () => 1_795_095_850_000,
         requestStoragePersist: async () => 'GRANTED',
+        startSync: () => ({ subscribe: (cb) => { cb({ step: 1, total: 1, label: 'ok' }); return () => {} }, done: Promise.resolve('OK') }),
         saveDeviceIdHint: (tid, did) => {
           getTenantStorage(tid, 'local', {
             getItem: (k) => store.get(k) ?? null,
