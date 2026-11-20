@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { toMoney, ZERO } from './money'
 import { D, parseQty } from './qty'
-import { allocateEqual, allocateLR, mulRound, percentOf, ratioRound, roundHalfUp } from './rounding'
+import {
+  allocateEqual,
+  allocateLR,
+  mulRound,
+  percentOf,
+  ratioRound,
+  roundHalfUp,
+  roundToUnit,
+} from './rounding'
 
 const V01_MUL_CASES = [
   { id: 'V-01a', unit: 12500, qty: '0.333', expected: 4163 },
@@ -54,5 +62,19 @@ describe('kernel/rounding (V-01, V-02, V-03)', () => {
     expect(() => ratioRound(toMoney(-1), '10', '110')).toThrowError(RangeError)
     expect(() => ratioRound(toMoney(100), '10', '0')).toThrowError(RangeError)
     expect(() => ratioRound(toMoney(100), '-5', '100')).toThrowError(RangeError)
+  })
+
+  it('rounds cash amounts half-up to 0/100/500/1000 units cleanly', () => {
+    expect(roundToUnit(toMoney(112476), 100)).toBe(112500)
+    expect(roundToUnit(toMoney(101330), 100)).toBe(101300)
+    expect(roundToUnit(toMoney(135655), 100)).toBe(135700)
+    expect(roundToUnit(toMoney(135068), 100)).toBe(135100)
+    expect(roundToUnit(toMoney(123323), 100)).toBe(123300)
+    expect(roundToUnit(toMoney(54945), 100)).toBe(54900)
+    expect(roundToUnit(toMoney(350), 100)).toBe(400)
+    expect(roundToUnit(toMoney(112476), 0)).toBe(112476)
+    expect(roundToUnit(toMoney(1250), 500)).toBe(1500)
+    expect(roundToUnit(toMoney(1500), 1000)).toBe(2000)
+    expect(() => roundToUnit(toMoney(-10), 100)).toThrowError(RangeError)
   })
 })

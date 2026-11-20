@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseQty, toMoney } from '~/lib/kernel'
 import { calcSale } from './calc-sale'
+import { settlePayments } from './payment'
 import { SALES_CALC_VECTORS } from './sales-calc.vectors'
 import { SalesCalcError } from './types'
 
@@ -40,6 +41,20 @@ describe('sales-calc/calcSale (V-04..V-09, V-30 & edge cases)', () => {
           res.lines.map((l) => l.taxAlloc),
           v.id,
         ).toEqual(v.expected.taxAllocs)
+      }
+      if (v.settlement) {
+        const s = settlePayments({
+          grandTotal: res.grandTotal,
+          cashRoundingUnit: v.settlement.cashRoundingUnit,
+          payments: v.settlement.payments,
+        })
+        expect(s.rounding, `${v.id} rounding`).toBe(v.settlement.expected.rounding)
+        expect(s.totalDue, `${v.id} totalDue`).toBe(v.settlement.expected.totalDue)
+        expect(s.changeTotal, `${v.id} changeTotal`).toBe(v.settlement.expected.changeTotal)
+        expect(
+          s.payments.map((p) => p.applied),
+          `${v.id} applied`,
+        ).toEqual(v.settlement.expected.applied)
       }
     }
   })

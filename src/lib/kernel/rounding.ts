@@ -122,3 +122,25 @@ export function ratioRound(base: Money, numerator: string, denominator: string):
   }
   return roundHalfUp(new D(base).times(new D(numerator)).div(denomDec))
 }
+
+export type CashRoundingUnit = 0 | 100 | 500 | 1000
+
+const ALLOWED_ROUNDING_UNITS = new Set<number>([0, 100, 500, 1000])
+
+/**
+ * Rounds integer cash amount half-up to the nearest unit (`0`, `100`, `500`, `1000`).
+ * Returns `amount` unchanged when `unit === 0`.
+ */
+export function roundToUnit(amount: Money, unit: CashRoundingUnit): Money {
+  if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 0) {
+    throw new RangeError(`roundToUnit amount must be integer >= 0: ${amount}`)
+  }
+  if (!ALLOWED_ROUNDING_UNITS.has(unit)) {
+    throw new RangeError(`roundToUnit unit must be 0, 100, 500, or 1000: ${unit}`)
+  }
+  if (unit === 0) {
+    return amount
+  }
+  const snapped = roundHalfUp(new D(amount).div(unit))
+  return toMoney(snapped * unit)
+}

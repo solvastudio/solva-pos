@@ -1,5 +1,5 @@
-import { parseQty, toMoney } from '~/lib/kernel'
-import type { SaleCalc, SaleCalcInput } from './types'
+import { parseQty, toMoney, type CashRoundingUnit } from '~/lib/kernel'
+import type { PaymentInput, SaleCalc, SaleCalcInput } from './types'
 
 export interface SalesCalcVector {
   readonly id: string
@@ -21,6 +21,16 @@ export interface SalesCalcVector {
     readonly lineDiscounts?: readonly number[]
     readonly billDiscountAllocs?: readonly number[]
     readonly taxAllocs?: readonly number[]
+  }
+  readonly settlement?: {
+    readonly cashRoundingUnit: CashRoundingUnit
+    readonly payments: readonly PaymentInput[]
+    readonly expected: {
+      readonly rounding: number
+      readonly totalDue: number
+      readonly changeTotal: number
+      readonly applied: readonly number[]
+    }
   }
 }
 
@@ -105,6 +115,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       dpp: toMoney(101330),
       grandTotal: toMoney(112476),
     },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(150000) }],
+      expected: { rounding: 24, totalDue: 112500, changeTotal: 37500, applied: [112500] },
+    },
   },
   {
     id: 'V-05',
@@ -126,6 +141,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       taxAmount: toMoney(10042),
       dpp: toMoney(91288),
       grandTotal: toMoney(101330),
+    },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(110000) }],
+      expected: { rounding: -30, totalDue: 101300, changeTotal: 8700, applied: [101300] },
     },
   },
   {
@@ -153,6 +173,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       dpp: toMoney(123323),
       grandTotal: toMoney(135655),
     },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(150000) }],
+      expected: { rounding: 45, totalDue: 135700, changeTotal: 14300, applied: [135700] },
+    },
   },
   {
     id: 'V-07',
@@ -178,6 +203,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       dpp: toMoney(117450),
       grandTotal: toMoney(135068),
     },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(150000) }],
+      expected: { rounding: 32, totalDue: 135100, changeTotal: 14900, applied: [135100] },
+    },
   },
   {
     id: 'V-08',
@@ -201,6 +231,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       taxAmount: toMoney(11211),
       dpp: toMoney(112112),
       grandTotal: toMoney(123323),
+    },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(130000) }],
+      expected: { rounding: -23, totalDue: 123300, changeTotal: 6700, applied: [123300] },
     },
   },
   {
@@ -259,6 +294,11 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       netSubtotal: toMoney(49500),
       taxAmount: toMoney(5445),
       grandTotal: toMoney(54945),
+    },
+    settlement: {
+      cashRoundingUnit: 100,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(60000) }],
+      expected: { rounding: -45, totalDue: 54900, changeTotal: 5100, applied: [54900] },
     },
   },
 ]
