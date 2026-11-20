@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { SystemPage } from '~/components/layout/SystemPage'
 import { TenantBadge } from '~/components/layout/TenantBadge'
-import { LayoutDashboard, ShoppingCart } from '~/components/ui'
+import { LayoutDashboard, ShoppingCart } from '~/components/ui/icons'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 

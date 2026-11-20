@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, buttonVariants, Check, Copy, Lock } from '~/components/ui'
+import { Button, buttonVariants } from '~/components/ui/Button'
+import { Check, Copy, Lock } from '~/components/ui/icons'
 import { cn } from '~/lib/cn'
 import { SystemPage } from './SystemPage'
 import { TenantBadge } from './TenantBadge'

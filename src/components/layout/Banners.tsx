@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { ClockAlert, Download, Info, LockKeyhole, TriangleAlert, WifiOff } from '~/components/ui'
+import { ClockAlert, Download, Info, LockKeyhole, TriangleAlert, WifiOff } from '~/components/ui/icons'
 import type { SyncBannerItem } from '~/pos/sync'
 
 export interface BannersProps {

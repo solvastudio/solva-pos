@@ -1,8 +1,10 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info, TriangleAlert } from '~/components/ui'
+import { Info, TriangleAlert } from '~/components/ui/icons'
 import { TenantBadge } from '~/components/layout/TenantBadge'
-import { Button, Card, Input } from '~/components/ui'
+import { Button } from '~/components/ui/Button'
+import { Card } from '~/components/ui/Card'
+import { Input } from '~/components/ui/Input'
 import { QrScanButton } from './QrScanButton'
 import { PairingProgress } from './PairingProgress'
 

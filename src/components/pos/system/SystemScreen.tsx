@@ -1,17 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import {
-  Ban,
-  Button,
-  CirclePause,
-  ClockAlert,
-  Download,
-  ErrorCodeBlock,
-  KeyRound,
-  Layers,
-  Lock,
-  RefreshCw,
-  ShieldAlert,
-} from '~/components/ui'
+import { Ban, CirclePause, ClockAlert, Download, KeyRound, Layers, Lock, RefreshCw, ShieldAlert } from '~/components/ui/icons'
+import { Button } from '~/components/ui/Button'
+import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
 import type { SystemVariant } from '~/pos/boot/route-decision'
 
 export interface SystemScreenProps {

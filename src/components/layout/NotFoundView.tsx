@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Compass } from '~/components/ui'
+import { Compass } from '~/components/ui/icons'
 import { SystemPage } from './SystemPage'
 
 export function NotFoundView() {

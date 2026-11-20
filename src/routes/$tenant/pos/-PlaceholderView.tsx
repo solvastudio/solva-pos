@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Chip } from '~/components/ui'
+import { Chip } from '~/components/ui/Chip'
 import { LangToggle } from '~/components/layout/LangToggle'
 
 export function PosPlaceholderView({ tenant }: { tenant: string }) {

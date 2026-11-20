@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { CirclePause } from '~/components/ui'
+import { CirclePause } from '~/components/ui/icons'
 import { SystemPage } from './SystemPage'
 
 export function SuspendedView() {

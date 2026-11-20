@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Chip, type ChipStatus } from '~/components/ui'
+import { Chip, type ChipStatus } from '~/components/ui/Chip'
 import type { DerivedSyncIndicator } from '~/pos/sync'
 
 export interface SyncIndicatorProps {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, RefreshCw } from '~/components/ui'
+import { Button } from '~/components/ui/Button'
+import { RefreshCw } from '~/components/ui/icons'
 import { useSyncState } from '~/pos/hooks/use-sync-state'
 import { Banners } from './Banners'
 import { LangToggle } from './LangToggle'

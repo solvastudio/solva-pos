@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, ErrorCodeBlock, RefreshCw, TriangleAlert } from '~/components/ui'
+import { Button } from '~/components/ui/Button'
+import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
+import { RefreshCw, TriangleAlert } from '~/components/ui/icons'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 import { logClientError } from '~/lib/client-errors/report-schema'
 import {

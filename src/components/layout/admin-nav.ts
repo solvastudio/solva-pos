@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { LayoutDashboard, Settings, User, Users } from '~/components/ui'
+import { LayoutDashboard, Settings, User, Users } from '~/components/ui/icons'
 import type { PermissionCode } from '~/modules/identity/shared'
 
 export interface AdminNavItem {

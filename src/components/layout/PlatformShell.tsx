@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, LogOut, Store, Plus } from '~/components/ui'
+import { Button } from '~/components/ui/Button'
+import { LogOut, Store, Plus } from '~/components/ui/icons'
 import { cn } from '~/lib/cn'
 import { LangToggle } from './LangToggle'
 

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { Button, QrCode } from '~/components/ui'
+import { Button } from '~/components/ui/Button'
+import { QrCode } from '~/components/ui/icons'
 
 export interface QrScanButtonProps {
   disabled?: boolean
