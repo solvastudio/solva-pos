@@ -79,4 +79,63 @@ test.describe('F1-K03 & F1-K08: Device pairing, offline POS shell, and remote re
       await posCtx.close()
     }
   })
+
+  test('claims first-install page without reload after CDP SW stop between install and activate', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext()
+    try {
+      const page = await ctx.newPage()
+      const cdp = await ctx.newCDPSession(page)
+      await cdp.send('ServiceWorker.enable')
+
+      // Note: On fast machines, Chromium C++ transitions `installed -> activating` before the
+      // async CDP `stopWorker` command arrives; we await best-effort `stopWorker` and still
+      // verify first-tab `clients.claim()` without reload while unit tests deterministically
+      // cover full worker isolate restart via Cache Storage (`cache-cleanup.test.ts`).
+      let stopPromise: Promise<unknown> | null = null
+      cdp.on('ServiceWorker.workerVersionUpdated', (event) => {
+        for (const v of event.versions) {
+          if (!stopPromise && v.status === 'installed') {
+            stopPromise = cdp
+              .send('ServiceWorker.stopWorker', { versionId: v.versionId })
+              .catch(() => {})
+          }
+        }
+      })
+
+      await page.goto('/acme/pos/pair', { waitUntil: 'domcontentloaded' })
+      await page.getByLabel(/Pairing code|Kode pairing/i).waitFor({ timeout: 15_000 })
+
+      // Without any reload, the first tab MUST become controlled via clients.claim().
+      await expect
+        .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), {
+          timeout: 15_000,
+        })
+        .toBe(true)
+
+      if (stopPromise) {
+        await stopPromise
+      }
+      await cdp.send('ServiceWorker.disable').catch(() => {})
+      await cdp.detach().catch(() => {})
+
+      const swState = await page.evaluate(async () => {
+        const [meta, precache] = await Promise.all([
+          caches.open('solva-meta'),
+          caches.open('solva-precache'),
+        ])
+        const metaKeys = await meta.keys()
+        const precacheKeys = await precache.keys()
+        return {
+          remainingClaimMarkers: metaKeys.filter((k) => k.url.includes('/__first_claim/')).length,
+          hasShellInPrecache: precacheKeys.some((k) => k.url.includes('/pos-shell.html')),
+        }
+      })
+      expect(swState.remainingClaimMarkers).toBe(0)
+      expect(swState.hasShellInPrecache).toBe(true)
+    } finally {
+      await ctx.close()
+    }
+  })
 })

@@ -141,3 +141,45 @@ export async function readProtectedLastGoodUrls(metaCache: CacheLike): Promise<S
   }
   return protectedUrls
 }
+
+export function firstClaimKey(scope: string): string {
+  return `/__first_claim/${encodeURIComponent(scope)}`
+}
+
+/**
+ * Persists first-install claim intent in Cache Storage during `install` when there
+ * is no existing active worker so `activate` still calls `clients.claim()` even if
+ * the browser terminates the service worker thread between `install` and `activate`.
+ */
+export async function prepareFirstClaimOnInstall(
+  metaCache: CacheLike,
+  scope: string,
+  hasActiveWorker: boolean,
+): Promise<boolean> {
+  if (hasActiveWorker) {
+    return false
+  }
+  await metaCache.put(
+    firstClaimKey(scope),
+    new Response(JSON.stringify({ firstInstall: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  )
+  return true
+}
+
+/**
+ * Atomically reads and clears the persistent first-install claim marker on `activate`.
+ */
+export async function consumePendingFirstClaim(
+  metaCache: CacheLike,
+  scope: string,
+): Promise<boolean> {
+  const key = firstClaimKey(scope)
+  const hit = await metaCache.match(key)
+  if (!hit) {
+    return false
+  }
+  await metaCache.delete(key)
+  return true
+}

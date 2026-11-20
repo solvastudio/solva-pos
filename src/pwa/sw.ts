@@ -3,10 +3,12 @@ import { cacheNames, setCacheNameDetails } from 'workbox-core'
 import { PrecacheController, PrecacheRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import {
+  consumePendingFirstClaim,
   entriesToDelete,
   lastGoodKey,
   MANIFEST_CACHE_NAME,
   META_CACHE_NAME,
+  prepareFirstClaimOnInstall,
   readAllManifests,
   readProtectedLastGoodUrls,
   recordManifest,
@@ -25,8 +27,6 @@ setCacheNameDetails({ precache: 'solva-precache', prefix: '', suffix: '' })
 
 const pc = new PrecacheController({ cacheName: cacheNames.precache })
 pc.addToCacheList(self.__WB_MANIFEST)
-
-let claimOnFirstActivate = false
 
 function currentPrecacheUrls(): string[] {
   return Array.from(pc.getURLsToCacheKeys().values())
@@ -53,15 +53,19 @@ async function runCrossTenantCacheCleanup(): Promise<void> {
 }
 
 self.addEventListener('install', (event) => {
-  if (!self.registration.active) {
-    claimOnFirstActivate = true
-  }
+  const hasActiveWorker = Boolean(self.registration.active)
   const installPromise = pc.install(event)
   event.waitUntil(
     (async () => {
       await installPromise
-      const mCache = await caches.open(MANIFEST_CACHE_NAME)
-      await recordManifest(mCache, self.registration.scope, currentPrecacheUrls())
+      const [mCache, metaCache] = await Promise.all([
+        caches.open(MANIFEST_CACHE_NAME),
+        caches.open(META_CACHE_NAME),
+      ])
+      await Promise.all([
+        recordManifest(mCache, self.registration.scope, currentPrecacheUrls()),
+        prepareFirstClaimOnInstall(metaCache, self.registration.scope, hasActiveWorker),
+      ])
     })(),
   )
 })
@@ -69,8 +73,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      if (claimOnFirstActivate) {
-        claimOnFirstActivate = false
+      const metaCache = await caches.open(META_CACHE_NAME)
+      if (await consumePendingFirstClaim(metaCache, self.registration.scope)) {
         await self.clients.claim()
       }
       await runCrossTenantCacheCleanup()
