@@ -41,6 +41,7 @@ import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/t
 import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants.new'
 import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/admin/_authed/index'
 import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
+import { Route as TenantAdminAuthedAttentionRouteImport } from './routes/$tenant/admin/_authed/attention'
 import { Route as TenantAdminAuthedAvailabilityRouteImport } from './routes/$tenant/admin/_authed/availability'
 import { Route as TenantAdminAuthedFeaturesRouteImport } from './routes/$tenant/admin/_authed/features'
 import { Route as TenantAdminAuthedPricesRouteImport } from './routes/$tenant/admin/_authed/prices'
@@ -233,6 +234,12 @@ const TenantAdminAuthedAccountRoute =
     path: '/account',
     getParentRoute: () => TenantAdminAuthedRoute,
   } as any)
+const TenantAdminAuthedAttentionRoute =
+  TenantAdminAuthedAttentionRouteImport.update({
+    id: '/attention',
+    path: '/attention',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
 const TenantAdminAuthedAvailabilityRoute =
   TenantAdminAuthedAvailabilityRouteImport.update({
     id: '/availability',
@@ -419,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/attention': typeof TenantAdminAuthedAttentionRoute
   '/$tenant/admin/availability': typeof TenantAdminAuthedAvailabilityRoute
   '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
@@ -479,6 +487,7 @@ export interface FileRoutesByTo {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/attention': typeof TenantAdminAuthedAttentionRoute
   '/$tenant/admin/availability': typeof TenantAdminAuthedAvailabilityRoute
   '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
@@ -543,6 +552,7 @@ export interface FileRoutesById {
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
   '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
+  '/$tenant/admin/_authed/attention': typeof TenantAdminAuthedAttentionRoute
   '/$tenant/admin/_authed/availability': typeof TenantAdminAuthedAvailabilityRoute
   '/$tenant/admin/_authed/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/_authed/prices': typeof TenantAdminAuthedPricesRoute
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos/'
     | '/$tenant/admin/account'
+    | '/$tenant/admin/attention'
     | '/$tenant/admin/availability'
     | '/$tenant/admin/features'
     | '/$tenant/admin/prices'
@@ -668,6 +679,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos'
     | '/$tenant/admin/account'
+    | '/$tenant/admin/attention'
     | '/$tenant/admin/availability'
     | '/$tenant/admin/features'
     | '/$tenant/admin/prices'
@@ -731,6 +743,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/new'
     | '/$tenant/pos/'
     | '/$tenant/admin/_authed/account'
+    | '/$tenant/admin/_authed/attention'
     | '/$tenant/admin/_authed/availability'
     | '/$tenant/admin/_authed/features'
     | '/$tenant/admin/_authed/prices'
@@ -1011,6 +1024,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedAccountRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/$tenant/admin/_authed/attention': {
+      id: '/$tenant/admin/_authed/attention'
+      path: '/attention'
+      fullPath: '/$tenant/admin/attention'
+      preLoaderRoute: typeof TenantAdminAuthedAttentionRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
     '/$tenant/admin/_authed/availability': {
       id: '/$tenant/admin/_authed/availability'
       path: '/availability'
@@ -1269,6 +1289,7 @@ const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(
 
 interface TenantAdminAuthedRouteChildren {
   TenantAdminAuthedAccountRoute: typeof TenantAdminAuthedAccountRoute
+  TenantAdminAuthedAttentionRoute: typeof TenantAdminAuthedAttentionRoute
   TenantAdminAuthedAvailabilityRoute: typeof TenantAdminAuthedAvailabilityRoute
   TenantAdminAuthedFeaturesRoute: typeof TenantAdminAuthedFeaturesRoute
   TenantAdminAuthedPricesRoute: typeof TenantAdminAuthedPricesRoute
@@ -1283,6 +1304,7 @@ interface TenantAdminAuthedRouteChildren {
 
 const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
   TenantAdminAuthedAccountRoute: TenantAdminAuthedAccountRoute,
+  TenantAdminAuthedAttentionRoute: TenantAdminAuthedAttentionRoute,
   TenantAdminAuthedAvailabilityRoute: TenantAdminAuthedAvailabilityRoute,
   TenantAdminAuthedFeaturesRoute: TenantAdminAuthedFeaturesRoute,
   TenantAdminAuthedPricesRoute: TenantAdminAuthedPricesRoute,

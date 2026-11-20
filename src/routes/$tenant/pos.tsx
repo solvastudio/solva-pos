@@ -4,7 +4,6 @@ import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
 import { changeLocale } from '~/i18n'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
-import { getMeta, setMeta } from '~/pos/data/meta.repo'
 import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
 import { createIdleLockController } from '~/pos/session/idle-lock'
 import { clearSession, getSessionState } from '~/pos/session/session'
@@ -119,6 +118,7 @@ function PosLayoutComponent() {
       onLock: async () => {
         const staff = getSessionState().staff
         if (!staff) return
+        const { getMeta, setMeta } = await import('~/pos/data/meta.repo')
         const clock = await getMeta(db, 'clock')
         const lockedAt = new Date(Date.now() + (clock?.offset_ms ?? 0)).toISOString()
         await setMeta(db, 'idle_lock', {
@@ -268,6 +268,7 @@ function PosLayoutComponent() {
     let cancelled = false
     void Promise.all([
       import('~/pos/sync/update-manager'),
+      import('~/pos/data/meta.repo'),
       import('~/pos/data/shift.repo'),
       import('~/pos/state/cart-store'),
       import('~/lib/app-version'),
@@ -275,6 +276,7 @@ function PosLayoutComponent() {
     ]).then(
       async ([
         { createPersistentUpdateController },
+        { getMeta },
         { getOpenShiftForRegister },
         { posCartStore },
         { APP_VERSION },

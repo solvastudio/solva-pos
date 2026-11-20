@@ -1,6 +1,5 @@
 import Dexie, { type Table, type Transaction } from 'dexie'
 import { tenantDbName } from '../locks/names'
-import { migrateOutbox } from './migrations/outbox-migrate'
 import { STORES_V1 } from './schema-v1'
 import type {
   AssetCacheRecord,
@@ -142,6 +141,7 @@ export class SolvaDb extends Dexie {
   }
 
   protected async runUpgrade(tx: Transaction, fromVersion: number, toVersion: number): Promise<void> {
+    const { migrateOutbox } = await import('./migrations/outbox-migrate')
     await migrateOutbox(tx, fromVersion, toVersion)
     const metaTable = tx.table('meta')
     await metaTable.put({ key: 'dexie_version', value: toVersion })

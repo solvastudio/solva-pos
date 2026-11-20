@@ -1,11 +1,13 @@
 import '@tanstack/react-start/server-only'
 import { webcrypto } from 'node:crypto'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { createIdGenerator, isUuid } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
-import { withTenant } from '~/server/db'
+import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { recomputeShiftRecap } from './recap.service'
+import { cashCashier } from './schema'
 import { findShiftFullById, updateForceCloseShiftRow } from './shift.repo'
 
 const shiftIdGen = createIdGenerator({
@@ -88,4 +90,38 @@ export async function forceCloseShift(
   })
 
   return { shiftId: input.shiftId, status: 'FORCE_CLOSED' }
+}
+
+export interface OpenShiftAdminRow {
+  readonly id: string
+  readonly outletId: string
+  readonly registerId: string
+  readonly openedAt: string
+  readonly openingCash: number
+}
+
+export async function listOpenShiftsForAdmin(
+  actor: IdentityAuthActor,
+): Promise<OpenShiftAdminRow[]> {
+  requireActorPermission(actor, 'shift.force_close')
+  return withTenantReadOnly(actor.tenantId, async (tx) => {
+    const conditions = [eq(cashCashier.tenantId, actor.tenantId), eq(cashCashier.status, 'OPEN')]
+    if (actor.outletIds !== null && actor.outletIds !== undefined) {
+      if (actor.outletIds.length === 0) return []
+      conditions.push(inArray(cashCashier.outletId, [...actor.outletIds]))
+    }
+
+    const rows = await tx
+      .select({
+        id: cashCashier.id,
+        outletId: cashCashier.outletId,
+        registerId: cashCashier.registerId,
+        openedAt: cashCashier.occurredAt,
+        openingCash: cashCashier.openingCash,
+      })
+      .from(cashCashier)
+      .where(and(...conditions))
+      .orderBy(desc(cashCashier.occurredAt))
+    return rows
+  })
 }

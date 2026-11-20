@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  ShieldAlert,
   Store,
   Tag,
   User,
@@ -18,6 +19,7 @@ export interface AdminNavItem {
     | 'prices'
     | 'availability'
     | 'features'
+    | 'attention'
     | 'settings'
     | 'users'
     | 'account'
@@ -28,6 +30,7 @@ export interface AdminNavItem {
     | 'admin.nav.prices'
     | 'admin.nav.availability'
     | 'admin.nav.features'
+    | 'admin.nav.attention'
     | 'admin.nav.settings'
     | 'admin.nav.users'
     | 'admin.nav.account'
@@ -75,6 +78,14 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     icon: Layers,
     requiredPermission: 'flag.manage',
     phase: 'F2',
+  },
+  {
+    id: 'attention',
+    path: '/admin/attention',
+    labelKey: 'admin.nav.attention',
+    icon: ShieldAlert,
+    requiredPermission: 'audit.view',
+    phase: 'F3',
   },
   {
     id: 'settings',

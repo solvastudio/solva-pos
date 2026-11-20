@@ -8,6 +8,7 @@ import {
   DataTable,
   Dialog,
   Field,
+  Input,
   Plus,
   Radio,
   Select,
@@ -16,6 +17,7 @@ import {
   type DataTableColumn,
 } from '~/components/ui'
 import { createPairingCodeFn, revokeDeviceFn } from '~/functions/identity/device.fn'
+import { forceCloseShiftFn, listOpenShiftsForAdminFn } from '~/functions/shift/force-close.fn'
 import { formatDateTime } from '~/lib/kernel'
 import {
   DEVICE_REVOKE_REASONS,
@@ -53,6 +55,10 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
 
   const { data: devices = [], isLoading } = useQuery(devicesQueryOptions(tenantSlug))
   const { data: registers = [] } = useQuery(registersQueryOptions(tenantSlug))
+  const { data: openShifts = [] } = useQuery({
+    queryKey: ['admin', tenantSlug, 'open-shifts'],
+    queryFn: () => listOpenShiftsForAdminFn(),
+  })
 
   const [selectRegOpen, setSelectRegOpen] = useState(false)
   const [selectedRegisterId, setSelectedRegisterId] = useState('')
@@ -63,6 +69,39 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
   const [revokeReason, setRevokeReason] = useState<DeviceRevokeReason>('REPLACED')
   const [revokeError, setRevokeError] = useState<string | null>(null)
   const [recoverTarget, setRecoverTarget] = useState<DeviceView | null>(null)
+  const [forceCloseShiftId, setForceCloseShiftId] = useState<string | null>(null)
+  const [forceCloseCash, setForceCloseCash] = useState('0')
+  const [forceCloseReason, setForceCloseReason] = useState('')
+  const [forceCloseError, setForceCloseError] = useState<string | null>(null)
+
+  const openShiftByRegister = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of openShifts) {
+      map.set(s.registerId, s.id)
+    }
+    return map
+  }, [openShifts])
+
+  const forceCloseMutation = useMutation({
+    retry: 0,
+    mutationFn: () =>
+      forceCloseShiftFn({
+        data: {
+          shiftId: forceCloseShiftId ?? '',
+          countedCash: Math.max(0, Number.parseInt(forceCloseCash, 10) || 0),
+          reasonText: forceCloseReason,
+        },
+      }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        setForceCloseError(t(res.errorKey, { defaultValue: t('admin.settings.failed') }))
+        return
+      }
+      setForceCloseShiftId(null)
+      toast.show({ tone: 'success', message: t('admin.attention.forceClose.successToast') })
+      void queryClient.invalidateQueries({ queryKey: ['admin', tenantSlug, 'open-shifts'] })
+    },
+  })
 
   const activeDeviceRegisters = useMemo(() => {
     const busy = new Set<string>()
@@ -214,9 +253,24 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
       header: t('admin.devices.colAction'),
       align: 'right',
       hideOnMobileCard: true,
-      cell: (r) =>
-        r.revokedAt === null ? (
+      cell: (r) => {
+        const openShiftId = openShiftByRegister.get(r.registerId) ?? null
+        return r.revokedAt === null ? (
           <div className="flex justify-end gap-2">
+            {openShiftId ? (
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  setForceCloseError(null)
+                  setForceCloseCash('0')
+                  setForceCloseReason('')
+                  setForceCloseShiftId(openShiftId)
+                }}
+              >
+                {t('admin.attention.forceClose.button')}
+              </Button>
+            ) : null}
             <Button
               variant="secondary"
               size="md"
@@ -236,7 +290,8 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
               {t('admin.devices.actionRevoke')}
             </Button>
           </div>
-        ) : null,
+        ) : null
+      },
     },
   ]
 
@@ -399,6 +454,61 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
         target={recoverTarget}
         onOpenChange={(open) => !open && setRecoverTarget(null)}
       />
+      <Dialog
+        open={Boolean(forceCloseShiftId)}
+        onOpenChange={(open) => !open && setForceCloseShiftId(null)}
+        title={t('admin.attention.forceClose.dialogTitle')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" size="md" onClick={() => setForceCloseShiftId(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              loading={forceCloseMutation.isPending}
+              disabled={forceCloseReason.trim().length === 0}
+              onClick={() => forceCloseMutation.mutate()}
+            >
+              {t('admin.attention.forceClose.confirmButton')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {forceCloseError ? (
+            <div
+              role="alert"
+              className="rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
+            >
+              <span>{forceCloseError}</span>
+            </div>
+          ) : null}
+          <Field
+            label={t('admin.attention.forceClose.countedCashLabel')}
+            htmlFor={`${formIdPrefix}-fc-cash`}
+          >
+            <Input
+              id={`${formIdPrefix}-fc-cash`}
+              type="number"
+              min={0}
+              value={forceCloseCash}
+              onChange={(e) => setForceCloseCash(e.target.value)}
+            />
+          </Field>
+          <Field
+            label={t('admin.attention.forceClose.reasonLabel')}
+            htmlFor={`${formIdPrefix}-fc-reason`}
+          >
+            <Input
+              id={`${formIdPrefix}-fc-reason`}
+              value={forceCloseReason}
+              onChange={(e) => setForceCloseReason(e.target.value)}
+            />
+          </Field>
+        </div>
+      </Dialog>
     </section>
   )
 }

@@ -13,7 +13,7 @@ import {
   type PushResultItem,
 } from '~/lib/contracts'
 import { canonicalJson, createIdGenerator } from '~/lib/kernel'
-import { withTenant } from '~/server/db'
+import { withTenant, type TenantTx } from '~/server/db'
 import { getSyncPushMaxFailureAttempts, getSyncPushMaxTransientAttempts } from '~/server/env'
 import { createLogger } from '~/server/log'
 import { serializeError } from '~/server/logging/error-serializer'
@@ -622,5 +622,247 @@ export async function processPush(
     results,
     max_schema_version: SCHEMA_VERSION,
     release,
+  }
+}
+
+export interface ProcessCommandAsOptions {
+  tx?: TenantTx
+  reqClockOffsetMs?: number
+  receivedAtIso?: string
+  appVersion?: string | null
+  requestRef: string
+  markStatus?: 'ACKED' | 'ACCEPTED_MANUAL'
+  allowReplaceAttention?: boolean
+  lockTimeoutMs?: number
+}
+
+export interface ProcessCommandAsResult {
+  readonly item: PushResultItem
+  readonly replay: boolean
+}
+
+/**
+ * Executes a single command directly under a pre-resolved `SyncDeviceIdentity`
+ * without verifying a live device Bearer token (used by `acceptManual` for revoked/
+ * authorization-blocked items and `importPendingFile` for offline recovery files).
+ */
+export async function processCommandAs(
+  identity: SyncDeviceIdentity,
+  cmd: PushCommandEnvelope,
+  opts: ProcessCommandAsOptions,
+): Promise<ProcessCommandAsResult> {
+  const startedAt = performance.now()
+  const receivedAtIso = opts.receivedAtIso ?? new Date().toISOString()
+  const safeAppVersion = normalizeSemverAppVersion(opts.appVersion ?? null)
+
+  const handler = getCommandHandler(cmd.type)
+  if (!handler) {
+    throw new CommandRejected('STRUCTURAL', 'VALIDATION_FAILED', `unknown command type: ${cmd.type}`)
+  }
+
+  let parsedPayload: unknown
+  try {
+    const contractPayload = hasRegisteredCommandSchema(cmd.type)
+      ? parseCommandPayload(cmd.type, cmd.schema_version, cmd.payload)
+      : cmd.payload
+    parsedPayload = handler.parse(contractPayload, cmd.schema_version)
+  } catch (err: unknown) {
+    if (err instanceof CommandRejected) throw err
+    if (err instanceof ContractError) {
+      const code = err.code === 'UPDATE_REQUIRED' ? 'SCHEMA_NOT_MIGRATABLE' : 'VALIDATION_FAILED'
+      throw new CommandRejected('STRUCTURAL', code, err.message)
+    }
+    const msg =
+      err instanceof ZodError
+        ? err.issues[0]?.message ?? 'Invalid command payload'
+        : err instanceof Error
+          ? err.message
+          : 'Invalid command payload'
+    throw new CommandRejected('STRUCTURAL', 'VALIDATION_FAILED', msg)
+  }
+
+  const rawJsonText = JSON.stringify(cmd.payload ?? null) ?? 'null'
+  const payloadSize = Buffer.byteLength(rawJsonText, 'utf8')
+  const payloadHash = sha256Hex(
+    canonicalJson({
+      type: cmd.type,
+      schema_version: cmd.schema_version,
+      payload: parsedPayload,
+    }),
+  )
+
+  const runInsideTx = async (tx: TenantTx): Promise<ProcessCommandAsResult> => {
+    const claimed = await claimIdempotencyRow(tx, {
+      commandId: cmd.id,
+      tenantId: identity.tenantId,
+      deviceId: identity.deviceId,
+      registerId: identity.registerId,
+      outletId: identity.outletId,
+      commandType: cmd.type,
+      channel: 'OUTBOX',
+      schemaVersion: cmd.schema_version,
+      deviceSeq: cmd.device_seq,
+      payloadHash,
+      payloadSize,
+      requestRef: opts.requestRef,
+      appVersion: safeAppVersion,
+      receivedAtIso,
+    })
+
+    if (!claimed) {
+      const existing = await findIdempotencyByCommandId(tx, identity.tenantId, cmd.id)
+      if (!existing) {
+        throw new Error('Missing existing idempotency row after conflict')
+      }
+      if (existing.payloadHash !== payloadHash && !(opts.allowReplaceAttention && existing.status === 'ATTENTION')) {
+        throw new HashMismatchReplayError()
+      }
+
+      if (existing.status === 'ACKED' || existing.status === 'ACCEPTED_MANUAL') {
+        return {
+          replay: true,
+          item: { id: cmd.id, outcome: 'ACK', result: existing.result },
+        }
+      }
+
+      if (!opts.allowReplaceAttention) {
+        const att = await findAttentionReasonByCommandId(tx, identity.tenantId, cmd.id)
+        return {
+          replay: true,
+          item: {
+            id: cmd.id,
+            outcome: 'ATTENTION',
+            reason_class: att?.reasonClass === 'AUTHORIZATION' ? 'AUTHORIZATION' : 'STRUCTURAL',
+            reason_code: att?.reasonCode ?? 'VALIDATION_FAILED',
+            ref: att?.requestRef ?? opts.requestRef,
+          },
+        }
+      }
+    }
+
+    if (cmd.depends_on.length > 0) {
+      const parentMap = await findParentCommandStatuses(tx, identity.tenantId, cmd.depends_on)
+      for (const depId of cmd.depends_on) {
+        const depStatus = parentMap.get(depId)
+        if (!depStatus || depStatus === 'ATTENTION') {
+          throw new HoldDependencyError()
+        }
+        if (depStatus === 'DISMISSED') {
+          throw new CommandRejected(
+            'STRUCTURAL',
+            'UNKNOWN_REFERENCE',
+            `Dependency ${depId} was dismissed`,
+          )
+        }
+      }
+    }
+
+    assertPayloadMatchesDeviceScope(cmd.payload, identity)
+    assertPayloadMatchesDeviceScope(parsedPayload, identity)
+    if (identity.registerType === 'WAITER' && WAITER_FORBIDDEN_TYPES.has(cmd.type)) {
+      throw new CommandRejected(
+        'AUTHORIZATION',
+        'FORBIDDEN',
+        `Waiter register cannot execute ${cmd.type}`,
+      )
+    }
+
+    const cmdCtx: CommandContext = {
+      commandId: cmd.id,
+      deviceSeq: cmd.device_seq,
+      schemaVersion: cmd.schema_version,
+      appVersion: safeAppVersion,
+      createdAtDevice: cmd.created_at_device,
+      clockOffsetMs: opts.reqClockOffsetMs ?? 0,
+      receivedAtIso,
+      requestRef: opts.requestRef,
+      device: identity,
+    }
+
+    const ackResult = await handler.handle(tx, cmdCtx, parsedPayload)
+    const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+    await completeIdempotencyAck(tx, {
+      tenantId: identity.tenantId,
+      commandId: cmd.id,
+      status: opts.markStatus ?? 'ACKED',
+      result: ackResult,
+      processedAtIso: receivedAtIso,
+      durationMs,
+    })
+    await deleteCommandFailureAttempt(tx, identity.tenantId, cmd.id)
+
+    return {
+      replay: false,
+      item: {
+        id: cmd.id,
+        outcome: 'ACK',
+        result: ackResult,
+      },
+    }
+  }
+
+  if (opts.tx) {
+    return runInsideTx(opts.tx)
+  }
+
+  try {
+    return await withTenant(identity.tenantId, runInsideTx, {
+      statementTimeoutMs: 10_000,
+      lockTimeoutMs: opts.lockTimeoutMs,
+    })
+  } catch (err: unknown) {
+    if (err instanceof HoldDependencyError) {
+      return { replay: false, item: { id: cmd.id, outcome: 'HELD' } }
+    }
+    if (err instanceof HashMismatchReplayError) {
+      return {
+        replay: false,
+        item: {
+          id: cmd.id,
+          outcome: 'ATTENTION',
+          reason_class: 'STRUCTURAL',
+          reason_code: 'VALIDATION_FAILED',
+          ref: opts.requestRef,
+        },
+      }
+    }
+    if (err instanceof CommandRejected) {
+      const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+      await withTenant(identity.tenantId, async (tx) => {
+        await insertAttentionRecord(tx, {
+          attentionId: syncIdGen.newId(),
+          commandId: cmd.id,
+          tenantId: identity.tenantId,
+          deviceId: identity.deviceId,
+          registerId: identity.registerId,
+          outletId: identity.outletId,
+          commandType: cmd.type,
+          schemaVersion: cmd.schema_version,
+          deviceSeq: cmd.device_seq,
+          payloadHash,
+          payloadSize,
+          rawPayload: cmd.payload ?? {},
+          reasonClass: err.reasonClass,
+          reasonCode: err.reasonCode,
+          detail: sanitizeDetail(err.detail),
+          blockedByCommandId: null,
+          requestRef: opts.requestRef,
+          appVersion: safeAppVersion,
+          receivedAtIso,
+          durationMs,
+        })
+      })
+      return {
+        replay: false,
+        item: {
+          id: cmd.id,
+          outcome: 'ATTENTION',
+          reason_class: err.reasonClass,
+          reason_code: err.reasonCode,
+          ref: opts.requestRef,
+        },
+      }
+    }
+    throw err
   }
 }

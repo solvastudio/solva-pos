@@ -1,5 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { appendAuditCommandHandler } from '~/modules/audit/public'
+import { appendAudit, appendAuditCommandHandler } from '~/modules/audit/public'
 import {
   __clearHasTransactionsPortForTests,
   catalogFeedSources,
@@ -38,6 +38,7 @@ import {
   registerCommandHandler,
   registerDeviceStatusPort,
   registerFeedSource,
+  registerSyncAuditWriter,
 } from '~/modules/sync/public'
 
 let composed = false
@@ -66,6 +67,7 @@ export function composeServer(): void {
     touchDeviceStatus,
     extendCredentialIfNeeded,
   })
+  registerSyncAuditWriter((tx, input, deps) => appendAudit(tx, input, deps))
   registerHasTransactionsPort({
     hasTransactions: hasSalesForProductOrSku,
   })

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { LOCAL_REF_PATTERN } from '~/lib/contracts'
+
+const LOCAL_REF_PATTERN = /^D-\d{8}-\d{6}-[a-hj-km-np-z2-9]{5}$/
 
 export const META_SCHEMAS = {
   device: z.object({

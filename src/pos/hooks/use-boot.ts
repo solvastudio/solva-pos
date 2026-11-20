@@ -1,4 +1,4 @@
-import { bootPos, type BootResult } from '../boot/boot'
+import type { BootResult } from '../boot/boot'
 
 const bootPromiseBySlug = new Map<string, Promise<BootResult>>()
 
@@ -12,7 +12,7 @@ export function getCachedBootPos(slug: string): Promise<BootResult> {
   if (existing) {
     return existing
   }
-  const promise = bootPos(key)
+  const promise = import('../boot/boot').then(({ bootPos }) => bootPos(key))
   bootPromiseBySlug.set(key, promise)
   return promise
 }

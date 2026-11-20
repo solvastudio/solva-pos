@@ -1,7 +1,7 @@
 import { APP_VERSION, compareSemver, parseSemver } from '~/lib/app-version'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 import { logClientError } from '~/lib/client-errors/report-schema'
-import { SCHEMA_VERSION } from '~/lib/contracts'
+import { SCHEMA_VERSION } from '~/lib/contracts/versions'
 import { resolveLocale, type Locale } from '~/i18n/resolve-locale'
 import { bulkGetMeta } from '../data/meta.repo'
 import { findTenantIdBySlug } from '../db/registry'

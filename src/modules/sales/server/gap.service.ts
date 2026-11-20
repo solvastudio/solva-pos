@@ -6,7 +6,10 @@ import { appendAudit } from '~/modules/audit/public'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import type { InvoiceGapRow } from '../shared'
 import { invoiceGap } from './schema'
+
+export type { InvoiceGapRow }
 
 const gapAuditIdGen = createIdGenerator({
   nowMs: () => Date.now(),
@@ -16,24 +19,6 @@ const gapAuditIdGen = createIdGenerator({
     return buf[0]!
   },
 })
-
-export interface InvoiceGapRow {
-  readonly id: string
-  readonly outletId: string
-  readonly registerId: string
-  readonly docType: 'INVOICE' | 'CREDIT_NOTE'
-  readonly period: string
-  readonly seqFrom: number
-  readonly seqTo: number
-  readonly origin: 'DETECTED' | 'RECOVERY_DECLARED'
-  readonly status: 'OPEN' | 'EXPLAINED' | 'FILLED'
-  readonly reasonCode: string | null
-  readonly reasonText: string | null
-  readonly explainedBy: string | null
-  readonly explainedAt: string | null
-  readonly filledAt: string | null
-  readonly detectedAt: string
-}
 
 /**
  * Transitions an `OPEN` invoice/credit-note gap to `EXPLAINED` (`gap.annotate`, BR-INV-007).

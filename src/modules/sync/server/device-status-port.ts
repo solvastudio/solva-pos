@@ -43,4 +43,37 @@ export function getDeviceStatusPort(): DeviceStatusPort | null {
 
 export function __clearDeviceStatusPortForTests(): void {
   registeredPort = null
+  registeredAuditWriter = null
+}
+
+export interface SyncAuditEntryInput {
+  readonly action: 'attention.resolved'
+  readonly entityType: string
+  readonly entityId: string
+  readonly outletId?: string | null
+  readonly registerId?: string | null
+  readonly deviceId?: string | null
+  readonly commandId?: string | null
+  readonly reasonCode?: string | null
+  readonly reasonText?: string | null
+  readonly actorUserId?: string | null
+  readonly occurredAt: string
+  readonly beforeData?: unknown
+  readonly afterData?: unknown
+}
+
+export type SyncAuditWriter = (
+  tx: TenantTx,
+  input: SyncAuditEntryInput,
+  deps: { newId: () => string; nowIso: () => string },
+) => Promise<unknown>
+
+let registeredAuditWriter: SyncAuditWriter | null = null
+
+export function registerSyncAuditWriter(writer: SyncAuditWriter): void {
+  registeredAuditWriter = writer
+}
+
+export function getSyncAuditWriter(): SyncAuditWriter | null {
+  return registeredAuditWriter
 }

@@ -158,6 +158,7 @@ export async function completeIdempotencyAck(
   params: {
     tenantId: string
     commandId: string
+    status?: 'ACKED' | 'ACCEPTED_MANUAL'
     result: Record<string, unknown>
     processedAtIso: string
     durationMs: number
@@ -166,7 +167,7 @@ export async function completeIdempotencyAck(
   await tx
     .update(idempotencyCommand)
     .set({
-      status: 'ACKED',
+      status: params.status ?? 'ACKED',
       result: params.result,
       processedAt: params.processedAtIso,
       durationMs: params.durationMs,

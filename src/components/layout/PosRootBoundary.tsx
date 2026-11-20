@@ -2,9 +2,6 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { RecoveryScreen } from '~/components/layout/RecoveryScreen'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 import { logClientError } from '~/lib/client-errors/report-schema'
-import { findTenantIdBySlug } from '~/pos/db/registry'
-import { openTenantDb } from '~/pos/db/solva-db'
-import { logDevice } from '~/pos/maintenance/device-log'
 import { recordBootCrashTimestamp } from '~/pwa/boot-guard'
 
 export interface PosRootBoundaryProps {
@@ -57,8 +54,13 @@ export class PosRootBoundary extends Component<PosRootBoundaryProps, PosRootBoun
       ctx: { surface: 'pos-root', errorName: error.name },
     })
 
-    void findTenantIdBySlug(this.props.tenantSlug)
-      .then(async (tenantId) => {
+    void Promise.all([
+      import('~/pos/db/registry'),
+      import('~/pos/db/solva-db'),
+      import('~/pos/maintenance/device-log'),
+    ])
+      .then(async ([{ findTenantIdBySlug }, { openTenantDb }, { logDevice }]) => {
+        const tenantId = await findTenantIdBySlug(this.props.tenantSlug)
         if (!tenantId) return
         const db = await openTenantDb(tenantId)
         await logDevice(db, {

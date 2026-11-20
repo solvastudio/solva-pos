@@ -79,14 +79,33 @@ export {
 export {
   __clearDeviceStatusPortForTests,
   registerDeviceStatusPort,
+  registerSyncAuditWriter,
   type DeviceStatusPort,
+  type SyncAuditEntryInput,
+  type SyncAuditWriter,
   type TouchDeviceStatusPatch,
 } from './server/device-status-port'
 export {
+  processCommandAs,
   processPush,
+  type ProcessCommandAsOptions,
+  type ProcessCommandAsResult,
   type ProcessPushDeps,
   type PushRequestMeta,
 } from './server/push.service'
+export {
+  acceptManual,
+  buildAttentionSummary,
+  canAcceptManualReason,
+  dismissAttention,
+  escalateAttention,
+  listAttention,
+  type SyncAdminActor,
+} from './server/attention.service'
+export {
+  importPendingFile,
+  MAX_PENDING_IMPORT_BYTES,
+} from './server/pending-import.service'
 export {
   createAttentionItem,
   createDataFlag,
