@@ -83,4 +83,38 @@ describe('scripts/ci/bundle-guard', () => {
       rmSync(dirWithE2eMarker, { recursive: true, force: true })
     }
   })
+
+  it('excludes POS dynamicImports from initial budget while including app.css and still scanning lazy chunks', () => {
+    const dir = createDistFixture({
+      manifest: {
+        'src/styles/app.css': {
+          file: 'assets/app-abc.css',
+        },
+        'src/routes/$tenant/pos.tsx': {
+          file: 'assets/index-abc.js',
+          dynamicImports: ['src/pos/lazy-modal.ts'],
+          isEntry: true,
+        },
+        'src/pos/lazy-modal.ts': {
+          file: 'assets/lazy-modal.js',
+        },
+      },
+    })
+    writeFileSync(join(dir, 'assets', 'lazy-modal.js'), 'export const modal = "ok";'.repeat(50), 'utf8')
+
+    try {
+      const clean = checkBundleGuard(dir)
+      expect(clean.ok).toBe(true)
+      expect(clean.summary.some((s) => s.file === 'assets/app-abc.css')).toBe(true)
+      expect(clean.summary.some((s) => s.file === 'assets/lazy-modal.js')).toBe(false)
+      expect(clean.lazySummary.some((s) => s.file === 'assets/lazy-modal.js')).toBe(true)
+      expect(clean.posLazyGzipBytes).toBeGreaterThan(0)
+
+      writeFileSync(join(dir, 'assets', 'lazy-modal.js'), 'const secret = "BETTER_AUTH_SECRET";', 'utf8')
+      const dirty = checkBundleGuard(dir)
+      expect(dirty.ok).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
