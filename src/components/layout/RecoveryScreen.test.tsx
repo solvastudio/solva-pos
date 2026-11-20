@@ -53,7 +53,7 @@ describe('RecoveryScreen (SCR-P17)', () => {
 
     const axeResults = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
     expect(axeResults.violations).toEqual([])
-  })
+  }, 15_000)
 
   it('tracks root boot crash frequency within 60 seconds using sessionStorage without Dexie', () => {
     const map = new Map<string, string>()

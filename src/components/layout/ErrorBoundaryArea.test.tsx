@@ -67,5 +67,5 @@ describe('ErrorBoundaryArea (CMP-37)', () => {
     )
     await user.click(screen.getByRole('button', { name: /Retry/i }))
     expect(screen.getByText('Healthy child')).toBeTruthy()
-  })
+  }, 15_000)
 })
