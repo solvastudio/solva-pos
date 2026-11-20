@@ -65,6 +65,7 @@ export {
   type PlatformTenantView,
 } from './server/operator.service'
 export {
+  __clearOutletCreatedHooksForTests,
   createLegalEntity,
   createOutlet,
   listLegalEntities,
@@ -108,4 +109,12 @@ export {
   touchDeviceStatus,
   type TouchDeviceStatusInput,
 } from './server/device-status.service'
+export { type FeatureFlagRow } from './server/feature-flag.repo'
+export {
+  clearFeatureFlag,
+  listFeatureFlags,
+  setFeatureFlag,
+  type FeatureFlagServiceDeps,
+  type SetFeatureFlagInput,
+} from './server/feature-flag.service'
 export { identityFeedSources } from './server/feed'

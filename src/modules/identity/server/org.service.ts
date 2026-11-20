@@ -54,7 +54,16 @@ const outletCreatedHooks: OutletCreatedHook[] = []
  * Reserved for catalog module default outlet availability seeding in later phases.
  */
 export function registerOutletCreatedHook(hook: OutletCreatedHook): void {
-  outletCreatedHooks.push(hook)
+  if (!outletCreatedHooks.includes(hook)) {
+    outletCreatedHooks.push(hook)
+  }
+}
+
+/**
+ * Clears registered outlet-created hooks (test cleanup only).
+ */
+export function __clearOutletCreatedHooksForTests(): void {
+  outletCreatedHooks.length = 0
 }
 
 function nowIsoFrom(deps?: IdentityServiceDeps): string {

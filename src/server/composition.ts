@@ -1,8 +1,15 @@
 import '@tanstack/react-start/server-only'
 import { appendAuditCommandHandler } from '~/modules/audit/public'
 import {
+  __clearHasTransactionsPortForTests,
+  createDefaultAvailabilityForOutlet,
+  registerHasTransactionsPort,
+} from '~/modules/catalog/public'
+import {
+  __clearOutletCreatedHooksForTests,
   extendCredentialIfNeeded,
   identityFeedSources,
+  registerOutletCreatedHook,
   touchDeviceStatus,
 } from '~/modules/identity/public'
 import {
@@ -18,7 +25,7 @@ let composed = false
 
 /**
  * Server composition root registering cross-module adapters (FeedSource, CommandHandler,
- * DeviceStatusPort) into Sync without direct module-to-module imports (BR-ARC-004).
+ * DeviceStatusPort, Catalog ports & hooks) without direct module-to-module imports (BR-ARC-004).
  */
 export function composeServer(): void {
   if (composed) return
@@ -30,6 +37,12 @@ export function composeServer(): void {
     touchDeviceStatus,
     extendCredentialIfNeeded,
   })
+  registerHasTransactionsPort({
+    hasTransactions: async () => false,
+  })
+  registerOutletCreatedHook((tx, w, outlet) =>
+    createDefaultAvailabilityForOutlet(tx, w, outlet.id),
+  )
   composed = true
 }
 
@@ -37,5 +50,7 @@ export function resetCompositionForTests(): void {
   __resetForTests()
   __clearCommandHandlersForTests()
   __clearDeviceStatusPortForTests()
+  __clearHasTransactionsPortForTests()
+  __clearOutletCreatedHooksForTests()
   composed = false
 }
