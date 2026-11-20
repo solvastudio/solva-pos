@@ -1,3 +1,4 @@
+import { getEarliestDeferredRetryAt } from '../data/outbox.repo'
 import { setMeta } from '../data/meta.repo'
 import type { SolvaDb } from '../db/solva-db'
 import { withResourceLock } from '../locks/resource-lock'
@@ -195,8 +196,17 @@ export function createSyncScheduler(opts: SyncSchedulerOptions): SyncScheduler {
           opts.connectivity.reportHttpSuccess()
 
           if (pushOk && pullOk && !stopped && opts.db.isOpen()) {
-            failureIndex = 0
-            backoffUntilMs = 0
+            const deferredAtIso = await getEarliestDeferredRetryAt(opts.db)
+            if (deferredAtIso !== null) {
+              const deferredMs = Date.parse(deferredAtIso)
+              const delayMs = Number.isFinite(deferredMs)
+                ? Math.max(50, deferredMs - nowMs())
+                : undefined
+              scheduleBackoffRetry(delayMs)
+            } else {
+              failureIndex = 0
+              backoffUntilMs = 0
+            }
             const syncIso = new Date(
               pullRes.serverTimeMs ?? pushRes.serverTimeMs ?? opts.clock.trustedNow(),
             ).toISOString()
@@ -278,7 +288,13 @@ export function createSyncScheduler(opts: SyncSchedulerOptions): SyncScheduler {
           }
         }, ONLINE_POLL_INTERVAL_MS)
       }
-      this.kick('boot')
+      if (
+        opts.connectivity.state !== 'OFFLINE' ||
+        typeof navigator === 'undefined' ||
+        navigator.onLine !== false
+      ) {
+        this.kick('boot')
+      }
     },
     stop() {
       stopped = true

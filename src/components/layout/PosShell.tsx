@@ -12,6 +12,7 @@ export interface PosShellProps {
   tenantSlug: string
   registerName?: string
   onSyncNow?: () => void
+  onLocaleChange?: (locale: 'id-ID' | 'en-US') => void | Promise<void>
   children: ReactNode
 }
 
@@ -20,6 +21,7 @@ export function PosShell({
   tenantSlug,
   registerName,
   onSyncNow,
+  onLocaleChange,
   children,
 }: PosShellProps) {
   const { t } = useTranslation()
@@ -48,7 +50,7 @@ export function PosShell({
               <RefreshCw className="size-4" aria-hidden="true" />
             </Button>
           ) : null}
-          <LangToggle />
+          <LangToggle onLocaleChange={onLocaleChange} />
         </div>
       </header>
 

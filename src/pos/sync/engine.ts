@@ -170,6 +170,7 @@ export async function startSyncEngine(
       })
     },
     onOnlineTransition: () => {
+      sseClient.start()
       schedulerRef?.kick('online')
     },
   })

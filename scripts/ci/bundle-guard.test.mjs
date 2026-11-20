@@ -66,16 +66,21 @@ describe('scripts/ci/bundle-guard', () => {
         },
       },
     })
+    const dirWithE2eMarker = createDistFixture({
+      posChunkCode: 'const m="__solva_e2e_hooks_marker__";',
+    })
     writeFileSync(join(dirWithAdminImport, 'assets', 'admin-xyz.js'), 'export const a=1;', 'utf8')
 
     try {
       expect(checkBundleGuard(dirWithMarker).ok).toBe(false)
       expect(checkBundleGuard(dirWithMap).ok).toBe(false)
       expect(checkBundleGuard(dirWithAdminImport).ok).toBe(false)
+      expect(checkBundleGuard(dirWithE2eMarker).ok).toBe(false)
     } finally {
       rmSync(dirWithMarker, { recursive: true, force: true })
       rmSync(dirWithMap, { recursive: true, force: true })
       rmSync(dirWithAdminImport, { recursive: true, force: true })
+      rmSync(dirWithE2eMarker, { recursive: true, force: true })
     }
   })
 })

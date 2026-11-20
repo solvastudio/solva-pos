@@ -13,4 +13,6 @@ test-results/
 logs/
 *.log
 sourcemaps/
+tests/e2e/.state.json
+tests/e2e/.logs/
 .DS_Store

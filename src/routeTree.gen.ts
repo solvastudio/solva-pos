@@ -16,6 +16,7 @@ import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
 import { Route as TenantJoinRouteImport } from './routes/$tenant/join'
 import { Route as TenantPosRouteImport } from './routes/$tenant/pos'
 import { Route as TenantResetRouteImport } from './routes/$tenant/reset'
+import { Route as DevErrorRouteImport } from './routes/_dev/error'
 import { Route as DevUiRouteImport } from './routes/_dev/ui'
 import { Route as PlatformIndexRouteImport } from './routes/platform/index'
 import { Route as PlatformLoginRouteImport } from './routes/platform/login'
@@ -81,6 +82,11 @@ const TenantResetRoute = TenantResetRouteImport.update({
   id: '/reset',
   path: '/reset',
   getParentRoute: () => TenantRoute,
+} as any)
+const DevErrorRoute = DevErrorRouteImport.update({
+  id: '/_dev/error',
+  path: '/error',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DevUiRoute = DevUiRouteImport.update({
   id: '/_dev/ui',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/pos': typeof TenantPosRouteWithChildren
   '/$tenant/reset': typeof TenantResetRoute
+  '/error': typeof DevErrorRoute
   '/ui': typeof DevUiRoute
   '/platform/login': typeof PlatformLoginRoute
   '/$tenant/': typeof TenantIndexRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/reset': typeof TenantResetRoute
+  '/error': typeof DevErrorRoute
   '/ui': typeof DevUiRoute
   '/platform/login': typeof PlatformLoginRoute
   '/$tenant': typeof TenantIndexRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/$tenant/join': typeof TenantJoinRoute
   '/$tenant/pos': typeof TenantPosRouteWithChildren
   '/$tenant/reset': typeof TenantResetRoute
+  '/_dev/error': typeof DevErrorRoute
   '/_dev/ui': typeof DevUiRoute
   '/platform/login': typeof PlatformLoginRoute
   '/$tenant/': typeof TenantIndexRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/$tenant/join'
     | '/$tenant/pos'
     | '/$tenant/reset'
+    | '/error'
     | '/ui'
     | '/platform/login'
     | '/$tenant/'
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/$tenant/join'
     | '/$tenant/reset'
+    | '/error'
     | '/ui'
     | '/platform/login'
     | '/$tenant'
@@ -435,6 +446,7 @@ export interface FileRouteTypes {
     | '/$tenant/join'
     | '/$tenant/pos'
     | '/$tenant/reset'
+    | '/_dev/error'
     | '/_dev/ui'
     | '/platform/login'
     | '/$tenant/'
@@ -472,6 +484,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   TenantRoute: typeof TenantRouteWithChildren
   HealthRoute: typeof HealthRoute
+  DevErrorRoute: typeof DevErrorRoute
   DevUiRoute: typeof DevUiRoute
   PlatformLoginRoute: typeof PlatformLoginRoute
   PlatformIndexRoute: typeof PlatformIndexRoute
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$tenant/reset'
       preLoaderRoute: typeof TenantResetRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/_dev/error': {
+      id: '/_dev/error'
+      path: '/error'
+      fullPath: '/error'
+      preLoaderRoute: typeof DevErrorRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_dev/ui': {
       id: '/_dev/ui'
@@ -835,6 +855,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TenantRoute: TenantRouteWithChildren,
   HealthRoute: HealthRoute,
+  DevErrorRoute: DevErrorRoute,
   DevUiRoute: DevUiRoute,
   PlatformLoginRoute: PlatformLoginRoute,
   PlatformIndexRoute: PlatformIndexRoute,

@@ -314,6 +314,26 @@ export async function getOutboxQueueSummary(db: SolvaDb): Promise<{
 }
 
 /**
+ * Returns the earliest `next_retry_at` ISO timestamp among non-SCHEMA `PENDING` commands,
+ * or `null` when no command is waiting on a retry timer.
+ */
+export async function getEarliestDeferredRetryAt(db: SolvaDb): Promise<string | null> {
+  const pending = await db.outbox_command
+    .where('[status+device_seq]')
+    .between(['PENDING', Dexie.minKey], ['PENDING', Dexie.maxKey])
+    .toArray()
+
+  let earliest: string | null = null
+  for (const row of pending) {
+    if (row.last_error_class === 'SCHEMA' || !row.next_retry_at) continue
+    if (earliest === null || row.next_retry_at < earliest) {
+      earliest = row.next_retry_at
+    }
+  }
+  return earliest
+}
+
+/**
  * Observes outbox queue & sync metadata changes via Dexie `liveQuery` inside `pos/data`.
  */
 export function subscribeSyncStateInputs(

@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, resolve } from 'node:path'
 import { Readable } from 'node:stream'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -129,8 +129,8 @@ export async function startProductionServer(rootDir = resolve('.')) {
 }
 
 const isEntrypoint =
-  process.argv[1] &&
-  resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))
+  Boolean(process.argv[1]) &&
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
 
 if (isEntrypoint) {
   startProductionServer().catch((err) => {

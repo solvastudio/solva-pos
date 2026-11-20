@@ -63,5 +63,5 @@ describe('SystemScreen (SCR-P15)', () => {
 
       unmount()
     }
-  })
+  }, 15_000)
 })

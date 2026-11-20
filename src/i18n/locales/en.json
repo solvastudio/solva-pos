@@ -692,6 +692,12 @@
     }
   },
   "dev": {
+    "error": {
+      "title": "Error Boundary Test Harness",
+      "desc": "Used by offline E2E verification to confirm component error recovery without reloading.",
+      "trigger": "Trigger render error",
+      "reset": "Reset error harness"
+    },
     "ui": {
       "title": "UI Component Gallery",
       "buttons": "Buttons & Icons",

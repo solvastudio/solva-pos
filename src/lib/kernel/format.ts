@@ -116,7 +116,12 @@ export function formatDateTime(iso: IsoInstant, tz: OutletTimezone, locale: Loca
   if (!OUTLET_TIMEZONES.includes(tz)) {
     throw new RangeError(`Invalid outlet timezone: "${String(tz)}"`)
   }
-  const ms = parseIsoUtcMs(iso)
+  // PostgreSQL timestamptz strings may arrive as "YYYY-MM-DD HH:MM:SS(.ms)+00".
+  const normalizedIso =
+    typeof iso === 'string'
+      ? iso.trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)\+00(?::00)?$/, '$1T$2Z')
+      : iso
+  const ms = parseIsoUtcMs(normalizedIso)
   const d = new Date(ms)
 
   const dateStr = new Intl.DateTimeFormat(locale, {

@@ -5,6 +5,7 @@ import { PosShell } from '~/components/layout/PosShell'
 import { Card } from '~/components/ui'
 import { APP_VERSION } from '~/lib/app-version'
 import { listActiveStaff } from '~/pos/data/master.repo'
+import { setMeta } from '~/pos/data/meta.repo'
 
 export const Route = createFileRoute('/$tenant/pos/login')({
   ssr: false,
@@ -36,8 +37,14 @@ function PosLoginPlaceholderRouteComponent() {
     }
   }, [bootResult])
 
+  function handleLocaleChange(nextLocale: 'id-ID' | 'en-US') {
+    if (bootResult.kind === 'READY') {
+      void setMeta(bootResult.db, 'locale', nextLocale)
+    }
+  }
+
   return (
-    <PosShell tenantName={tenantName} tenantSlug={tenant}>
+    <PosShell tenantName={tenantName} tenantSlug={tenant} onLocaleChange={handleLocaleChange}>
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
         <Card className="w-full max-w-dialog-md p-6 md:p-8">
           <h1 className="text-h2 font-semibold text-ink">{t('pos.login.placeholder.title')}</h1>

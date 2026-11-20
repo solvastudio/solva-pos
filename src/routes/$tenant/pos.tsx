@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
 import { changeLocale } from '~/i18n'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
-import { getCachedBootPos } from '~/pos/hooks/use-boot'
+import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
 import { startSyncEngine, type SyncController } from '~/pos/sync'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
@@ -63,6 +63,7 @@ export const Route = createFileRoute('/$tenant/pos')({
 function PosLayoutComponent() {
   const { tenant } = Route.useParams()
   const { bootResult } = Route.useRouteContext()
+  const navigate = useNavigate()
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('none')
   const [updateManager, setUpdateManager] = useState<UpdateManager | null>(null)
 
@@ -96,11 +97,35 @@ function PosLayoutComponent() {
 
     const startAfterPaint = () => {
       if (cancelled) return
+      if (import.meta.env.VITE_E2E) {
+        void import('~/pos/dev/e2e-hooks').then(({ installE2eHooks }) => {
+          if (!cancelled) {
+            installE2eHooks({
+              db: bootResult.db,
+              getController: () => controller,
+            })
+          }
+        })
+      }
       void startSyncEngine({
         db: bootResult.db,
         tenantId: bootResult.tenantId,
         deviceId: bootResult.device.device_id,
         isPrimaryLock: true,
+        onTerminalLockDetected: (code) => {
+          const variant =
+            code === 'DEVICE_REVOKED'
+              ? 'revoked'
+              : code === 'CREDENTIAL_EXPIRED'
+                ? 'credential_expired'
+                : 'tenant_suspended'
+          controller?.stop()
+          bootResult.releaseLock()
+          invalidateBootPosCache(tenant)
+          void navigate({
+            href: `/${tenant.toLowerCase()}/pos/system?variant=${variant}`,
+          })
+        },
       }).then((ctrl) => {
         if (cancelled) {
           ctrl.stop()
@@ -133,7 +158,7 @@ function PosLayoutComponent() {
       }
       controller?.stop()
     }
-  }, [bootResult])
+  }, [bootResult, navigate, tenant])
 
   useEffect(() => {
     let cancelled = false

@@ -118,7 +118,8 @@ export function checkBundleGuard(clientDir = resolve('dist/client')) {
     }
   }
 
-  // 1. Check all public assets for .map files and sourceMappingURL leaks.
+  // 1. Check all public assets for .map files, sourceMappingURL leaks, and E2E hooks in non-E2E builds.
+  const isE2eBuild = process.env.VITE_E2E === '1' || process.env.VITE_E2E === 'true'
   const allPublicFiles = walkFiles(clientDir)
   for (const filePath of allPublicFiles) {
     const rel = relative(clientDir, filePath).replace(/\\/g, '/')
@@ -130,6 +131,12 @@ export function checkBundleGuard(clientDir = resolve('dist/client')) {
       const content = readFileSync(filePath, 'utf8')
       if (content.includes('sourceMappingURL')) {
         violations.push(`sourceMappingURL comment forbidden in public asset: ${rel}`)
+      }
+      if (
+        !isE2eBuild &&
+        (content.includes('e2e-hooks') || content.includes('__solva_e2e_hooks_marker__'))
+      ) {
+        violations.push(`E2E test hooks marker forbidden in non-E2E build asset: ${rel}`)
       }
     }
   }

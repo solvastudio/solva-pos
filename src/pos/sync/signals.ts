@@ -112,6 +112,9 @@ export function createSignalsClient(opts: SseClientOptions): SseClientController
 
   async function connect(): Promise<void> {
     if (stopped || !opts.db.isOpen()) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return
+    }
     let device: Awaited<ReturnType<typeof getMeta<'device'>>>
     try {
       device = await getMeta(opts.db, 'device')
@@ -208,6 +211,7 @@ export function createSignalsClient(opts: SseClientOptions): SseClientController
   return {
     start() {
       stopped = false
+      if (activeAbort || reconnectTimer !== null) return
       void connect()
     },
     stop() {

@@ -692,6 +692,12 @@
     }
   },
   "dev": {
+    "error": {
+      "title": "Harness Uji Error Boundary",
+      "desc": "Dipakai uji E2E untuk memastikan pemulihan error komponen tanpa memuat ulang halaman.",
+      "trigger": "Picu error render",
+      "reset": "Reset harness error"
+    },
     "ui": {
       "title": "Galeri Komponen UI",
       "buttons": "Tombol & Ikon",

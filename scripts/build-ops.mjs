@@ -1,6 +1,7 @@
 import { builtinModules } from 'node:module'
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 
 const BUILTINS = new Set([
@@ -105,7 +106,7 @@ export async function buildOpsBundles(rootDir = resolve('.')) {
   }
 }
 
-const isEntrypoint = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))
+const isEntrypoint = Boolean(process.argv[1]) && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
 if (isEntrypoint) {
   buildOpsBundles()
     .then(() => {

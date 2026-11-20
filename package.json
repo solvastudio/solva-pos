@@ -28,7 +28,10 @@
     "seed:dev-owner": "node scripts/local.mjs tsx scripts/seed/dev-owner.ts",
     "ops:create-platform-admin": "node scripts/local.mjs tsx scripts/ops/create-platform-admin.ts",
     "test:nginx": "node scripts/ci/nginx-check.mjs",
-    "test:e2e": "echo \"test:e2e diisi di Fase 30\""
+    "e2e:build": "node scripts/ci/e2e-build.mjs",
+    "e2e:setup": "node scripts/local.mjs tsx tests/e2e/global-setup.ts",
+    "test:e2e": "node scripts/local.mjs playwright test",
+    "gate:f1": "node scripts/ci/gate-f1.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "5.3.0",
@@ -67,6 +70,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
     "@size-limit/file": "14.3.0",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/jest-dom": "8.0.0",

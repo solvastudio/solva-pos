@@ -37,3 +37,40 @@ jobs:
           DATABASE_OWNER_URL: postgres://solva_owner:solva_owner_dev@localhost:5432/solva_test
       - run: npm run test:nginx
       - run: npm run build
+      - run: npm run guard:bundle
+      - run: npm run size
+
+  e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e:build
+      - run: npm run test:e2e
+        env:
+          TEST_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

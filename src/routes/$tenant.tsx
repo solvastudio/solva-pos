@@ -32,6 +32,16 @@ export const Route = createFileRoute('/$tenant')({
     }
 
     const isPosPath = /^\/[^/]+\/pos(\/|$)/.test(location.pathname)
+    if (isPosPath && typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return {
+        tenantStatus: 'active',
+        tenant: {
+          id: '',
+          slug: params.tenant.toLowerCase(),
+          name: params.tenant.toLowerCase(),
+        },
+      }
+    }
     try {
       const res = await resolveTenantFn({ data: { slug: params.tenant } })
       if (res.kind === 'not_found') {
