@@ -33,6 +33,7 @@ export const RATE_LIMIT_ENV_KEYS = [
   'RL_DEVICE_PING_PER_MIN',
   'RL_DEVICE_HANDOVER_PER_MIN',
   'RL_DEVICE_LOG_PER_10MIN',
+  'RL_DEVICE_INVOICE_PER_MIN',
   'RL_FULL_RESYNC_PER_HOUR',
   'RL_PUSH_CONCURRENCY',
   'RL_REPORT_CONCURRENCY_PER_TENANT',
@@ -69,6 +70,7 @@ export interface RateLimitConfig {
   devicePingPerMin: number
   deviceHandoverPerMin: number
   deviceLogPer10Min: number
+  deviceInvoicePerMin: number
   fullResyncPerHour: number
   pushConcurrency: number
   reportConcurrencyPerTenant: number
@@ -114,6 +116,7 @@ export function getRateLimitConfig(): RateLimitConfig {
     devicePingPerMin: env.RL_DEVICE_PING_PER_MIN,
     deviceHandoverPerMin: env.RL_DEVICE_HANDOVER_PER_MIN,
     deviceLogPer10Min: env.RL_DEVICE_LOG_PER_10MIN,
+    deviceInvoicePerMin: env.RL_DEVICE_INVOICE_PER_MIN,
     fullResyncPerHour: env.RL_FULL_RESYNC_PER_HOUR,
     pushConcurrency: env.RL_PUSH_CONCURRENCY,
     reportConcurrencyPerTenant: env.RL_REPORT_CONCURRENCY_PER_TENANT,

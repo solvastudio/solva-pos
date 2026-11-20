@@ -80,6 +80,7 @@ export interface RateLimitersRegistry {
   devicePing: Limiter
   deviceHandover: Limiter
   deviceLog: Limiter
+  deviceInvoice: Limiter
   fullResync: Limiter
   pushSemaphore: ConcurrencySemaphore
   reportSemaphore: ConcurrencySemaphore
@@ -174,6 +175,11 @@ export function getLimiters(): RateLimitersRegistry {
       name: 'device_log',
       points: cfg.deviceLogPer10Min,
       durationSec: 600,
+    }),
+    deviceInvoice: createWindowLimiter({
+      name: 'device_invoice',
+      points: cfg.deviceInvoicePerMin,
+      durationSec: 60,
     }),
     fullResync: createWindowLimiter({
       name: 'full_resync',

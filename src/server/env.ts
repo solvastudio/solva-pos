@@ -97,6 +97,7 @@ export const envSchema = z.object({
   RL_DEVICE_PING_PER_MIN: positiveIntEnv(30),
   RL_DEVICE_HANDOVER_PER_MIN: positiveIntEnv(30),
   RL_DEVICE_LOG_PER_10MIN: positiveIntEnv(20),
+  RL_DEVICE_INVOICE_PER_MIN: positiveIntEnv(30),
   RL_FULL_RESYNC_PER_HOUR: positiveIntEnv(1),
   RL_PUSH_CONCURRENCY: positiveIntEnv(8),
   RL_REPORT_CONCURRENCY_PER_TENANT: positiveIntEnv(2),

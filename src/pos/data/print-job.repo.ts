@@ -10,6 +10,15 @@ export async function enqueuePrintJob(
   await table.add(job)
 }
 
+export async function enqueueReprintJob(
+  db: SolvaDb,
+  job: PrintJobRecord,
+): Promise<void> {
+  await db.transaction('rw', [db.print_job], async (tx) => {
+    await enqueuePrintJob(tx, job)
+  })
+}
+
 export async function getPrintJobForEntity(
   db: SolvaDb,
   entityId: string,

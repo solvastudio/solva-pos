@@ -228,7 +228,12 @@ export interface ShiftRecord extends IdRecord {
   occurred_at: string
   business_date: string
   closed_at: string | null
+  closed_at_device?: string | null
+  count_submitted_at?: string | null
   counted_cash: number | null
+  expected_cash_device?: number | null
+  variance_device?: number | null
+  close_note?: string | null
   sync_status: 'PENDING' | 'SYNCED' | 'FAILED'
 }
 
@@ -329,6 +334,11 @@ export interface SaleRecord extends IdRecord {
   synced_at: string | null
   server_result: Record<string, unknown> | null
   print_state: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
+  voided_at?: string | null
+  voided_by?: string | null
+  void_approved_by?: string | null
+  void_reason_code?: string | null
+  void_reason_text?: string | null
 }
 
 export interface SaleLineRecord extends IdRecord {
@@ -376,6 +386,81 @@ export interface SalePaymentRecord extends IdRecord {
   change_given: number | null
   reference: string | null
   is_rounding_settler: boolean
+}
+
+export interface CashMovementRecord extends IdRecord {
+  tenant_id: string
+  outlet_id: string
+  register_id: string
+  device_id: string
+  shift_id: string
+  created_by: string
+  created_at_device: string
+  clock_offset_ms: number
+  occurred_at: string
+  business_date: string
+  direction: 'IN' | 'OUT'
+  amount: number
+  reason_code: string
+  reason_text: string
+  sync_status: 'PENDING' | 'SYNCED' | 'FAILED'
+}
+
+export interface CreditNoteRecord extends IdRecord {
+  tenant_id: string
+  outlet_id: string
+  register_id: string
+  device_id: string
+  shift_id: string
+  created_by: string
+  approved_by: string
+  created_at_device: string
+  clock_offset_ms: number
+  occurred_at: string
+  business_date: string
+  cn_no: string
+  cn_prefix: string
+  cn_period: string
+  cn_seq: number
+  original_sale_id: string
+  original_invoice_no: string
+  reason_code: string
+  reason_text: string | null
+  price_tax_mode: 'INCLUSIVE' | 'EXCLUSIVE'
+  cash_rounding_unit: number
+  receipt_locale: 'id-ID' | 'en-US'
+  net_total: number
+  service_total: number
+  tax_total: number
+  refund_gross: number
+  rounding: number
+  sync_status: 'PENDING' | 'SYNCED' | 'FAILED'
+  print_state: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
+}
+
+export interface CreditNoteLineRecord extends IdRecord {
+  credit_note_id: string
+  line_no: number
+  sale_line_id: string
+  qty_returned: string
+  qty_returned_base: string
+  refund_net: number
+  refund_service: number
+  refund_tax: number
+  is_final_return: boolean
+  disposition: 'KEMBALI_STOK' | 'BUANG' | null
+}
+
+export interface CreditNoteRefundRecord extends IdRecord {
+  credit_note_id: string
+  shift_id: string
+  seq: number
+  method_id: string
+  method_code: string
+  method_name: string
+  method_kind: 'CASH' | 'NON_CASH'
+  amount_applied: number
+  reference: string | null
 }
 
 export interface PrintJobRecord {

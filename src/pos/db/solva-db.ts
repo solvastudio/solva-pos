@@ -5,7 +5,11 @@ import type {
   AppUserRecord,
   CartDraftRecord,
   CashMasterRecord,
+  CashMovementRecord,
   CategoryRecord,
+  CreditNoteLineRecord,
+  CreditNoteRecord,
+  CreditNoteRefundRecord,
   DeviceLogRow,
   FeatureFlagRecord,
   IdRecord,
@@ -81,11 +85,11 @@ export class SolvaDb extends Dexie {
   sale_line!: Table<SaleLineRecord, string>
   sale_line_modifier!: Table<IdRecord, string>
   sale_payment!: Table<SalePaymentRecord, string>
-  credit_note!: Table<IdRecord, string>
-  credit_note_line!: Table<IdRecord, string>
-  credit_note_refund!: Table<IdRecord, string>
+  credit_note!: Table<CreditNoteRecord, string>
+  credit_note_line!: Table<CreditNoteLineRecord, string>
+  credit_note_refund!: Table<CreditNoteRefundRecord, string>
   shift!: Table<ShiftRecord, string>
-  cash_movement!: Table<IdRecord, string>
+  cash_movement!: Table<CashMovementRecord, string>
   bill!: Table<IdRecord, string>
   bill_item!: Table<IdRecord, string>
   bill_item_modifier!: Table<IdRecord, string>
