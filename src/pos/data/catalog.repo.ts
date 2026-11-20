@@ -11,6 +11,8 @@ import type {
   ItemOutletAvailabilityRecord,
   ProductRecord,
   SkuRecord,
+  SkuUomRecord,
+  StockSnapshotRecord,
 } from '../db/types'
 import { getMeta } from './meta.repo'
 import type { BarcodeMatch, ScanLookupDeps } from '../usecases/catalog/resolve-scan'
@@ -297,4 +299,71 @@ export function createCatalogScanDeps(db: SolvaDb): ScanLookupDeps {
     getPrice: (skuId, uomId, outletId, isOpenPrice) =>
       getPrice(db, skuId, uomId, outletId, isOpenPrice),
   }
+}
+
+export async function listSkuUomsForSku(db: SolvaDb, skuId: string): Promise<SkuUomRecord[]> {
+  const rows = await db.sku_uom.where('sku_id').equals(skuId).toArray()
+  return rows.filter((r) => !r.deleted_at)
+}
+
+export async function listAllSkuUoms(db: SolvaDb): Promise<SkuUomRecord[]> {
+  const rows = await db.sku_uom.toArray()
+  return rows.filter((r) => !r.deleted_at)
+}
+
+export async function getStockSnapshotsMap(
+  db: SolvaDb,
+  skuIds?: readonly string[],
+): Promise<Map<string, StockSnapshotRecord>> {
+  const rows = skuIds
+    ? await db.stock_snapshot.where('sku_id').anyOf([...skuIds]).toArray()
+    : await db.stock_snapshot.toArray()
+  const map = new Map<string, StockSnapshotRecord>()
+  for (const row of rows) {
+    map.set(row.sku_id, row)
+  }
+  return map
+}
+
+export async function listAllVisibleProducts(
+  db: SolvaDb,
+  outletId: string,
+): Promise<CatalogProductEntry[]> {
+  const result = await listVisibleProducts(db, { outletId, page: 1, pageSize: Number.MAX_SAFE_INTEGER })
+  return result.items
+}
+
+export async function listOutletPricesForProducts(
+  db: SolvaDb,
+  outletId: string,
+): Promise<Map<string, PriceResolution>> {
+  const allEntries = await db.price_entry.toArray()
+  const byKey = new Map<string, PriceEntryLike[]>()
+  for (const row of allEntries) {
+    if (row.deleted_at) continue
+    if (row.outlet_id !== null && row.outlet_id !== outletId) continue
+    const key = `${row.sku_id}::${row.uom_id}`
+    const list = byKey.get(key)
+    const entry: PriceEntryLike = {
+      skuId: row.sku_id,
+      uomId: row.uom_id,
+      outletId: row.outlet_id,
+      price: toMoney(Number(row.price)),
+    }
+    if (list) list.push(entry)
+    else byKey.set(key, [entry])
+  }
+  const resolved = new Map<string, PriceResolution>()
+  for (const [key, list] of byKey.entries()) {
+    const first = list[0]!
+    const res = resolvePrice({
+      skuId: first.skuId,
+      uomId: first.uomId,
+      outletId,
+      entries: list,
+      isOpenPrice: false,
+    })
+    resolved.set(key, res)
+  }
+  return resolved
 }

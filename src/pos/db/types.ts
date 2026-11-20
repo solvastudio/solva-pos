@@ -191,8 +191,54 @@ export interface OutletRecord extends IdRecord {
   name: string
   timezone: string
   day_cutoff_time: string
-  price_tax_mode: string
+  price_tax_mode: 'INCLUSIVE' | 'EXCLUSIVE' | string
+  tax_profile?: 'NONE' | 'PPN' | 'PB1' | string
+  cash_rounding_unit?: number
+  service_charge_enabled?: boolean
+  service_charge_rate?: string | number
+  service_charge_taxable?: boolean
   deleted_at: string | null
+}
+
+export interface TaxRateHistoryRecord extends IdRecord {
+  tax_code: 'PPN' | 'PB1' | string
+  outlet_id: string | null
+  outlet_key: string
+  effective_from: string
+  rate: string | number
+  deleted_at?: string | null
+}
+
+export interface StockSnapshotRecord {
+  sku_id: string
+  qty_on_hand: string
+  updated_at?: string
+}
+
+export interface ShiftRecord extends IdRecord {
+  tenant_id: string
+  outlet_id: string
+  register_id: string
+  device_id: string
+  status: 'OPEN' | 'CLOSED' | 'FORCE_CLOSED'
+  opening_cash: number
+  opened_by: string
+  created_at_device: string
+  occurred_at: string
+  business_date: string
+  closed_at: string | null
+  counted_cash: number | null
+  sync_status: 'PENDING' | 'SYNCED' | 'FAILED'
+}
+
+export interface CartDraftRecord extends IdRecord {
+  kind?: 'CART'
+  register_id: string
+  staff_id: string
+  status: string
+  bill_key: string
+  payload?: unknown
+  updated_at?: string
 }
 
 export interface CashMasterRecord extends IdRecord {

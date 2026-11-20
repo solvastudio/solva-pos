@@ -211,7 +211,12 @@ function PosLoginRouteComponent() {
           locked_at: null,
         })
         setPin('')
-        void navigate({ href: `/${tenant.toLowerCase()}/pos/` })
+        const { getOpenShiftForRegister } = await import('~/pos/data/shift.repo')
+        const existingShift = await getOpenShiftForRegister(db, device.register_id)
+        const cleanSlug = tenant.toLowerCase()
+        void navigate({
+          href: existingShift ? `/${cleanSlug}/pos/sell` : `/${cleanSlug}/pos/shift/open`,
+        })
         return
       }
 

@@ -5,9 +5,13 @@ import { MASTER_STORE_NAMES, type MasterStoreName } from '../db/schema-v1'
 import type {
   AppUserRecord,
   CashMasterRecord,
+  CategoryRecord,
   OutletRecord,
   RolePermissionRecord,
+  RoleRecord,
   StaffPinRecord,
+  TaxRateHistoryRecord,
+  UomRecord,
 } from '../db/types'
 import { deriveLocalFields } from './derive-local-fields'
 import { setMeta } from './meta.repo'
@@ -150,4 +154,32 @@ export async function getRolePermissions(
   roleId: string,
 ): Promise<RolePermissionRecord[]> {
   return db.role_permission.where('role_id').equals(roleId).toArray()
+}
+
+export async function listTaxRateHistory(db: SolvaDb): Promise<TaxRateHistoryRecord[]> {
+  const rows = await db.tax_rate_history.toArray()
+  return rows.filter((r) => !r.deleted_at)
+}
+
+export async function listUoms(db: SolvaDb): Promise<UomRecord[]> {
+  const rows = await db.uom.toArray()
+  return rows.filter((r) => !r.deleted_at)
+}
+
+export async function listCategories(db: SolvaDb): Promise<CategoryRecord[]> {
+  const rows = await db.category.toArray()
+  return rows.filter((r) => !r.deleted_at).sort((a, b) => a.sort_order - b.sort_order)
+}
+
+export async function getRoleForUserAtOutlet(
+  db: SolvaDb,
+  userId: string,
+  outletId: string,
+): Promise<RoleRecord | null> {
+  const links = await db.user_outlet.where('user_id').equals(userId).toArray()
+  const active = links.filter((l) => !l.deleted_at)
+  const exact = active.find((l) => l.outlet_id === outletId) ?? active.find((l) => !l.outlet_id)
+  if (!exact) return null
+  const role = await db.role.get(exact.role_id)
+  return role && !role.deleted_at ? role : null
 }

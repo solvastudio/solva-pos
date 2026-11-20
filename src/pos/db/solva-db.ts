@@ -3,6 +3,7 @@ import { tenantDbName } from '../locks/names'
 import { STORES_V1 } from './schema-v1'
 import type {
   AppUserRecord,
+  CartDraftRecord,
   CashMasterRecord,
   CategoryRecord,
   DeviceLogRow,
@@ -18,10 +19,13 @@ import type {
   PullStageRow,
   RolePermissionRecord,
   RoleRecord,
+  ShiftRecord,
   SkuRecord,
   SkuUomRecord,
   StaffPinRecord,
   StaffPinStateRecord,
+  StockSnapshotRecord,
+  TaxRateHistoryRecord,
   UomRecord,
   UserOutletRecord,
 } from './types'
@@ -41,7 +45,7 @@ export class SolvaDb extends Dexie {
   // Master stores
   legal_entity!: Table<IdRecord, string>
   outlet!: Table<OutletRecord, string>
-  tax_rate_history!: Table<IdRecord, string>
+  tax_rate_history!: Table<TaxRateHistoryRecord, string>
   register_invoice_prefix!: Table<IdRecord, string>
   outlet_receipt_setting!: Table<IdRecord, string>
   cash_master!: Table<CashMasterRecord, string>
@@ -72,7 +76,7 @@ export class SolvaDb extends Dexie {
   credit_note!: Table<IdRecord, string>
   credit_note_line!: Table<IdRecord, string>
   credit_note_refund!: Table<IdRecord, string>
-  shift!: Table<IdRecord, string>
+  shift!: Table<ShiftRecord, string>
   cash_movement!: Table<IdRecord, string>
   bill!: Table<IdRecord, string>
   bill_item!: Table<IdRecord, string>
@@ -85,9 +89,9 @@ export class SolvaDb extends Dexie {
   local_counter!: Table<LocalCounterRow, string>
   print_job!: Table<IdRecord, string>
   device_log!: Table<DeviceLogRow, number>
-  stock_snapshot!: Table<Record<string, unknown>, string>
+  stock_snapshot!: Table<StockSnapshotRecord, string>
   bill_snapshot!: Table<Record<string, unknown>, string>
-  cart_draft!: Table<IdRecord, string>
+  cart_draft!: Table<CartDraftRecord, string>
   asset_cache!: Table<{ key: string; [key: string]: unknown }, string>
   pull_stage!: Table<PullStageRow, number>
 

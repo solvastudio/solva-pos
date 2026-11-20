@@ -29,6 +29,7 @@ import { Route as TenantPosSplatRouteImport } from './routes/$tenant/pos/$'
 import { Route as TenantPosLoginRouteImport } from './routes/$tenant/pos/login'
 import { Route as TenantPosManifestDotwebmanifestRouteImport } from './routes/$tenant/pos/manifest[.]webmanifest'
 import { Route as TenantPosPairRouteImport } from './routes/$tenant/pos/pair'
+import { Route as TenantPosSellRouteImport } from './routes/$tenant/pos/sell'
 import { Route as TenantPosSystemRouteImport } from './routes/$tenant/pos/system'
 import { Route as PlatformApiSplatRouteImport } from './routes/platform/api/$'
 import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants.$tenantId'
@@ -41,6 +42,7 @@ import { Route as TenantAdminAuthedPricesRouteImport } from './routes/$tenant/ad
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as TenantPosDevArgonBenchRouteImport } from './routes/$tenant/pos/_dev/argon-bench'
+import { Route as TenantPosShiftOpenRouteImport } from './routes/$tenant/pos/shift.open'
 import { Route as ApiPosV1DeviceLogRouteImport } from './routes/api/pos/v1/device-log'
 import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
@@ -157,6 +159,11 @@ const TenantPosPairRoute = TenantPosPairRouteImport.update({
   path: '/pair',
   getParentRoute: () => TenantPosRoute,
 } as any)
+const TenantPosSellRoute = TenantPosSellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => TenantPosRoute,
+} as any)
 const TenantPosSystemRoute = TenantPosSystemRouteImport.update({
   id: '/system',
   path: '/system',
@@ -219,6 +226,11 @@ const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
 const TenantPosDevArgonBenchRoute = TenantPosDevArgonBenchRouteImport.update({
   id: '/_dev/argon-bench',
   path: '/argon-bench',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosShiftOpenRoute = TenantPosShiftOpenRouteImport.update({
+  id: '/shift/open',
+  path: '/shift/open',
   getParentRoute: () => TenantPosRoute,
 } as any)
 const ApiPosV1DeviceLogRoute = ApiPosV1DeviceLogRouteImport.update({
@@ -316,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -328,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/shift/open': typeof TenantPosShiftOpenRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -361,6 +375,7 @@ export interface FileRoutesByTo {
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -373,6 +388,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/shift/open': typeof TenantPosShiftOpenRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -410,6 +426,7 @@ export interface FileRoutesById {
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
@@ -422,6 +439,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/_dev/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/shift/open': typeof TenantPosShiftOpenRoute
   '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
@@ -460,6 +478,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
     | '/$tenant/pos/pair'
+    | '/$tenant/pos/sell'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -472,6 +491,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
+    | '/$tenant/pos/shift/open'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -505,6 +525,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
     | '/$tenant/pos/pair'
+    | '/$tenant/pos/sell'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -517,6 +538,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
+    | '/$tenant/pos/shift/open'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -553,6 +575,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
     | '/$tenant/pos/pair'
+    | '/$tenant/pos/sell'
     | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
@@ -565,6 +588,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
     | '/$tenant/pos/_dev/argon-bench'
+    | '/$tenant/pos/shift/open'
     | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
@@ -744,6 +768,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantPosPairRouteImport
       parentRoute: typeof TenantPosRoute
     }
+    '/$tenant/pos/sell': {
+      id: '/$tenant/pos/sell'
+      path: '/sell'
+      fullPath: '/$tenant/pos/sell'
+      preLoaderRoute: typeof TenantPosSellRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
     '/$tenant/pos/system': {
       id: '/$tenant/pos/system'
       path: '/system'
@@ -826,6 +857,13 @@ declare module '@tanstack/react-router' {
       path: '/argon-bench'
       fullPath: '/$tenant/pos/argon-bench'
       preLoaderRoute: typeof TenantPosDevArgonBenchRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/shift/open': {
+      id: '/$tenant/pos/shift/open'
+      path: '/shift/open'
+      fullPath: '/$tenant/pos/shift/open'
+      preLoaderRoute: typeof TenantPosShiftOpenRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/api/pos/v1/device-log': {
@@ -934,9 +972,11 @@ interface TenantPosRouteChildren {
   TenantPosLoginRoute: typeof TenantPosLoginRoute
   TenantPosManifestDotwebmanifestRoute: typeof TenantPosManifestDotwebmanifestRoute
   TenantPosPairRoute: typeof TenantPosPairRoute
+  TenantPosSellRoute: typeof TenantPosSellRoute
   TenantPosSystemRoute: typeof TenantPosSystemRoute
   TenantPosIndexRoute: typeof TenantPosIndexRoute
   TenantPosDevArgonBenchRoute: typeof TenantPosDevArgonBenchRoute
+  TenantPosShiftOpenRoute: typeof TenantPosShiftOpenRoute
 }
 
 const TenantPosRouteChildren: TenantPosRouteChildren = {
@@ -944,9 +984,11 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosLoginRoute: TenantPosLoginRoute,
   TenantPosManifestDotwebmanifestRoute: TenantPosManifestDotwebmanifestRoute,
   TenantPosPairRoute: TenantPosPairRoute,
+  TenantPosSellRoute: TenantPosSellRoute,
   TenantPosSystemRoute: TenantPosSystemRoute,
   TenantPosIndexRoute: TenantPosIndexRoute,
   TenantPosDevArgonBenchRoute: TenantPosDevArgonBenchRoute,
+  TenantPosShiftOpenRoute: TenantPosShiftOpenRoute,
 }
 
 const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(

@@ -49,7 +49,12 @@ export const Route = createFileRoute('/$tenant/pos')({
       }
     }
 
-    if (routeDecision.to === 'login' && (path === `/${cleanSlug}/pos` || path === pairPath || path === systemPath)) {
+    if (
+      routeDecision.to === 'login' &&
+      ((path === `/${cleanSlug}/pos` && getSessionState().staff === null) ||
+        path === pairPath ||
+        path === systemPath)
+    ) {
       throw redirect({
         href: loginPath,
       })
