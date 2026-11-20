@@ -18,6 +18,7 @@ export {
   type SetSkuOverrideInput,
 } from './server/availability.service'
 export { type CategoryRow } from './server/category.repo'
+export { catalogFeedSources } from './server/feed'
 export {
   createCategory,
   deleteCategory,

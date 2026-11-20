@@ -16,6 +16,7 @@ import {
 import type { AnyPgColumn, PgTable, SelectedFields } from 'drizzle-orm/pg-core'
 import { parseSafeBigint, type TenantTx } from '~/server/db'
 import type { FeedKey, FeedRow, FeedScope, FeedSource } from '../domain/feed-types'
+import { kWayMerge } from '../domain/merge'
 
 export interface FeedTableColumns {
   id: AnyPgColumn
@@ -36,10 +37,25 @@ export interface FeedTableSpec<T extends PgTable> {
    * - Large tables (e.g. outlet-scoped entities or catalog in Fase 33) filter outlet in `selectKeys`.
    */
   selectScopeWhere?: (scope: FeedScope) => SQL | undefined
+  /**
+   * Optional disjoint index branches for `selectKeys` when an `OR` scope predicate (such as
+   * `outlet_id = scope.outletId OR outlet_id IS NULL`) cannot avoid a sort in PostgreSQL.
+   * Each branch queries its own composite index bounded by `(version, id) LIMIT N`, and results
+   * are merged via `kWayMerge`.
+   */
+  selectScopeBranches?: (scope: FeedScope) => SQL[]
+  /**
+   * When `true` (large/outlet-partitioned catalog tables), `selectScopeWhere` is applied directly
+   * inside `selectKeys` so only the index-covered tenant/outlet slice enters k-way merge.
+   * When `false`, `selectKeys` scans the tenant feed index and defers scope filtering to `inScope`.
+   */
+  scopeInSelectKeys?: boolean
   /** Exact scope predicate used in `snapshotPage` and `count`. Falls back to `selectScopeWhere`. */
   snapshotScopeWhere?: (scope: FeedScope) => SQL | undefined
   /** Additional SQL condition for live-only snapshot/count queries (e.g. active membership). */
   liveOnlyWhere?: (scope: FeedScope) => SQL | undefined
+  /** Enables physical `DELETE` cleanup of tombstoned rows at or below `tombstone_floor_version`. */
+  purgeBelowFloor?: boolean
   /**
    * Optional scope predicate evaluated during `hydrate`. When false for a non-deleted row,
    * `hydrate` emits `{ op: 'delete', id, version }` for this device.
@@ -130,11 +146,40 @@ export function buildFeedSource<T extends PgTable>(spec: FeedTableSpec<T>): Feed
     entity: spec.entity,
 
     async selectKeys(tx, { after, upper, scope, limit }): Promise<FeedKey[]> {
-      const conds: SQL[] = [eq(columns.tenantId, scope.tenantId), lte(columns.version, upper)]
+      const baseConds: SQL[] = [eq(columns.tenantId, scope.tenantId), lte(columns.version, upper)]
       if (after !== null) {
-        conds.push(sql`(${columns.version}, ${columns.id}) > (${after.version}, ${after.id}::uuid)`)
+        baseConds.push(
+          sql`(${columns.version}, ${columns.id}) > (${after.version}, ${after.id}::uuid)`,
+        )
       }
-      const scopeSql = spec.selectScopeWhere?.(scope)
+
+      const toKeys = (
+        rows: Array<{ id: unknown; version: unknown }>,
+      ): FeedKey[] =>
+        rows.map((r) => ({
+          entity: spec.entity,
+          id: String(r.id).toLowerCase(),
+          version: typeof r.version === 'number' ? r.version : parseSafeBigint(r.version),
+        }))
+
+      if (spec.scopeInSelectKeys !== false && spec.selectScopeBranches) {
+        const branches = spec.selectScopeBranches(scope)
+        const branchLists: FeedKey[][] = []
+        for (const branchSql of branches) {
+          const rows = await tx
+            .select({ id: columns.id, version: columns.version })
+            .from(spec.table as PgTable)
+            .where(and(...baseConds, branchSql))
+            .orderBy(asc(columns.version), asc(columns.id))
+            .limit(limit)
+          branchLists.push(toKeys(rows))
+        }
+        return kWayMerge(branchLists, limit)
+      }
+
+      const conds: SQL[] = [...baseConds]
+      const scopeSql =
+        spec.scopeInSelectKeys === false ? undefined : spec.selectScopeWhere?.(scope)
       if (scopeSql) {
         conds.push(scopeSql)
       }
@@ -149,11 +194,7 @@ export function buildFeedSource<T extends PgTable>(spec: FeedTableSpec<T>): Feed
         .orderBy(asc(columns.version), asc(columns.id))
         .limit(limit)
 
-      return rows.map((r) => ({
-        entity: spec.entity,
-        id: String(r.id).toLowerCase(),
-        version: typeof r.version === 'number' ? r.version : parseSafeBigint(r.version),
-      }))
+      return toKeys(rows)
     },
 
     async hydrate(tx, ids, scope): Promise<FeedRow[]> {
@@ -249,6 +290,17 @@ export function buildFeedSource<T extends PgTable>(spec: FeedTableSpec<T>): Feed
         return null
       }
       return parseSafeBigint(maxVer)
+    },
+
+    async purgeBelowFloor(tx, { floorVersion }): Promise<number> {
+      if (!spec.purgeBelowFloor || !columns.deletedAt) {
+        return 0
+      }
+      const deleted = await tx
+        .delete(spec.table as PgTable)
+        .where(and(isNotNull(columns.deletedAt), lte(columns.version, floorVersion)))
+        .returning({ id: columns.id })
+      return deleted.length
     },
   }
 }

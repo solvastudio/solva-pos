@@ -33,10 +33,6 @@ export async function cleanTombstoneFloorForTenant(
       }
     }
 
-    if (floorCandidate === null) {
-      return false
-    }
-
     const lockRes = await tx.execute(
       sql`SELECT version, tombstone_floor_version
           FROM tenant_sync
@@ -49,25 +45,36 @@ export async function cleanTombstoneFloorForTenant(
     const row = lockRes.rows[0] as { version: unknown; tombstone_floor_version: unknown }
     const currentVersion = parseSafeBigint(row.version)
     const currentFloor = parseSafeBigint(row.tombstone_floor_version)
-    const boundedCandidate = Math.min(floorCandidate, currentVersion)
+    const boundedCandidate =
+      floorCandidate !== null ? Math.min(floorCandidate, currentVersion) : currentFloor
 
-    if (boundedCandidate <= currentFloor) {
-      return false
+    const advanced = boundedCandidate > currentFloor
+    const effectiveFloor = advanced ? boundedCandidate : currentFloor
+
+    if (advanced) {
+      await tx.execute(
+        sql`UPDATE tenant_sync
+            SET tombstone_floor_version = LEAST(${boundedCandidate}::bigint, version),
+                floor_updated_at = ${nowIso}::timestamptz
+            WHERE tenant_id = ${tenantId}::uuid`,
+      )
     }
 
-    await tx.execute(
-      sql`UPDATE tenant_sync
-          SET tombstone_floor_version = LEAST(${boundedCandidate}::bigint, version),
-              floor_updated_at = ${nowIso}::timestamptz
-          WHERE tenant_id = ${tenantId}::uuid`,
-    )
-    return true
+    if (effectiveFloor > 0) {
+      for (const source of sources) {
+        if (source.purgeBelowFloor) {
+          await source.purgeBelowFloor(tx, { floorVersion: effectiveFloor })
+        }
+      }
+    }
+
+    return advanced
   })
 }
 
 /**
- * Advances `tombstone_floor_version` across active tenants for tombstones older than 30 days.
- * Master rows are NOT physically deleted in this phase.
+ * Advances `tombstone_floor_version` across active tenants for tombstones older than 30 days
+ * and purges unreferenced tombstones below the new floor.
  */
 export async function cleanTombstoneFloors(deps?: {
   nowIso?: () => string

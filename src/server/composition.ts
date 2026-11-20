@@ -2,6 +2,7 @@ import '@tanstack/react-start/server-only'
 import { appendAuditCommandHandler } from '~/modules/audit/public'
 import {
   __clearHasTransactionsPortForTests,
+  catalogFeedSources,
   createDefaultAvailabilityForOutlet,
   registerHasTransactionsPort,
 } from '~/modules/catalog/public'
@@ -30,6 +31,9 @@ let composed = false
 export function composeServer(): void {
   if (composed) return
   for (const source of identityFeedSources()) {
+    registerFeedSource(source)
+  }
+  for (const source of catalogFeedSources()) {
     registerFeedSource(source)
   }
   registerCommandHandler(appendAuditCommandHandler)

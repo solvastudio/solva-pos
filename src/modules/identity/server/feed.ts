@@ -4,6 +4,7 @@ import { buildFeedSource, omitWireColumns, type FeedSource } from '~/modules/syn
 import {
   appUser,
   cashMaster,
+  featureFlag,
   legalEntity,
   outlet,
   outletReceiptSetting,
@@ -123,6 +124,20 @@ export function identityFeedSources(): FeedSource[] {
         version: paymentMethod.version,
         deletedAt: paymentMethod.deletedAt,
       },
+    }),
+
+    buildFeedSource({
+      entity: 'feature_flag',
+      table: featureFlag,
+      columns: {
+        id: featureFlag.id,
+        tenantId: featureFlag.tenantId,
+        version: featureFlag.version,
+        deletedAt: featureFlag.deletedAt,
+      },
+      purgeBelowFloor: true,
+      project: (row) =>
+        omitWireColumns(row, ['tenant_id', 'created_at', 'updated_at', 'deleted_at', 'note']),
     }),
 
     buildFeedSource({

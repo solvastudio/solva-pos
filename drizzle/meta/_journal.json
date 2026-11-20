@@ -197,6 +197,13 @@
       "when": 1795158736204,
       "tag": "0027_catalog_constraints_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795160765355,
+      "tag": "0028_tombstone_purge_grants",
+      "breakpoints": true
     }
   ]
 }

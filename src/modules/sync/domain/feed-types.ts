@@ -43,4 +43,6 @@ export interface FeedSource<TTx = unknown> {
   count(tx: TTx, args: { upper: number; scope: FeedScope }): Promise<number>
   /** Highest version of rows tombstoned before `cutoffIso`, used by tombstone floor cleaner. */
   maxTombstoneVersionOlderThan?(tx: TTx, args: { cutoffIso: string }): Promise<number | null>
+  /** Physically deletes unreferenced tombstoned rows at or below `floorVersion` after floor advances. */
+  purgeBelowFloor?(tx: TTx, args: { floorVersion: number }): Promise<number>
 }
