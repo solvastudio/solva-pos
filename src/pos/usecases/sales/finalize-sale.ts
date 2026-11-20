@@ -32,6 +32,7 @@ import { buildConfigSnapshot } from '../../domain/config-snapshot'
 import { effectivePrefix } from '../../domain/invoice-prefix'
 import type { LockManagerLike } from '../../locks/instance-lock'
 import { withResourceLock } from '../../locks/resource-lock'
+import { isQuotaExceededError } from '../../maintenance/storage'
 import { trustedNowMs } from '../../session/device-state'
 import { setPaymentInProgress } from '../../session/session'
 import { emitPosEvent } from '../../state/events'
@@ -45,6 +46,7 @@ export type FinalizeSaleErrorCode =
   | 'TAX_NOT_CONFIGURED'
   | 'PREFIX_NOT_CONFIGURED'
   | 'PAYMENT_INVALID'
+  | 'STORAGE_FULL'
   | 'APP_ERROR'
 
 export class FinalizeSaleError extends Error {
@@ -329,22 +331,30 @@ export async function finalizeSale(
       }
 
       // Stage B: single strict atomic Dexie transaction
-      const committed = await commitAtomicSaleTransaction(db, {
-        saleRecord: built.saleRecord,
-        lineRecords: built.lineRecords,
-        paymentRecords: built.paymentRecords,
-        payload: built.payload,
-        auditEntries,
-        printJob,
-        cashDrawerJob,
-        invoicePrefix: prefixRow.invoice_prefix,
-        invoicePeriod: period,
-        registerId: device.register_id,
-        staffId: input.staffId,
-        createdAtDevice,
-        shiftOpenCommandId,
-        beforeCommitHookForTest: deps.beforeCommitHookForTest,
-      })
+      let committed: Awaited<ReturnType<typeof commitAtomicSaleTransaction>>
+      try {
+        committed = await commitAtomicSaleTransaction(db, {
+          saleRecord: built.saleRecord,
+          lineRecords: built.lineRecords,
+          paymentRecords: built.paymentRecords,
+          payload: built.payload,
+          auditEntries,
+          printJob,
+          cashDrawerJob,
+          invoicePrefix: prefixRow.invoice_prefix,
+          invoicePeriod: period,
+          registerId: device.register_id,
+          staffId: input.staffId,
+          createdAtDevice,
+          shiftOpenCommandId,
+          beforeCommitHookForTest: deps.beforeCommitHookForTest,
+        })
+      } catch (err) {
+        if (isQuotaExceededError(err)) {
+          throw new FinalizeSaleError('STORAGE_FULL', 'Device IndexedDB quota exceeded')
+        }
+        throw err
+      }
 
       // Stage C: post-commit side effects (never rollback sale)
       if (!committed.alreadyCommitted) {

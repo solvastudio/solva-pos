@@ -69,6 +69,7 @@
     "leaseWarning_other": "Sambungkan ke internet dalam {{count}} jam agar perangkat tidak terkunci.",
     "updateAvailable": "Pembaruan tersedia.",
     "updateRequired": "Pembaruan wajib. Shift baru tidak dapat dibuka sebelum diperbarui.",
+    "serverBehind": "Server sedang diperbarui. Transaksi terbaru tetap tersimpan aman di antrean perangkat.",
     "clockWarning": "Jam perangkat berbeda jauh dari waktu server. Periksa pengaturan tanggal & waktu."
   },
   "status": {
@@ -1269,7 +1270,8 @@
       "processing": "Menyimpan penjualan...",
       "errorGeneric": "Gagal menyelesaikan penjualan. Coba lagi.",
       "errorShiftRequired": "Buka shift terlebih dahulu sebelum menyelesaikan penjualan.",
-      "errorPrefixMissing": "Prefiks invoice belum diatur untuk register ini."
+      "errorPrefixMissing": "Prefiks invoice belum diatur untuk register ini.",
+      "errorStorageFull": "Penyimpanan perangkat penuh. Ekspor transaksi tertunda atau bersihkan ruang terlebih dahulu."
     },
     "done": {
       "title": "Penjualan Selesai",
@@ -1527,6 +1529,45 @@
       "clockOffsetLabel": "Selisih jam",
       "lastSyncLabel": "Sinkron terakhir",
       "neverSynced": "Belum pernah"
+    },
+    "queue": {
+      "title": "Antrean Sinkron",
+      "cashierSafeNote": "Kasir tetap dapat bekerja seperti biasa.",
+      "syncNowButton": "Coba sinkronkan sekarang",
+      "exportButton": "Ekspor tertunda (.jsonl)",
+      "exportedToast": "{{count}} transaksi tertunda diekspor.",
+      "emptyPending": "Tidak ada transaksi tertunda di antrean.",
+      "searchPlaceholder": "Cari nomor invoice, CN, atau kode...",
+      "attentionHeading": "Perlu perhatian ({{count}})",
+      "pendingHeading": "Antrean & Tertahan ({{count}})",
+      "acceptedManualBadge": "Diterima manual oleh manager",
+      "dismissedBadge": "Diabaikan manager",
+      "heldBadge": "Ditahan menunggu pembaruan atau server",
+      "heldServerBehind": "Menunggu server diperbarui (SERVER_BEHIND)",
+      "heldUpdateRequired": "Perlu pembaruan aplikasi (UPDATE_REQUIRED)",
+      "heldNotMigratable": "Payload tidak dapat dimigrasi otomatis; ekspor tertunda (.jsonl)",
+      "retryBadge": "Mencoba lagi otomatis ({{attempts}})",
+      "sendingBadge": "Mengirim...",
+      "pendingAge": "Menunggu {{age}}",
+      "lastSyncPrefix": "Tersinkron {{time}}",
+      "types": {
+        "FinalizeSale": "Penjualan {{ref}}",
+        "VoidSale": "Void penjualan {{ref}}",
+        "FinalizeCreditNote": "Retur {{ref}}",
+        "OpenShift": "Buka shift {{ref}}",
+        "CloseShift": "Tutup shift {{ref}}",
+        "RecordCashMovement": "Kas masuk/keluar {{ref}}",
+        "AppendAudit": "Audit {{ref}}",
+        "ReportPinState": "Status PIN {{ref}}"
+      }
+    },
+    "update": {
+      "softTitle": "Pembaruan aplikasi siap",
+      "softBody": "Muat ulang sekarang untuk menggunakan versi POS terbaru.",
+      "hardTitle": "Pembaruan wajib dijadwalkan",
+      "hardBody": "Aplikasi akan diperbarui otomatis setelah shift selesai dan antrean kosong.",
+      "laterButton": "Nanti",
+      "reloadNowButton": "Perbarui sekarang"
     }
   },
   "receipt": {

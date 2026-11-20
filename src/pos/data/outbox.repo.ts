@@ -8,6 +8,7 @@ import {
 import { createIdGenerator } from '~/lib/kernel'
 import type { SolvaDb } from '../db/solva-db'
 import type { OutboxCommandRow } from '../db/types'
+import { projectCommandAckToDocumentTx } from './command-projection'
 import { DEVICE_SEQ_KEY, nextSeq } from './counter.repo'
 
 export const DEFAULT_PUSH_BATCH_MAX = 20
@@ -180,46 +181,55 @@ export async function applyOutboxResults(
   },
 ): Promise<void> {
   if (results.length === 0) return
-  await db.transaction('rw', db.outbox_command, async () => {
-    for (const item of results) {
-      const current = await db.outbox_command.get(item.id)
-      if (!current) continue
+  await db.transaction(
+    'rw',
+    [db.outbox_command, db.sale, db.credit_note, db.shift, db.cash_movement],
+    async (tx) => {
+      const outboxTable = tx.table<OutboxCommandRow, string>('outbox_command')
+      for (const item of results) {
+        const current = await outboxTable.get(item.id)
+        if (!current) continue
 
-      if (item.outcome === 'ACK') {
-        await db.outbox_command.update(item.id, {
-          status: 'ACKED',
-          acked_at: opts.nowIso,
-          next_retry_at: null,
-          last_error_class: null,
-          last_error_code: null,
-          last_error_ref: null,
-          result: item.result,
-        })
-      } else if (item.outcome === 'ATTENTION') {
-        await db.outbox_command.update(item.id, {
-          status: 'NEEDS_ATTENTION',
-          last_error_class: item.reason_class,
-          last_error_code: item.reason_code,
-          last_error_ref: item.ref,
-          next_retry_at: null,
-        })
-      } else if (item.outcome === 'RETRY') {
-        const nextAttempts = current.attempts + 1
-        await db.outbox_command.update(item.id, {
-          status: 'PENDING',
-          attempts: nextAttempts,
-          next_retry_at: opts.nextRetryAtIso(nextAttempts),
-          last_error_class: 'TRANSIENT',
-        })
-      } else if (item.outcome === 'HELD') {
-        // HELD waits for parent ACK without burning retry attempts.
-        await db.outbox_command.update(item.id, {
-          status: 'PENDING',
-          next_retry_at: null,
-        })
+        if (item.outcome === 'ACK') {
+          await outboxTable.update(item.id, {
+            status: 'ACKED',
+            acked_at: opts.nowIso,
+            next_retry_at: null,
+            last_error_class: null,
+            last_error_code: null,
+            last_error_ref: null,
+            result: item.result,
+          })
+          await projectCommandAckToDocumentTx(tx, current, {
+            ackedAtIso: opts.nowIso,
+            result: item.result,
+          })
+        } else if (item.outcome === 'ATTENTION') {
+          await outboxTable.update(item.id, {
+            status: 'NEEDS_ATTENTION',
+            last_error_class: item.reason_class,
+            last_error_code: item.reason_code,
+            last_error_ref: item.ref,
+            next_retry_at: null,
+          })
+        } else if (item.outcome === 'RETRY') {
+          const nextAttempts = current.attempts + 1
+          await outboxTable.update(item.id, {
+            status: 'PENDING',
+            attempts: nextAttempts,
+            next_retry_at: opts.nextRetryAtIso(nextAttempts),
+            last_error_class: 'TRANSIENT',
+          })
+        } else if (item.outcome === 'HELD') {
+          // HELD waits for parent ACK without burning retry attempts.
+          await outboxTable.update(item.id, {
+            status: 'PENDING',
+            next_retry_at: null,
+          })
+        }
       }
-    }
-  })
+    },
+  )
 }
 
 export async function revertSendingToPending(
@@ -242,17 +252,81 @@ export async function revertSendingToPending(
   })
 }
 
-export async function markSendingSchemaHeld(db: SolvaDb, ids: readonly string[]): Promise<void> {
+export type SchemaHoldCode = 'UPDATE_REQUIRED' | 'SERVER_BEHIND' | 'SCHEMA_NOT_MIGRATABLE'
+
+export async function markSendingSchemaHeld(
+  db: SolvaDb,
+  ids: readonly string[],
+  code: SchemaHoldCode = 'UPDATE_REQUIRED',
+): Promise<void> {
   if (ids.length === 0) return
   await db.transaction('rw', db.outbox_command, async () => {
     for (const id of ids) {
       await db.outbox_command.update(id, {
         status: 'PENDING',
         last_error_class: 'SCHEMA',
+        last_error_code: code,
         next_retry_at: null,
       })
     }
   })
+}
+
+export async function holdCommandsAboveServerSchema(
+  db: SolvaDb,
+  serverMaxSchema: number | null | undefined,
+): Promise<number> {
+  if (!serverMaxSchema || serverMaxSchema < 1) return 0
+  const pending = await db.outbox_command
+    .where('[status+device_seq]')
+    .between(['PENDING', Dexie.minKey], ['PENDING', Dexie.maxKey])
+    .toArray()
+
+  const toHold = pending.filter(
+    (row) => row.schema_version > serverMaxSchema && row.last_error_class !== 'SCHEMA',
+  )
+  if (toHold.length === 0) return 0
+
+  await db.transaction('rw', db.outbox_command, async () => {
+    for (const row of toHold) {
+      await db.outbox_command.update(row.id, {
+        last_error_class: 'SCHEMA',
+        last_error_code: 'SERVER_BEHIND',
+        next_retry_at: null,
+      })
+    }
+  })
+  return toHold.length
+}
+
+export async function releaseEligibleSchemaHolds(
+  db: SolvaDb,
+  opts: { serverMaxSchema?: number | null; updateRequired?: boolean },
+): Promise<number> {
+  if (opts.updateRequired) return 0
+  const pending = await db.outbox_command
+    .where('[status+device_seq]')
+    .between(['PENDING', Dexie.minKey], ['PENDING', Dexie.maxKey])
+    .toArray()
+
+  const eligible = pending.filter((row) => {
+    if (row.last_error_class !== 'SCHEMA') return false
+    if (row.last_error_code === 'SCHEMA_NOT_MIGRATABLE') return false
+    if (opts.serverMaxSchema != null && row.schema_version > opts.serverMaxSchema) return false
+    return true
+  })
+
+  if (eligible.length === 0) return 0
+
+  await db.transaction('rw', db.outbox_command, async () => {
+    for (const row of eligible) {
+      await db.outbox_command.update(row.id, {
+        last_error_class: null,
+        last_error_code: null,
+      })
+    }
+  })
+  return eligible.length
 }
 
 export async function applyPullCommandUpdates(
@@ -344,12 +418,14 @@ export function subscribeSyncStateInputs(
     const queue = await getOutboxQueueSummary(db)
     const lastSync = await db.meta.get('last_success_sync_at')
     const minSup = await db.meta.get('min_supported')
+    const syncFlags = await db.meta.get('sync_flags')
     return {
       pending: queue.pending,
       oldestAt: queue.oldestAt,
       attention: queue.attention,
       lastSuccessAt: lastSync?.value ?? null,
       minSupported: minSup?.value ?? null,
+      syncFlags: syncFlags?.value ?? null,
     }
   })
 
@@ -360,4 +436,162 @@ export function subscribeSyncStateInputs(
   return () => {
     subscription.unsubscribe()
   }
+}
+
+export interface SanitizedOutboxQueueItem {
+  readonly id: string
+  readonly type: string
+  readonly deviceSeq: number
+  readonly status: OutboxCommandRow['status']
+  readonly schemaHeld: boolean
+  readonly schemaHoldCode: string | null
+  readonly attempts: number
+  readonly nextRetryAt: string | null
+  readonly errorCode: string | null
+  readonly errorClass: OutboxCommandRow['last_error_class']
+  readonly errorRef: string | null
+  readonly managerDecision: 'ACCEPTED_MANUAL' | 'DISMISSED' | null
+  readonly referenceLabel: string
+  readonly createdAtDevice: string
+  readonly ackedAt: string | null
+}
+
+function extractSafeReferenceLabel(row: OutboxCommandRow): string {
+  const payload = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : null
+  if (payload) {
+    if (row.type === 'FinalizeSale') {
+      const sale = payload.sale as Record<string, unknown> | undefined
+      if (typeof sale?.invoice_no === 'string' && sale.invoice_no) return sale.invoice_no
+    } else if (row.type === 'FinalizeCreditNote') {
+      const cn = payload.credit_note as Record<string, unknown> | undefined
+      if (typeof cn?.cn_no === 'string' && cn.cn_no) return cn.cn_no
+    } else if (row.type === 'VoidSale') {
+      const voidObj = payload.void as Record<string, unknown> | undefined
+      if (typeof voidObj?.sale_id === 'string') return voidObj.sale_id.slice(-8)
+    } else if (row.type === 'OpenShift' || row.type === 'CloseShift') {
+      const sec = (payload.shift ?? payload.close) as Record<string, unknown> | undefined
+      const sid = sec?.id ?? sec?.shift_id
+      if (typeof sid === 'string') return sid.slice(-8)
+    } else if (row.type === 'RecordCashMovement') {
+      const mov = payload.movement as Record<string, unknown> | undefined
+      if (typeof mov?.direction === 'string') return mov.direction
+    }
+  }
+  return `#${row.device_seq}`
+}
+
+/**
+ * Returns a sanitized projection of queue items for SCR-P14 (all non-ACKED rows plus
+ * manager-resolved rows via `command_updates`), strictly omitting sensitive raw `payload` fields.
+ */
+export async function listSanitizedQueueItems(
+  db: SolvaDb,
+  opts?: { query?: string },
+): Promise<SanitizedOutboxQueueItem[]> {
+  const all = (await db.outbox_command.toArray()).sort((a, b) => a.device_seq - b.device_seq)
+  const items: SanitizedOutboxQueueItem[] = []
+  const q = opts?.query?.trim().toLowerCase() ?? ''
+
+  for (const row of all) {
+    const include = row.status !== 'ACKED' || row.manager_decision === 'ACCEPTED_MANUAL'
+    if (!include) continue
+
+    const schemaHeld = row.last_error_class === 'SCHEMA'
+    const referenceLabel = extractSafeReferenceLabel(row)
+    const entry: SanitizedOutboxQueueItem = {
+      id: row.id,
+      type: row.type,
+      deviceSeq: row.device_seq,
+      status: row.status,
+      schemaHeld,
+      schemaHoldCode: schemaHeld ? row.last_error_code : null,
+      attempts: row.attempts,
+      nextRetryAt: row.next_retry_at,
+      errorCode: row.last_error_code,
+      errorClass: row.last_error_class,
+      errorRef: row.last_error_ref,
+      managerDecision: row.manager_decision ?? null,
+      referenceLabel,
+      createdAtDevice: row.created_at_device,
+      ackedAt: row.acked_at ?? null,
+    }
+
+    if (q) {
+      const hay = `${entry.referenceLabel} ${entry.type} ${entry.errorCode ?? ''} ${entry.errorRef ?? ''} ${entry.id}`.toLowerCase()
+      if (!hay.includes(q)) continue
+    }
+    items.push(entry)
+  }
+
+  return items
+}
+
+export async function listRawPendingOutboxRows(db: SolvaDb): Promise<OutboxCommandRow[]> {
+  const all = (await db.outbox_command.toArray()).sort((a, b) => a.device_seq - b.device_seq)
+  return all.filter((r) => r.status !== 'ACKED' && r.status !== 'DISMISSED')
+}
+
+export async function applyCommandUpdatesInDb(
+  db: SolvaDb,
+  updates: readonly PullCommandUpdate[],
+  opts: { ackedAtIso: string },
+): Promise<number> {
+  if (updates.length === 0) return 0
+
+  let applied = 0
+  await db.transaction(
+    'rw',
+    [db.outbox_command, db.sale, db.credit_note, db.shift, db.cash_movement],
+    async (tx) => {
+      const outboxTable: Table<OutboxCommandRow, string> = tx.table('outbox_command')
+
+      for (const upd of updates) {
+        const current = await outboxTable.get(upd.id)
+        if (!current) continue
+
+        if (upd.status === 'ACCEPTED_MANUAL' || upd.status === 'ACKED') {
+          const isManual = upd.status === 'ACCEPTED_MANUAL'
+          const mergedResult: Record<string, unknown> = {
+            ...(current.result ?? {}),
+            ...(upd.result ?? {}),
+            received_at: opts.ackedAtIso,
+            ...(isManual ? { accepted_manual: true } : {}),
+          }
+          await outboxTable.update(upd.id, {
+            status: 'ACKED',
+            acked_at: opts.ackedAtIso,
+            next_retry_at: null,
+            last_error_class: null,
+            last_error_code: null,
+            last_error_ref: null,
+            result: mergedResult,
+            ...(isManual ? { manager_decision: 'ACCEPTED_MANUAL' } : {}),
+          })
+          await projectCommandAckToDocumentTx(tx, current, {
+            ackedAtIso: opts.ackedAtIso,
+            result: mergedResult,
+          })
+          applied += 1
+        } else if (upd.status === 'DISMISSED') {
+          await outboxTable.update(upd.id, {
+            status: 'DISMISSED',
+            manager_decision: 'DISMISSED',
+            next_retry_at: null,
+          })
+          applied += 1
+        } else if (upd.status === 'NEEDS_ATTENTION') {
+          await outboxTable.update(upd.id, {
+            status: 'NEEDS_ATTENTION',
+            last_error_class: upd.reason_class ?? current.last_error_class ?? 'STRUCTURAL',
+            last_error_code: upd.reason_code ?? current.last_error_code ?? 'UNKNOWN_REFERENCE',
+            last_error_ref: upd.ref ?? current.last_error_ref,
+            next_retry_at: null,
+          })
+          applied += 1
+        }
+      }
+    },
+  )
+
+  return applied
 }

@@ -32,6 +32,7 @@ import { Route as TenantPosManifestDotwebmanifestRouteImport } from './routes/$t
 import { Route as TenantPosMoreRouteImport } from './routes/$tenant/pos/more'
 import { Route as TenantPosPairRouteImport } from './routes/$tenant/pos/pair'
 import { Route as TenantPosPayRouteImport } from './routes/$tenant/pos/pay'
+import { Route as TenantPosQueueRouteImport } from './routes/$tenant/pos/queue'
 import { Route as TenantPosSellRouteImport } from './routes/$tenant/pos/sell'
 import { Route as TenantPosSettingsRouteImport } from './routes/$tenant/pos/settings'
 import { Route as TenantPosSystemRouteImport } from './routes/$tenant/pos/system'
@@ -184,6 +185,11 @@ const TenantPosPairRoute = TenantPosPairRouteImport.update({
 const TenantPosPayRoute = TenantPosPayRouteImport.update({
   id: '/pay',
   path: '/pay',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosQueueRoute = TenantPosQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
   getParentRoute: () => TenantPosRoute,
 } as any)
 const TenantPosSellRoute = TenantPosSellRouteImport.update({
@@ -404,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/pos/more': typeof TenantPosMoreRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
+  '/$tenant/pos/queue': typeof TenantPosQueueRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
@@ -463,6 +470,7 @@ export interface FileRoutesByTo {
   '/$tenant/pos/more': typeof TenantPosMoreRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
+  '/$tenant/pos/queue': typeof TenantPosQueueRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
@@ -526,6 +534,7 @@ export interface FileRoutesById {
   '/$tenant/pos/more': typeof TenantPosMoreRoute
   '/$tenant/pos/pair': typeof TenantPosPairRoute
   '/$tenant/pos/pay': typeof TenantPosPayRoute
+  '/$tenant/pos/queue': typeof TenantPosQueueRoute
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
@@ -590,6 +599,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/more'
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
+    | '/$tenant/pos/queue'
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
@@ -649,6 +659,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/more'
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
+    | '/$tenant/pos/queue'
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
@@ -711,6 +722,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/more'
     | '/$tenant/pos/pair'
     | '/$tenant/pos/pay'
+    | '/$tenant/pos/queue'
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
@@ -934,6 +946,13 @@ declare module '@tanstack/react-router' {
       path: '/pay'
       fullPath: '/$tenant/pos/pay'
       preLoaderRoute: typeof TenantPosPayRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/queue': {
+      id: '/$tenant/pos/queue'
+      path: '/queue'
+      fullPath: '/$tenant/pos/queue'
+      preLoaderRoute: typeof TenantPosQueueRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/$tenant/pos/sell': {
@@ -1206,6 +1225,7 @@ interface TenantPosRouteChildren {
   TenantPosMoreRoute: typeof TenantPosMoreRoute
   TenantPosPairRoute: typeof TenantPosPairRoute
   TenantPosPayRoute: typeof TenantPosPayRoute
+  TenantPosQueueRoute: typeof TenantPosQueueRoute
   TenantPosSellRoute: typeof TenantPosSellRoute
   TenantPosSettingsRoute: typeof TenantPosSettingsRoute
   TenantPosSystemRoute: typeof TenantPosSystemRoute
@@ -1228,6 +1248,7 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosMoreRoute: TenantPosMoreRoute,
   TenantPosPairRoute: TenantPosPairRoute,
   TenantPosPayRoute: TenantPosPayRoute,
+  TenantPosQueueRoute: TenantPosQueueRoute,
   TenantPosSellRoute: TenantPosSellRoute,
   TenantPosSettingsRoute: TenantPosSettingsRoute,
   TenantPosSystemRoute: TenantPosSystemRoute,

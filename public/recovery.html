@@ -246,6 +246,20 @@
         });
       }
 
+      async function sha256Hex(text) {
+        try {
+          if (!window.crypto || !window.crypto.subtle || typeof TextEncoder === 'undefined') {
+            return '';
+          }
+          var buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+          return Array.from(new Uint8Array(buf)).map(function (b) {
+            return b.toString(16).padStart(2, '0');
+          }).join('');
+        } catch (_e) {
+          return '';
+        }
+      }
+
       document.getElementById('btn-export').addEventListener('click', async function () {
         var registryDb = await openDbIfExists('solva-registry');
         if (!registryDb) {
@@ -266,18 +280,66 @@
           return;
         }
         var outbox = await readAllStoreRecords(tenantDb, 'outbox_command');
+        var metaRows = await readAllStoreRecords(tenantDb, 'meta');
         tenantDb.close();
-        var pending = outbox.filter(function (row) { return row && row.syncStatus !== 'ACKED'; });
+        var deviceMeta = null;
+        var clockMeta = null;
+        for (var m = 0; m < metaRows.length; m++) {
+          if (metaRows[m] && metaRows[m].key === 'device') deviceMeta = metaRows[m].value;
+          if (metaRows[m] && metaRows[m].key === 'clock') clockMeta = metaRows[m].value;
+        }
+        var pending = outbox
+          .filter(function (row) {
+            return row && row.status !== 'ACKED' && row.status !== 'DISMISSED';
+          })
+          .sort(function (a, b) {
+            return (a.device_seq || 0) - (b.device_seq || 0);
+          });
         if (pending.length === 0) {
           statusEl.textContent = copy.noPending;
           return;
         }
-        var jsonl = pending.map(function (row) { return JSON.stringify(row); }).join('\n') + '\n';
+        var commandLines = pending.map(function (row) {
+          return JSON.stringify({
+            id: row.id,
+            type: row.type,
+            schema_version: row.schema_version,
+            device_seq: row.device_seq,
+            register_id: row.register_id,
+            status: row.status,
+            dependency_key: row.dependency_key,
+            depends_on: row.depends_on,
+            attempts: row.attempts,
+            last_error_class: row.last_error_class,
+            last_error_code: row.last_error_code,
+            last_error_ref: row.last_error_ref,
+            created_at_device: row.created_at_device,
+            app_version: row.app_version,
+            payload: row.payload
+          });
+        });
+        var bodyText = commandLines.join('\n');
+        var hash = await sha256Hex(bodyText);
+        var offsetMs = clockMeta && typeof clockMeta.offset_ms === 'number' ? clockMeta.offset_ms : 0;
+        var exportedAt = new Date(Date.now() + offsetMs).toISOString();
+        var devId = (deviceMeta && deviceMeta.device_id) || (slug || 'recovery-device');
+        var regId = (deviceMeta && deviceMeta.register_id) || 'unknown-register';
+        var header = JSON.stringify({
+          device_id: devId,
+          register_id: regId,
+          app_version: (pending[0] && pending[0].app_version) || 'recovery',
+          schema_version: (pending[0] && pending[0].schema_version) || 1,
+          exported_at: exportedAt,
+          count: pending.length,
+          sha256: hash
+        });
+        var jsonl = header + '\n' + bodyText + '\n';
         var blob = new Blob([jsonl], { type: 'application/x-ndjson' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'solva-pending_' + (slug || 'device') + '_' + Date.now() + '.jsonl';
+        var utcStamp = exportedAt.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+        a.download = 'solva-pending_' + devId + '_' + utcStamp + '.jsonl';
         document.body.appendChild(a);
         a.click();
         a.remove();

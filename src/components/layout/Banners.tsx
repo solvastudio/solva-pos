@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { ServerBehindBanner } from '~/components/pos/sync/ServerBehindBanner'
 import { ClockAlert, Download, Info, LockKeyhole, TriangleAlert, WifiOff } from '~/components/ui/icons'
 import type { SyncBannerItem } from '~/pos/sync'
 
@@ -47,6 +48,8 @@ export function Banners({ banners }: BannersProps) {
                 <span>{t('banner.leaseWarning', { count: item.hoursLeft })}</span>
               </div>
             )
+          case 'server_behind':
+            return <ServerBehindBanner key="server_behind" />
           case 'offline':
             return (
               <div

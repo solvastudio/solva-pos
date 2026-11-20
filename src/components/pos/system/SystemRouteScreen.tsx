@@ -3,7 +3,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { SystemScreen } from '~/components/pos/system/SystemScreen'
 import type { BootResult } from '~/pos/boot/boot'
 import type { RouteDecision, SystemVariant } from '~/pos/boot/route-decision'
+import { findTenantIdBySlug } from '~/pos/db/registry'
 import { invalidateBootPosCache } from '~/pos/hooks/use-boot'
+import {
+  exportPending,
+  exportPendingDynamic,
+  triggerBlobDownload,
+} from '~/pos/maintenance/export-pending'
 
 const VALID_VARIANTS = new Set<SystemVariant>([
   'lease_expired',
@@ -63,11 +69,29 @@ export function SystemRouteScreen({
     setRetrying(false)
   }
 
+  async function handleExportPending() {
+    if (bootResult.kind === 'READY') {
+      const exp = await exportPending(bootResult.db)
+      triggerBlobDownload(exp.blob, exp.filename)
+      return
+    }
+    const tid = await findTenantIdBySlug(tenant)
+    if (tid) {
+      const exp = await exportPendingDynamic(tid)
+      if (exp) {
+        triggerBlobDownload(exp.blob, exp.filename)
+      }
+    }
+  }
+
   return (
     <SystemScreen
       variant={variant}
       refId={refId}
       retrying={retrying}
+      onExportPending={() => {
+        void handleExportPending()
+      }}
       onRetrySync={() => {
         void handleRetrySync()
       }}

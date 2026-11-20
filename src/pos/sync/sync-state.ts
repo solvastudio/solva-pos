@@ -10,6 +10,8 @@ export interface SyncState {
   device: 'OK' | 'LEASE_WARNING' | 'LOCKED'
   leaseHoursLeft?: number
   update: 'NONE' | 'AVAILABLE' | 'PENDING_APPLY' | 'REQUIRED'
+  serverBehind?: boolean
+  storageWarn?: boolean
   lastSuccessAt: string | null
   clockWarning: boolean
   syncingSinceMs: number | null
@@ -26,6 +28,7 @@ export type SyncIndicatorPrimary =
 export type SyncBannerItem =
   | { kind: 'update_required' }
   | { kind: 'lease_warning'; hoursLeft: number }
+  | { kind: 'server_behind' }
   | { kind: 'offline' }
   | { kind: 'pending'; count: number; oldestAt: string | null }
   | { kind: 'clock_warning' }
@@ -83,6 +86,9 @@ export function deriveSyncIndicator(
   if (state.device === 'LEASE_WARNING') {
     allBanners.push({ kind: 'lease_warning', hoursLeft: state.leaseHoursLeft ?? 1 })
   }
+  if (state.serverBehind) {
+    allBanners.push({ kind: 'server_behind' })
+  }
   if (state.conn === 'OFFLINE' || state.conn === 'UNSTABLE') {
     allBanners.push({ kind: 'offline' })
   } else if (state.queue.pending > 0) {
@@ -114,6 +120,8 @@ export function createInitialSyncState(): SyncState {
     queue: { pending: 0, oldestAt: null, attention: 0 },
     device: 'OK',
     update: 'NONE',
+    serverBehind: false,
+    storageWarn: false,
     lastSuccessAt: null,
     clockWarning: false,
     syncingSinceMs: null,

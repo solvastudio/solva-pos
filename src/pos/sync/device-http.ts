@@ -80,6 +80,7 @@ async function persistSyncFlag(
     tenant_suspended: boolean
     update_required: boolean
     server_max_schema: number
+    server_behind: boolean
   }>,
 ): Promise<void> {
   const prev = (await getMeta(db, 'sync_flags')) ?? {}
@@ -91,6 +92,9 @@ function mapReleaseBlock(release: ReleaseBlock) {
     app_version: release.min_supported_app_version ?? release.latest,
     schema_version: release.min_supported_schema_version,
     is_mandatory: release.is_mandatory,
+    latest: release.latest,
+    accept_previous_until: release.accept_previous_until,
+    max_schema_version: release.max_schema_version,
   }
 }
 
@@ -223,12 +227,24 @@ export async function deviceFetch<T>(
   }
 
   if ('release' in record && record.release && typeof record.release === 'object') {
-    await setMeta(options.db, 'min_supported', mapReleaseBlock(record.release as ReleaseBlock))
+    const releaseObj = record.release as ReleaseBlock
+    await setMeta(options.db, 'min_supported', mapReleaseBlock(releaseObj))
+    const schemaStillSupported = SCHEMA_VERSION >= releaseObj.min_supported_schema_version
+    await persistSyncFlag(options.db, {
+      update_required: !schemaStillSupported,
+      ...(typeof releaseObj.max_schema_version === 'number'
+        ? {
+            server_max_schema: releaseObj.max_schema_version,
+            server_behind: releaseObj.max_schema_version < SCHEMA_VERSION,
+          }
+        : {}),
+    })
   }
 
   if (typeof record.max_schema_version === 'number' && record.max_schema_version > 0) {
     await persistSyncFlag(options.db, {
       server_max_schema: record.max_schema_version,
+      server_behind: record.max_schema_version < SCHEMA_VERSION,
     })
   }
 

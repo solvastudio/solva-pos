@@ -69,6 +69,7 @@
     "leaseWarning_other": "Connect to the internet within {{count}} hours so this device doesn't lock.",
     "updateAvailable": "An update is available.",
     "updateRequired": "Update required. You can't open a new shift until you update.",
+    "serverBehind": "Server is being updated. Newer transactions are safely queued on this device.",
     "clockWarning": "Device clock differs significantly from server time. Check date & time settings."
   },
   "status": {
@@ -1269,7 +1270,8 @@
       "processing": "Saving sale...",
       "errorGeneric": "Unable to complete sale. Try again.",
       "errorShiftRequired": "Open a shift before completing a sale.",
-      "errorPrefixMissing": "Invoice prefix is not configured for this register."
+      "errorPrefixMissing": "Invoice prefix is not configured for this register.",
+      "errorStorageFull": "Device storage is full. Export pending transactions or free space before retrying."
     },
     "done": {
       "title": "Sale Completed",
@@ -1527,6 +1529,45 @@
       "clockOffsetLabel": "Clock offset",
       "lastSyncLabel": "Last sync",
       "neverSynced": "Never"
+    },
+    "queue": {
+      "title": "Sync Queue",
+      "cashierSafeNote": "Cashiers can keep working normally.",
+      "syncNowButton": "Try Sync Now",
+      "exportButton": "Export Pending (.jsonl)",
+      "exportedToast": "Exported {{count}} pending transaction(s).",
+      "emptyPending": "No pending transactions in the sync queue.",
+      "searchPlaceholder": "Search invoice, CN, or error code...",
+      "attentionHeading": "Needs Attention ({{count}})",
+      "pendingHeading": "Queued & Held Items ({{count}})",
+      "acceptedManualBadge": "Manually accepted by manager",
+      "dismissedBadge": "Dismissed by manager",
+      "heldBadge": "Held: waiting for update or server",
+      "heldServerBehind": "Waiting for server update (SERVER_BEHIND)",
+      "heldUpdateRequired": "App update required (UPDATE_REQUIRED)",
+      "heldNotMigratable": "Payload cannot be migrated automatically; export pending (.jsonl)",
+      "retryBadge": "Retrying automatically ({{attempts}})",
+      "sendingBadge": "Sending...",
+      "pendingAge": "Queued {{age}}",
+      "lastSyncPrefix": "Last synced {{time}}",
+      "types": {
+        "FinalizeSale": "Sale {{ref}}",
+        "VoidSale": "Void sale {{ref}}",
+        "FinalizeCreditNote": "Return {{ref}}",
+        "OpenShift": "Open shift {{ref}}",
+        "CloseShift": "Close shift {{ref}}",
+        "RecordCashMovement": "Cash movement {{ref}}",
+        "AppendAudit": "Audit {{ref}}",
+        "ReportPinState": "PIN state {{ref}}"
+      }
+    },
+    "update": {
+      "softTitle": "App update ready",
+      "softBody": "Reload now to use the latest POS version.",
+      "hardTitle": "Mandatory update scheduled",
+      "hardBody": "The app will update automatically once this shift ends and unsent queue clears.",
+      "laterButton": "Later",
+      "reloadNowButton": "Update Now"
     }
   },
   "receipt": {

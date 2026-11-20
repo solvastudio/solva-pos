@@ -373,4 +373,49 @@ describe('pos/usecases/sales/finalize-sale (AD-14)', () => {
       finalizeSale(db, { cart, payments: cashPay, staffId: STAFF }),
     ).rejects.toMatchObject({ code: 'PREFIX_NOT_CONFIGURED' } satisfies Partial<FinalizeSaleError>)
   })
+
+  it('aborts cleanly with STORAGE_FULL on QuotaExceededError without burning invoice sequence', async () => {
+    const db = await seedPosEnv(true)
+    await openShift(db, { openingCash: 100_000, staffId: STAFF })
+
+    const counterBefore = await db.local_counter.toArray()
+    const cart1 = makeV04Cart('0192a000-0000-7000-8000-00000000f301')
+    const cashPay = [
+      {
+        methodId: PM_CASH,
+        methodCode: 'CASH',
+        methodName: 'Tunai',
+        kind: 'CASH' as const,
+        amount: toMoney(150_000),
+      },
+    ]
+
+    await expect(
+      finalizeSale(
+        db,
+        { cart: cart1, payments: cashPay, staffId: STAFF },
+        {
+          nowMs: () => Date.parse('2026-11-18T12:00:00.000Z'),
+          beforeCommitHookForTest: () => {
+            throw new DOMException('Quota exceeded', 'QuotaExceededError')
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'STORAGE_FULL' } satisfies Partial<FinalizeSaleError>)
+
+    // No sale stored and invoice sequence was NOT incremented
+    expect(await db.sale.count()).toBe(0)
+    const counterAfterFail = await db.local_counter.toArray()
+    expect(counterAfterFail.filter((c) => c.doc_type === 'INVOICE')).toEqual(
+      counterBefore.filter((c) => c.doc_type === 'INVOICE'),
+    )
+
+    // Subsequent sale cleanly receives invoice sequence #1
+    const ok = await finalizeSale(
+      db,
+      { cart: cart1, payments: cashPay, staffId: STAFF },
+      { nowMs: () => Date.parse('2026-11-18T12:00:01.000Z') },
+    )
+    expect(ok.invoiceNo).toMatch(/-000001$/)
+  })
 })

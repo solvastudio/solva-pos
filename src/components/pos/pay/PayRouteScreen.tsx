@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
+import { Button } from '~/components/ui/Button'
+import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
 import type { BootResult } from '~/pos/boot/boot'
 import { getOutlet, listActivePaymentMethods, listActiveStaff, listRegisters } from '~/pos/data/master.repo'
 import { setMeta } from '~/pos/data/meta.repo'
@@ -9,6 +11,7 @@ import type { PaymentMethodRecord } from '~/pos/db/types'
 import type { DetailedPaymentEntry } from '~/pos/domain/build-finalize-payload'
 import { useCart } from '~/pos/hooks/use-cart'
 import { useShift } from '~/pos/hooks/use-shift'
+import { exportPending, triggerBlobDownload } from '~/pos/maintenance/export-pending'
 import { clearSession, getSessionState } from '~/pos/session/session'
 import { posCartStore } from '~/pos/state/cart-store'
 import { finalizeSale, FinalizeSaleError } from '~/pos/usecases/sales/finalize-sale'
@@ -38,6 +41,7 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
   const [outletLabel, setOutletLabel] = useState<string | undefined>(undefined)
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [storageFull, setStorageFull] = useState(false)
 
   useEffect(() => {
     if (cart.lines.length === 0) {
@@ -70,6 +74,7 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
     if (!db || !sessionStaff) return
     setSubmitting(true)
     setErrorMessage(null)
+    setStorageFull(false)
     try {
       const res = await finalizeSale(db, {
         cart,
@@ -84,6 +89,9 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
           setErrorMessage(t('pos.pay.errorShiftRequired'))
         } else if (err.code === 'PREFIX_NOT_CONFIGURED') {
           setErrorMessage(t('pos.pay.errorPrefixMissing'))
+        } else if (err.code === 'STORAGE_FULL') {
+          setStorageFull(true)
+          setErrorMessage(t('pos.pay.errorStorageFull'))
         } else {
           setErrorMessage(t('pos.pay.errorGeneric'))
         }
@@ -111,6 +119,37 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
         void navigate({ href: `/${cleanSlug}/pos/login` })
       }}
     >
+      {storageFull ? (
+        <div className="mx-auto mt-4 flex w-full max-w-2xl flex-col gap-3 px-4">
+          <ErrorCodeBlock code="STORAGE_FULL" refId="storage_full" local />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (!db) return
+                void exportPending(db, {
+                  logAudit: false,
+                  staffId: sessionStaff?.staffId ?? null,
+                }).then((exp) => {
+                  triggerBlobDownload(exp.blob, exp.filename)
+                })
+              }}
+            >
+              {t('pos.queue.exportButton')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void navigate({ href: `/${cleanSlug}/pos/settings` })}
+            >
+              {t('pos.more.settingsTitle')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <PaymentScreen
         cart={cart}
         paymentMethods={paymentMethods}

@@ -9,10 +9,11 @@ import {
 } from '~/pos/data/catalog.repo'
 import { featureEnabled } from '~/pos/data/feature-flag.repo'
 import { getMeta } from '~/pos/data/meta.repo'
-import { getOutboxQueueSummary } from '~/pos/data/outbox.repo'
+import { getOutboxQueueSummary, listSanitizedQueueItems, type SanitizedOutboxQueueItem } from '~/pos/data/outbox.repo'
 import { stagePullRows } from '~/pos/data/pull-stage.repo'
 import type { SolvaDb } from '~/pos/db/solva-db'
 import type { MetaKey, MetaValueMap } from '~/pos/db/types'
+import { exportPending, type ExportPendingResult } from '~/pos/maintenance/export-pending'
 import { getGlobalSyncStore, type SyncController } from '~/pos/sync'
 import { applyPullCycle } from '~/pos/sync/applier'
 import {
@@ -59,6 +60,8 @@ export interface SolvaE2eHandle {
   getSyncState: () => ReturnType<ReturnType<typeof getGlobalSyncStore>['getState']>
   getMeta: <K extends MetaKey>(key: K) => Promise<MetaValueMap[K] | null>
   getOutboxSummary: () => ReturnType<typeof getOutboxQueueSummary>
+  exportPending: () => Promise<ExportPendingResult>
+  getQueue: (query?: string) => Promise<SanitizedOutboxQueueItem[]>
   runFullResync: () => Promise<'OK' | 'FAILED'>
   featureEnabled: (key: string) => Promise<boolean>
   catalog: SolvaE2eCatalogHandle
@@ -96,6 +99,8 @@ export function installE2eHooks(opts: {
     getSyncState: () => getGlobalSyncStore().getState(),
     getMeta: (key) => getMeta(opts.db, key),
     getOutboxSummary: () => getOutboxQueueSummary(opts.db),
+    exportPending: () => exportPending(opts.db),
+    getQueue: (query?: string) => listSanitizedQueueItems(opts.db, { query }),
     runFullResync: async () => {
       const ctrl = opts.getController()
       if (!ctrl) return 'FAILED'

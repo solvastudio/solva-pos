@@ -41,8 +41,19 @@ export const META_SCHEMAS = {
       app_version: z.string().min(1),
       schema_version: z.number().int().positive(),
       is_mandatory: z.boolean(),
+      latest: z.string().min(1).optional(),
+      accept_previous_until: z.string().nullable().optional(),
+      max_schema_version: z.number().int().positive().optional(),
     })
     .nullable(),
+  update: z
+    .object({
+      next_prompt_at: z.string().nullable().optional(),
+      dismissed_at: z.string().nullable().optional(),
+      status: z.enum(['NONE', 'AVAILABLE', 'PENDING_APPLY', 'APPLYING']).optional(),
+    })
+    .nullable()
+    .optional(),
   stage: z
     .object({
       cycle_id: z.string().min(1),
@@ -114,6 +125,7 @@ export const META_SCHEMAS = {
     tenant_suspended: z.boolean().optional(),
     update_required: z.boolean().optional(),
     server_max_schema: z.number().int().positive().optional(),
+    server_behind: z.boolean().optional(),
   }),
 } as const
 
@@ -187,7 +199,7 @@ export interface OutboxCommandRow {
   schema_version: number
   device_seq: number
   register_id: string
-  status: 'PENDING' | 'SENDING' | 'ACKED' | 'NEEDS_ATTENTION'
+  status: 'PENDING' | 'SENDING' | 'ACKED' | 'NEEDS_ATTENTION' | 'DISMISSED'
   dependency_key: string | null
   depends_on: string[]
   attempts: number
@@ -196,6 +208,7 @@ export interface OutboxCommandRow {
   last_error_code: string | null
   last_error_ref: string | null
   result: Record<string, unknown> | null
+  manager_decision?: 'ACCEPTED_MANUAL' | 'DISMISSED' | null
   created_at_device: string
   app_version: string
   acked_at?: string | null

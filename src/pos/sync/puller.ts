@@ -7,14 +7,12 @@ import {
 } from '~/lib/contracts'
 import { createIdGenerator } from '~/lib/kernel'
 import { getMeta, setMeta } from '../data/meta.repo'
-import {
-  applyPullCommandUpdates,
-  getOutboxQueueSummary,
-} from '../data/outbox.repo'
+import { getOutboxQueueSummary } from '../data/outbox.repo'
 import { clearPullStageCycle, stagePullRows } from '../data/pull-stage.repo'
 import type { SolvaDb } from '../db/solva-db'
 import { applyPullCycle, LARGE_INCREMENTAL_THRESHOLD } from './applier'
 import type { SyncClock } from './clock'
+import { applyCommandUpdates } from './command-updates'
 import { deviceFetch, type DeviceAuthFailureCode } from './device-http'
 
 export const DEFAULT_PULL_PAGE_SIZE = 500
@@ -199,11 +197,9 @@ export async function runIncrementalPull(
 
     if (!parsed.has_more) {
       if (parsed.command_updates && parsed.command_updates.length > 0) {
-        await applyPullCommandUpdates(
-          opts.db,
-          parsed.command_updates,
-          new Date(Date.parse(parsed.server_time)).toISOString(),
-        )
+        await applyCommandUpdates(opts.db, parsed.command_updates, {
+          ackedAtIso: new Date(Date.parse(parsed.server_time)).toISOString(),
+        })
       }
 
       await applyPullCycle(opts.db, {

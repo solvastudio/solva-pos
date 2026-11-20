@@ -170,6 +170,26 @@ export function MoreScreen({ tenant, bootResult }: MoreScreenProps) {
               {t('pos.more.settingsTitle')}
             </Button>
           </Card>
+
+          <Card className="flex flex-col justify-between gap-3 p-4">
+            <div className="flex items-start gap-3">
+              <ReceiptText className="mt-0.5 size-5 text-ink-brand" />
+              <div>
+                <h2 className="text-h3 font-semibold text-ink">{t('pos.queue.title')}</h2>
+                <p className="text-body text-ink-soft">
+                  {t('pos.more.syncQueueDesc', { count: syncState.queue.pending })}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => void shell.navigate({ href: `/${shell.cleanSlug}/pos/queue` })}
+            >
+              {t('pos.queue.title')}
+            </Button>
+          </Card>
         </div>
 
         <div className="flex flex-wrap gap-3">

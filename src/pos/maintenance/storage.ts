@@ -1,5 +1,6 @@
 import { getMeta, setMeta } from '../data/meta.repo'
 import type { SolvaDb } from '../db/solva-db'
+import { runRetentionPass, type RetentionResult } from './retention'
 
 export type PersistStatus = 'GRANTED' | 'DENIED' | 'UNKNOWN'
 export type StorageWarningLevel = 'ok' | 'warn' | 'prune'
@@ -72,6 +73,24 @@ export async function requestPersist(
   return persistStatus
 }
 
+export function isQuotaExceededError(err: unknown): boolean {
+  const visited = new Set<unknown>()
+  let cur: unknown = err
+  while (cur && typeof cur === 'object' && !visited.has(cur)) {
+    visited.add(cur)
+    const obj = cur as { name?: unknown; code?: unknown; inner?: unknown; cause?: unknown }
+    if (
+      obj.name === 'QuotaExceededError' ||
+      obj.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      obj.code === 22
+    ) {
+      return true
+    }
+    cur = obj.inner ?? obj.cause ?? null
+  }
+  return false
+}
+
 export async function refreshStorageMeta(
   db: SolvaDb,
   storageManager?: StorageManagerLike | null,
@@ -87,5 +106,32 @@ export async function refreshStorageMeta(
     persist,
     usedPct: est.usedPct,
     level: levelFor(est.usedPct),
+  }
+}
+
+/**
+ * Checks quota threshold (`70%` warn / `85%` aggressive prune) and triggers immediate
+ * aggressive retention when `usedPct > 85%` (pending outbox is NEVER touched).
+ */
+export async function checkAndPruneStorage(
+  db: SolvaDb,
+  opts?: { storageManager?: StorageManagerLike | null; trustedNowMs?: number },
+): Promise<{
+  persist: PersistStatus
+  usedPct: number
+  level: StorageWarningLevel
+  pruned: RetentionResult | null
+}> {
+  const status = await refreshStorageMeta(db, opts?.storageManager)
+  let pruned: RetentionResult | null = null
+  if (status.level === 'prune') {
+    pruned = await runRetentionPass(db, {
+      trustedNowMs: opts?.trustedNowMs,
+      aggressive: true,
+    })
+  }
+  return {
+    ...status,
+    pruned,
   }
 }

@@ -48,6 +48,11 @@ describe('pos/data/meta.repo', () => {
         schema_version: 1,
         is_mandatory: false,
       },
+      update: {
+        next_prompt_at: null,
+        dismissed_at: null,
+        status: 'NONE',
+      },
       stage: {
         cycle_id: 'cyc-1',
         upper: { version: 50, id: 'row-50' },

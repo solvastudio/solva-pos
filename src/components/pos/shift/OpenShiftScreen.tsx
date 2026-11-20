@@ -73,7 +73,9 @@ export function OpenShiftScreen({ tenant, bootResult }: OpenShiftScreenProps) {
         void navigate({ href: `/${cleanSlug}/pos/sell` })
         return
       }
-      if (res.reason === 'INVALID_AMOUNT') {
+      if (res.reason === 'UPDATE_REQUIRED') {
+        setErrorMessage(t('banner.updateRequired'))
+      } else if (res.reason === 'INVALID_AMOUNT') {
         setErrorMessage(t('pos.shift.invalidAmount'))
       } else {
         setErrorMessage(t('pos.shift.genericError'))

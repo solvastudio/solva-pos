@@ -1,5 +1,6 @@
-import Dexie, { type Table } from 'dexie'
+import Dexie, { type Table, type Transaction } from 'dexie'
 import { tenantDbName } from '../locks/names'
+import { migrateOutbox } from './migrations/outbox-migrate'
 import { STORES_V1 } from './schema-v1'
 import type {
   AssetCacheRecord,
@@ -115,6 +116,7 @@ export class SolvaDb extends Dexie {
     super(tenantDbName(tenantId), { chromeTransactionDurability: 'strict' })
     this.tenantId = tenantId
     this.version(1).stores(STORES_V1)
+    this.registerUpgradeHooks()
 
     this.on('versionchange', () => {
       this.close()
@@ -127,6 +129,22 @@ export class SolvaDb extends Dexie {
     this.on('blocked', () => {
       onBlocked?.(tenantId)
     })
+  }
+
+  /**
+   * Scaffold hook for future IndexedDB schema bumps (`version(N)`):
+   * future `this.version(N).stores(...).upgrade(tx => this.runUpgrade(tx, N - 1, N))`
+   * invokes `migrateOutbox` atomically inside the Dexie upgrade transaction so no
+   * pending command is dropped across `N-1 -> N` upgrades.
+   */
+  protected registerUpgradeHooks(): void {
+    // Dexie v1 baseline is active; future version(2)+ attaches `runUpgrade(tx, from, to)`.
+  }
+
+  protected async runUpgrade(tx: Transaction, fromVersion: number, toVersion: number): Promise<void> {
+    await migrateOutbox(tx, fromVersion, toVersion)
+    const metaTable = tx.table('meta')
+    await metaTable.put({ key: 'dexie_version', value: toVersion })
   }
 }
 

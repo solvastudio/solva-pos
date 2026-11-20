@@ -75,6 +75,10 @@ export type PullRequest = z.infer<typeof PullRequest>
 export const PullCommandUpdateSchema = z.object({
   id: z.uuid(),
   status: z.string().min(1),
+  reason_class: z.enum(['TRANSIENT', 'STRUCTURAL', 'AUTHORIZATION', 'SCHEMA']).optional(),
+  reason_code: z.string().min(1).optional(),
+  ref: z.string().min(1).optional(),
+  result: z.record(z.string(), z.unknown()).optional(),
 })
 export type PullCommandUpdate = z.infer<typeof PullCommandUpdateSchema>
 

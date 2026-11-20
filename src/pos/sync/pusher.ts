@@ -1,10 +1,13 @@
 import { PushResponse } from '~/lib/contracts'
+import { getMeta } from '../data/meta.repo'
 import {
   applyOutboxResults,
   DEFAULT_PUSH_BATCH_MAX_BYTES,
+  holdCommandsAboveServerSchema,
   listSendable,
   markOutboxSending,
   markSendingSchemaHeld,
+  releaseEligibleSchemaHolds,
   revertSendingToPending,
 } from '../data/outbox.repo'
 import type { SolvaDb } from '../db/solva-db'
@@ -50,6 +53,15 @@ export async function runPush(opts: RunPushOptions): Promise<PushRunResult> {
   while (true) {
     const nowMs = opts.clock.trustedNow()
     const nowIso = new Date(nowMs).toISOString()
+
+    const flags = await getMeta(opts.db, 'sync_flags')
+    await releaseEligibleSchemaHolds(opts.db, {
+      serverMaxSchema: flags?.server_max_schema ?? null,
+      updateRequired: flags?.update_required ?? false,
+    })
+    if (flags?.server_max_schema) {
+      await holdCommandsAboveServerSchema(opts.db, flags.server_max_schema)
+    }
 
     const batch = await listSendable(opts.db, {
       max: maxBatch,
@@ -106,7 +118,7 @@ export async function runPush(opts: RunPushOptions): Promise<PushRunResult> {
     }
 
     if (res.kind === 'update_required') {
-      await markSendingSchemaHeld(opts.db, batchIds)
+      await markSendingSchemaHeld(opts.db, batchIds, 'UPDATE_REQUIRED')
       return { kind: 'update_required' }
     }
 

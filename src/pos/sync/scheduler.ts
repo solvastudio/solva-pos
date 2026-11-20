@@ -58,6 +58,7 @@ export interface SyncSchedulerOptions {
     retryAfterMs?: number
     serverTimeMs?: number
   }>
+  runLogShipStep?: () => Promise<void>
   onCycleFinished?: (outcome: CycleOutcome) => void
   onSyncingChanged?: (syncing: boolean) => void
   onStoppedTerminal?: () => void
@@ -228,6 +229,11 @@ export function createSyncScheduler(opts: SyncSchedulerOptions): SyncScheduler {
             updateRequired:
               pushRes.kind === 'update_required' || pullRes.kind === 'update_required',
           })
+
+          // 4. Non-blocking best-effort device log shipping (never affects push/pull or lastSuccessAt).
+          if (opts.runLogShipStep && !stopped) {
+            await opts.runLogShipStep().catch(() => {})
+          }
         } finally {
           opts.connectivity.markSyncing(false)
           opts.onSyncingChanged?.(false)

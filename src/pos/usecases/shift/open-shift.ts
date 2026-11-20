@@ -1,4 +1,4 @@
-import type { OpenShiftPayloadV1 } from '~/lib/contracts'
+import { SCHEMA_VERSION, type OpenShiftPayloadV1 } from '~/lib/contracts'
 import { businessDate, createIdGenerator, type OutletTimezone } from '~/lib/kernel'
 import type { SolvaDb } from '../../db/solva-db'
 import type { OutboxCommandRow, ShiftRecord } from '../../db/types'
@@ -30,6 +30,7 @@ export type OpenShiftResult =
         | 'SHIFT_ALREADY_OPEN'
         | 'DEVICE_NOT_PAIRED'
         | 'OUTLET_NOT_FOUND'
+        | 'UPDATE_REQUIRED'
       readonly existingShift?: ShiftRecord
     }
 
@@ -58,6 +59,17 @@ export async function openShift(
   const device = await getMeta(db, 'device')
   if (!device) {
     return { ok: false, reason: 'DEVICE_NOT_PAIRED' }
+  }
+
+  const [syncFlags, minSupported] = await Promise.all([
+    getMeta(db, 'sync_flags'),
+    getMeta(db, 'min_supported'),
+  ])
+  if (
+    syncFlags?.update_required ||
+    (minSupported && SCHEMA_VERSION < minSupported.schema_version)
+  ) {
+    return { ok: false, reason: 'UPDATE_REQUIRED' }
   }
 
   const existing = await getOpenShiftForRegister(db, device.register_id)

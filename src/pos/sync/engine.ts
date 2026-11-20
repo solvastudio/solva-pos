@@ -1,3 +1,5 @@
+import { APP_VERSION } from '~/lib/app-version'
+import { SCHEMA_VERSION } from '~/lib/contracts'
 import { getMeta } from '../data/meta.repo'
 import {
   getOutboxQueueSummary,
@@ -7,12 +9,16 @@ import {
 import type { SolvaDb } from '../db/solva-db'
 import type { LockManagerLike } from '../locks/instance-lock'
 import { logDevice } from '../maintenance/device-log'
+import { scheduleRetentionOnIdle } from '../maintenance/retention'
+import { checkAndPruneStorage } from '../maintenance/storage'
 import { computeDeviceState } from '../session/device-state'
 import { createSyncClock } from './clock'
 import { createConnectivityMonitor } from './connectivity'
 import { runFullResync, type FullResyncProgress } from './full-resync'
+import { runDeviceLogShipper } from './log-shipper'
 import { runIncrementalPull } from './puller'
 import { runPush } from './pusher'
+import { evaluateRelease } from './release-state'
 import { createSyncScheduler, type SyncKickReason } from './scheduler'
 import { createSignalsClient } from './signals'
 import {
@@ -144,8 +150,31 @@ export async function startSyncEngine(
       deviceBanner = 'LOCKED'
     }
 
+    const relEval = minSupported
+      ? evaluateRelease(
+          {
+            latest: minSupported.latest ?? minSupported.app_version,
+            min_supported_app_version: minSupported.app_version,
+            min_supported_schema_version: minSupported.schema_version,
+            is_mandatory: minSupported.is_mandatory,
+            accept_previous_until: minSupported.accept_previous_until ?? null,
+            max_schema_version: minSupported.max_schema_version ?? minSupported.schema_version,
+          },
+          { appVersion: APP_VERSION, schemaVersion: SCHEMA_VERSION },
+          clock.trustedNow(),
+        )
+      : 'UP_TO_DATE'
+
     const updateState: SyncState['update'] =
-      syncFlags?.update_required || minSupported?.is_mandatory ? 'REQUIRED' : 'NONE'
+      syncFlags?.update_required || relEval === 'REQUIRED'
+        ? 'REQUIRED'
+        : relEval === 'HARD'
+          ? 'PENDING_APPLY'
+          : relEval === 'SOFT'
+            ? 'AVAILABLE'
+            : 'NONE'
+
+    const serverBehind = Boolean(syncFlags?.server_behind) || relEval === 'SERVER_BEHIND'
 
     sharedStore.patch({
       queue: {
@@ -156,6 +185,7 @@ export async function startSyncEngine(
       device: deviceBanner,
       leaseHoursLeft,
       update: updateState,
+      serverBehind,
       lastSuccessAt: lastSync,
       clockWarning: clock.offsetWarning(),
     })
@@ -226,8 +256,18 @@ export async function startSyncEngine(
         fetch: opts.fetch,
         onAuthTerminal: opts.onTerminalLockDetected,
       }),
+    runLogShipStep: () =>
+      runDeviceLogShipper({
+        db: opts.db,
+        clock,
+        fetch: opts.fetch,
+        onAuthTerminal: opts.onTerminalLockDetected,
+      }).then(() => {}),
     onCycleFinished: () => {
       void refreshDexieSnapshot().catch(() => {})
+      void checkAndPruneStorage(opts.db, {
+        trustedNowMs: clock.trustedNow(),
+      }).catch(() => {})
     },
     onStoppedTerminal: () => {
       sseClient.stop()
@@ -261,6 +301,9 @@ export async function startSyncEngine(
   connectivity.start()
   sseClient.start()
   scheduler.start()
+  const cancelRetention = scheduleRetentionOnIdle(opts.db, {
+    trustedNowMs: () => clock.trustedNow(),
+  })
 
   const controller: SyncController = {
     active: true,
@@ -279,6 +322,7 @@ export async function startSyncEngine(
     },
     stop: () => {
       stopped = true
+      cancelRetention()
       unsubDexie()
       sseClient.stop()
       scheduler.stop()

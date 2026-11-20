@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
 import { changeLocale } from '~/i18n'
@@ -8,10 +8,17 @@ import { getMeta, setMeta } from '~/pos/data/meta.repo'
 import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
 import { createIdleLockController } from '~/pos/session/idle-lock'
 import { clearSession, getSessionState } from '~/pos/session/session'
-import { startSyncEngine, type SyncController } from '~/pos/sync'
+import type { SyncController } from '~/pos/sync'
+import type { PersistentUpdateController } from '~/pos/sync/update-manager'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
 import type { UpdateManager, UpdateStatus } from '~/pwa/update-manager'
+
+const LazyUpdateDialog = lazy(() =>
+  import('~/components/pos/sync/UpdateDialog').then((m) => ({
+    default: m.UpdateDialog,
+  })),
+)
 
 export interface PosRouteContext {
   bootResult: BootResult
@@ -51,7 +58,10 @@ export const Route = createFileRoute('/$tenant/pos')({
 
     if (
       routeDecision.to === 'login' &&
-      ((path === `/${cleanSlug}/pos` && getSessionState().staff === null) ||
+      ((path !== loginPath &&
+        path !== pairPath &&
+        path !== systemPath &&
+        getSessionState().staff === null) ||
         path === pairPath ||
         path === systemPath)
     ) {
@@ -74,6 +84,12 @@ function PosLayoutComponent() {
   const navigate = useNavigate()
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('none')
   const [updateManager, setUpdateManager] = useState<UpdateManager | null>(null)
+  const persistentUpdateRef = useRef<PersistentUpdateController | null>(null)
+  const [updatePrompt, setUpdatePrompt] = useState<{
+    visible: boolean
+    mandatory: boolean
+    canSnooze: boolean
+  }>({ visible: false, mandatory: false, canSnooze: false })
 
   useEffect(() => {
     clearBootCrashHistory(tenant)
@@ -154,31 +170,42 @@ function PosLayoutComponent() {
           }
         })
       }
-      void startSyncEngine({
-        db: bootResult.db,
-        tenantId: bootResult.tenantId,
-        deviceId: bootResult.device.device_id,
-        isPrimaryLock: true,
-        onTerminalLockDetected: (code) => {
-          const variant =
-            code === 'DEVICE_REVOKED'
-              ? 'revoked'
-              : code === 'CREDENTIAL_EXPIRED'
-                ? 'credential_expired'
-                : 'tenant_suspended'
-          controller?.stop()
-          bootResult.releaseLock()
-          invalidateBootPosCache(tenant)
-          void navigate({
-            href: `/${tenant.toLowerCase()}/pos/system?variant=${variant}`,
+      void import('~/pos/printing/runtime').then((m) => {
+        if (!cancelled) {
+          void m.startPrintRuntime(bootResult.db, {
+            isActiveInstance: () => !cancelled,
           })
-        },
-      }).then((ctrl) => {
-        if (cancelled) {
-          ctrl.stop()
-          return
         }
-        controller = ctrl
+      })
+
+      void import('~/pos/sync').then(({ startSyncEngine }) => {
+        if (cancelled) return
+        void startSyncEngine({
+          db: bootResult.db,
+          tenantId: bootResult.tenantId,
+          deviceId: bootResult.device.device_id,
+          isPrimaryLock: true,
+          onTerminalLockDetected: (code) => {
+            const variant =
+              code === 'DEVICE_REVOKED'
+                ? 'revoked'
+                : code === 'CREDENTIAL_EXPIRED'
+                  ? 'credential_expired'
+                  : 'tenant_suspended'
+            controller?.stop()
+            bootResult.releaseLock()
+            invalidateBootPosCache(tenant)
+            void navigate({
+              href: `/${tenant.toLowerCase()}/pos/system?variant=${variant}`,
+            })
+          },
+        }).then((ctrl) => {
+          if (cancelled) {
+            ctrl.stop()
+            return
+          }
+          controller = ctrl
+        })
       })
     }
 
@@ -234,6 +261,79 @@ function PosLayoutComponent() {
     }
   }, [tenant])
 
+  useEffect(() => {
+    if (bootResult.kind !== 'READY') return
+    if (updateStatus === 'none' && !updateManager) return
+
+    let cancelled = false
+    void Promise.all([
+      import('~/pos/sync/update-manager'),
+      import('~/pos/data/shift.repo'),
+      import('~/pos/state/cart-store'),
+      import('~/lib/app-version'),
+      import('~/lib/contracts'),
+    ]).then(
+      async ([
+        { createPersistentUpdateController },
+        { getOpenShiftForRegister },
+        { posCartStore },
+        { APP_VERSION },
+        { SCHEMA_VERSION },
+      ]) => {
+        if (cancelled) return
+        if (!persistentUpdateRef.current) {
+          persistentUpdateRef.current = createPersistentUpdateController({
+            db: bootResult.db,
+            appVersion: APP_VERSION,
+            schemaVersion: SCHEMA_VERSION,
+            transport: {
+              sendSkipWaiting: () => {
+                updateManager?.applyUpdate()
+              },
+              reloadPage: () => window.location.reload(),
+            },
+          })
+        }
+        const [minSup, shift, idleLock] = await Promise.all([
+          getMeta(bootResult.db, 'min_supported'),
+          getOpenShiftForRegister(bootResult.db, bootResult.device.register_id),
+          getMeta(bootResult.db, 'idle_lock'),
+        ])
+        if (cancelled) return
+        const snap = await persistentUpdateRef.current.evaluate({
+          release: minSup
+            ? {
+                latest: minSup.latest ?? minSup.app_version,
+                min_supported_app_version: minSup.app_version,
+                min_supported_schema_version: minSup.schema_version,
+                is_mandatory: minSup.is_mandatory,
+                accept_previous_until: minSup.accept_previous_until ?? null,
+                max_schema_version: minSup.max_schema_version ?? minSup.schema_version,
+              }
+            : null,
+          hasWaitingWorker: updateStatus === 'available' || updateStatus === 'pending_apply',
+          context: {
+            cartActive: posCartStore.getState().cart.lines.length > 0,
+            paymentActive: getSessionState().paymentInProgress,
+            shiftOpen: Boolean(shift),
+            idleLocked: Boolean(idleLock?.locked),
+          },
+        })
+        if (!cancelled) {
+          setUpdatePrompt({
+            visible: snap.promptVisible,
+            mandatory: snap.mandatory,
+            canSnooze: snap.canSnooze,
+          })
+        }
+      },
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [bootResult, updateStatus, updateManager])
+
   return (
     <PosRootBoundary tenantSlug={tenant}>
       <div
@@ -243,6 +343,27 @@ function PosLayoutComponent() {
         data-has-manager={updateManager ? 'true' : 'false'}
       >
         <Outlet />
+        {updatePrompt.visible ? (
+          <Suspense fallback={null}>
+            <LazyUpdateDialog
+              open={updatePrompt.visible}
+              mandatory={updatePrompt.mandatory}
+              canSnooze={updatePrompt.canSnooze}
+              onSnooze={() => {
+                void persistentUpdateRef.current?.snooze().then((s) => {
+                  setUpdatePrompt({
+                    visible: s.promptVisible,
+                    mandatory: s.mandatory,
+                    canSnooze: s.canSnooze,
+                  })
+                })
+              }}
+              onReloadNow={() => {
+                void persistentUpdateRef.current?.applyNow()
+              }}
+            />
+          </Suspense>
+        ) : null}
       </div>
     </PosRootBoundary>
   )
