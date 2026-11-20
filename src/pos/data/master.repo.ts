@@ -1,4 +1,5 @@
 import type { Transaction } from 'dexie'
+import { buildSearchTokens } from '~/modules/catalog/shared'
 import { SolvaDb } from '../db/solva-db'
 import { MASTER_STORE_NAMES, type MasterStoreName } from '../db/schema-v1'
 import type {
@@ -8,6 +9,7 @@ import type {
   RolePermissionRecord,
   StaffPinRecord,
 } from '../db/types'
+import { deriveLocalFields } from './derive-local-fields'
 import { setMeta } from './meta.repo'
 
 const MASTER_SET = new Set<string>(MASTER_STORE_NAMES)
@@ -20,12 +22,7 @@ export interface PullMasterRow {
 }
 
 export function buildProductSearchTokens(name: string, code?: string | null): string[] {
-  const combined = `${name} ${code ?? ''}`
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-  const rawTokens = combined.split(/[^a-z0-9]+/).filter(Boolean)
-  return Array.from(new Set(rawTokens))
+  return buildSearchTokens(name, code ?? '')
 }
 
 function enrichMasterPayload(
@@ -33,29 +30,7 @@ function enrichMasterPayload(
   id: string,
   payload: Record<string, unknown>,
 ): Record<string, unknown> {
-  const record: Record<string, unknown> = { ...payload, id }
-  if (entity === 'product') {
-    const name = typeof record.name === 'string' ? record.name : ''
-    const code = typeof record.code === 'string' ? record.code : null
-    record.search_tokens = buildProductSearchTokens(name, code)
-  }
-  if (entity === 'tax_rate_history') {
-    record.outlet_key =
-      typeof record.outlet_id === 'string' && record.outlet_id ? record.outlet_id : '*'
-  }
-  if (entity === 'price_entry') {
-    record.outlet_key =
-      typeof record.outlet_id === 'string' && record.outlet_id ? record.outlet_id : '*'
-  }
-  if (entity === 'item_outlet_availability') {
-    record.sku_key =
-      typeof record.sku_id === 'string' && record.sku_id ? record.sku_id : '*'
-  }
-  if (entity === 'sku_uom' && (record.barcode === null || record.barcode === '')) {
-    // IndexedDB cannot uniquely index null/empty strings without colliding across rows.
-    delete record.barcode
-  }
-  return record
+  return deriveLocalFields(entity, { ...payload, id })
 }
 
 /**

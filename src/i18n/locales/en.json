@@ -1038,6 +1038,12 @@
     "shell": {
       "registerFallback": "Cashier Terminal",
       "syncNow": "Sync now"
+    },
+    "scan": {
+      "unknownBarcode": "Unknown barcode.",
+      "unavailable": "{{name}} is not available at this outlet.",
+      "noPrice": "Price is not set for {{name}}.",
+      "inactive": "{{name}} is currently inactive."
     }
   },
   "system": {

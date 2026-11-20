@@ -78,6 +78,7 @@ export default defineConfig({
       PUBLIC_BASE_URL: `http://localhost:${e2ePort}`,
       LOG_DIR: e2eLogDir,
       LOG_LEVEL: 'info',
+      RL_FULL_RESYNC_PER_HOUR: '5',
     },
   },
 })

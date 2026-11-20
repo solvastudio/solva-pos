@@ -237,11 +237,78 @@ export interface UserOutletRecord extends IdRecord {
   deleted_at: string | null
 }
 
+export interface CategoryRecord extends IdRecord {
+  parent_id: string | null
+  name: string
+  sort_order: number
+  deleted_at?: string | null
+}
+
+export interface UomRecord extends IdRecord {
+  code: string
+  name: string
+  allow_fraction: boolean
+  deleted_at?: string | null
+}
+
 export interface ProductRecord extends IdRecord {
-  category_id: string | null
+  category_id: string
   code: string
   name: string
   product_type: string
+  has_variants: boolean
+  base_uom_id: string
+  track_stock: boolean
+  taxable: boolean
+  is_active: boolean
+  is_open_price: boolean
+  sort_order: number
   search_tokens: string[]
-  deleted_at: string | null
+  deleted_at?: string | null
+}
+
+export interface SkuRecord extends IdRecord {
+  product_id: string
+  sku_code: string
+  variant_label: string | null
+  is_default: boolean
+  is_active: boolean
+  sort_order: number
+  deleted_at?: string | null
+}
+
+export interface SkuUomRecord extends IdRecord {
+  sku_id: string
+  uom_id: string
+  conversion_factor: string
+  is_base: boolean
+  barcode?: string
+  deleted_at?: string | null
+}
+
+export interface PriceEntryRecord extends IdRecord {
+  sku_id: string
+  uom_id: string
+  outlet_id: string | null
+  outlet_key: string
+  price: number
+  currency: string
+  deleted_at?: string | null
+}
+
+export interface ItemOutletAvailabilityRecord extends IdRecord {
+  outlet_id: string
+  product_id: string
+  sku_id: string | null
+  sku_key: string
+  status: 'AVAILABLE' | 'UNAVAILABLE'
+  changed_at?: string
+  deleted_at?: string | null
+}
+
+export interface FeatureFlagRecord extends IdRecord {
+  flag_key: string
+  enabled: boolean
+  params?: Record<string, unknown> | null
+  deleted_at?: string | null
 }

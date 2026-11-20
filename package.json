@@ -32,7 +32,8 @@
     "e2e:build": "node scripts/ci/e2e-build.mjs",
     "e2e:setup": "node scripts/local.mjs tsx tests/e2e/global-setup.ts",
     "test:e2e": "node scripts/local.mjs playwright test",
-    "gate:f1": "node scripts/ci/gate-f1.mjs"
+    "gate:f1": "node scripts/ci/gate-f1.mjs",
+    "gate:f2": "node scripts/ci/gate-f2.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "5.3.0",

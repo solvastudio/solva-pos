@@ -1038,6 +1038,12 @@
     "shell": {
       "registerFallback": "Terminal Kasir",
       "syncNow": "Sinkron sekarang"
+    },
+    "scan": {
+      "unknownBarcode": "Barcode tidak dikenal.",
+      "unavailable": "{{name}} tidak tersedia di outlet ini.",
+      "noPrice": "Harga belum diatur untuk {{name}}.",
+      "inactive": "{{name}} sedang nonaktif."
     }
   },
   "system": {

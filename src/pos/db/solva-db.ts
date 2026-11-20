@@ -4,17 +4,24 @@ import { STORES_V1 } from './schema-v1'
 import type {
   AppUserRecord,
   CashMasterRecord,
+  CategoryRecord,
   DeviceLogRow,
+  FeatureFlagRecord,
   IdRecord,
+  ItemOutletAvailabilityRecord,
   LocalCounterRow,
   MetaRow,
   OutboxCommandRow,
   OutletRecord,
+  PriceEntryRecord,
   ProductRecord,
   PullStageRow,
   RolePermissionRecord,
   RoleRecord,
+  SkuRecord,
+  SkuUomRecord,
   StaffPinRecord,
+  UomRecord,
   UserOutletRecord,
 } from './types'
 
@@ -38,19 +45,19 @@ export class SolvaDb extends Dexie {
   outlet_receipt_setting!: Table<IdRecord, string>
   cash_master!: Table<CashMasterRecord, string>
   payment_method!: Table<IdRecord, string>
-  feature_flag!: Table<IdRecord, string>
+  feature_flag!: Table<FeatureFlagRecord, string>
   app_user!: Table<AppUserRecord, string>
   role!: Table<RoleRecord, string>
   role_permission!: Table<RolePermissionRecord, string>
   user_outlet!: Table<UserOutletRecord, string>
   staff_pin!: Table<StaffPinRecord, string>
-  category!: Table<IdRecord, string>
-  uom!: Table<IdRecord, string>
+  category!: Table<CategoryRecord, string>
+  uom!: Table<UomRecord, string>
   product!: Table<ProductRecord, string>
-  sku!: Table<IdRecord, string>
-  sku_uom!: Table<IdRecord, string>
-  price_entry!: Table<IdRecord, string>
-  item_outlet_availability!: Table<IdRecord, string>
+  sku!: Table<SkuRecord, string>
+  sku_uom!: Table<SkuUomRecord, string>
+  price_entry!: Table<PriceEntryRecord, string>
+  item_outlet_availability!: Table<ItemOutletAvailabilityRecord, string>
   modifier_group!: Table<IdRecord, string>
   modifier_group_product!: Table<IdRecord, string>
   modifier!: Table<IdRecord, string>

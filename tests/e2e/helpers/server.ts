@@ -239,3 +239,82 @@ export async function createPairingCodeDirect(
   return result.code
 }
 
+export async function readTenantSyncState(tenantId: string): Promise<{
+  version: number
+  tombstone_floor_version: number
+}> {
+  return withE2eOwnerClient(async (client) => {
+    await client.query('BEGIN')
+    try {
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId])
+      const res = await client.query<{ version: string; tombstone_floor_version: string }>(
+        'SELECT version, tombstone_floor_version FROM tenant_sync WHERE tenant_id = $1',
+        [tenantId],
+      )
+      await client.query('COMMIT')
+      const row = res.rows[0]
+      if (!row) throw new Error(`Missing tenant_sync row for ${tenantId}`)
+      return {
+        version: Number(row.version),
+        tombstone_floor_version: Number(row.tombstone_floor_version),
+      }
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    }
+  })
+}
+
+export async function bumpTombstoneFloorVersion(
+  tenantId: string,
+  floorVersion: number,
+): Promise<void> {
+  await withE2eOwnerClient(async (client) => {
+    await client.query('BEGIN')
+    try {
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId])
+      await client.query(
+        'UPDATE tenant_sync SET tombstone_floor_version = $2 WHERE tenant_id = $1',
+        [tenantId, floorVersion],
+      )
+      await client.query('COMMIT')
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    }
+  })
+}
+
+export async function getDistinctSkuVersionsAfter(
+  tenantId: string,
+  afterVersion: number,
+): Promise<Array<{ version: number; count: number }>> {
+  return withE2eOwnerClient(async (client) => {
+    await client.query('BEGIN')
+    try {
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId])
+      const res = await client.query<{ version: string; count: string }>(
+        'SELECT version, count(*)::text AS count FROM sku WHERE tenant_id = $1 AND version > $2 GROUP BY version ORDER BY version',
+        [tenantId, afterVersion],
+      )
+      await client.query('COMMIT')
+      return res.rows.map((r) => ({ version: Number(r.version), count: Number(r.count) }))
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    }
+  })
+}
+
+export async function recordF2Metric(key: string, data: unknown): Promise<void> {
+  const { existsSync, mkdirSync, readFileSync, writeFileSync } = await import('node:fs')
+  const { dirname, resolve } = await import('node:path')
+  const metricsPath = resolve('tests/e2e/.logs/f2-metrics.json')
+  mkdirSync(dirname(metricsPath), { recursive: true })
+  const current = existsSync(metricsPath)
+    ? (JSON.parse(readFileSync(metricsPath, 'utf8')) as Record<string, unknown>)
+    : {}
+  current[key] = data
+  writeFileSync(metricsPath, JSON.stringify(current, null, 2), 'utf8')
+}
+

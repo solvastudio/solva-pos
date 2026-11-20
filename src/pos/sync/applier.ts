@@ -3,10 +3,23 @@ import {
   clearMasterStoresInTx,
   type PullMasterRow,
 } from '../data/master.repo'
-import { setMeta } from '../data/meta.repo'
+import { getMeta, setMeta } from '../data/meta.repo'
 import { runAtomicPullApplyTx } from '../data/pull-stage.repo'
+import { rebuildCatalogAvailabilityIndex } from '../db/catalog-index'
 import type { SolvaDb } from '../db/solva-db'
 import type { PullStageRow } from '../db/types'
+
+export const LARGE_INCREMENTAL_THRESHOLD = 60_000
+
+const CATALOG_INDEX_ENTITIES = new Set([
+  'category',
+  'uom',
+  'product',
+  'sku',
+  'sku_uom',
+  'price_entry',
+  'item_outlet_availability',
+])
 
 function runWhenIdle(immediate: boolean): Promise<void> {
   if (immediate) {
@@ -48,12 +61,21 @@ export async function applyPullCycle(
 ): Promise<void> {
   await runWhenIdle(Boolean(opts.immediate))
 
+  const prevCatalogCursor = (await getMeta(db, 'catalog_cursor')) ?? 0
+  let catalogTouched = opts.catalogCursor !== prevCatalogCursor
+
   await runAtomicPullApplyTx(db, async (tx) => {
     const stageTable = tx.table<PullStageRow, number>('pull_stage')
     const staged = await stageTable.where('cycle_id').equals(opts.cycleId).toArray()
     staged.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0))
 
     if (staged.length > 0) {
+      for (const s of staged) {
+        if (CATALOG_INDEX_ENTITIES.has(s.entity)) {
+          catalogTouched = true
+          break
+        }
+      }
       await applyMasterRows(tx, toMasterRows(staged))
     }
 
@@ -64,6 +86,10 @@ export async function applyPullCycle(
     await setMeta(tx, 'stage', null)
     await stageTable.where('cycle_id').equals(opts.cycleId).delete()
   })
+
+  if (catalogTouched) {
+    await rebuildCatalogAvailabilityIndex(db).catch(() => {})
+  }
 }
 
 /**
@@ -101,4 +127,6 @@ export async function applyFullResyncSnapshot(
     await setMeta(tx, 'stage', null)
     await stageTable.where('cycle_id').equals(opts.cycleId).delete()
   })
+
+  await rebuildCatalogAvailabilityIndex(db).catch(() => {})
 }

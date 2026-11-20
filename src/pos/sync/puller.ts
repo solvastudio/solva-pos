@@ -13,7 +13,7 @@ import {
 } from '../data/outbox.repo'
 import { clearPullStageCycle, stagePullRows } from '../data/pull-stage.repo'
 import type { SolvaDb } from '../db/solva-db'
-import { applyPullCycle } from './applier'
+import { applyPullCycle, LARGE_INCREMENTAL_THRESHOLD } from './applier'
 import type { SyncClock } from './clock'
 import { deviceFetch, type DeviceAuthFailureCode } from './device-http'
 
@@ -112,6 +112,7 @@ export async function runIncrementalPull(
 
   const timeoutMs = opts.unstable ? UNSTABLE_PULL_TIMEOUT_MS : DEFAULT_PULL_TIMEOUT_MS
   let lastServerTimeMs: number | undefined
+  let stagedRowCount = 0
 
   while (true) {
     const res = await deviceFetch<unknown>('/api/pos/v1/pull', {
@@ -159,6 +160,13 @@ export async function runIncrementalPull(
     }
 
     if (parsed.rows.length > 0) {
+      stagedRowCount += parsed.rows.length
+      if (stagedRowCount > LARGE_INCREMENTAL_THRESHOLD) {
+        await clearPullStageCycle(opts.db, cycleId)
+        await setMeta(opts.db, 'stage', null)
+        await setMeta(opts.db, 'full_resync', true)
+        return { kind: 'full_resync_required', reason: 'CURSOR_BELOW_FLOOR' }
+      }
       await stagePullRows(
         opts.db,
         parsed.rows.map((r) => ({

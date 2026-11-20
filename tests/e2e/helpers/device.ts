@@ -27,13 +27,14 @@ export async function pairDeviceViaUi(
   slug: string,
   code: string,
   deviceName = 'E2E Cashier 01',
+  waitTimeoutMs = 20_000,
 ): Promise<void> {
   await page.goto(`/${slug}/pos/pair`)
   await page.getByLabel(/Pairing code|Kode pairing/i).fill(code)
   await page.getByLabel(/Device name|Nama perangkat/i).fill(deviceName)
   await page.getByRole('button', { name: /Pair Device|^Pasangkan$/i }).click()
 
-  await page.waitForURL(new RegExp(`/${slug}/pos/login`), { timeout: 20_000 })
+  await page.waitForURL(new RegExp(`/${slug}/pos/login`), { timeout: waitTimeoutMs })
   await expect(page.locator('h1')).toContainText(/PIN/i)
   await waitForServiceWorkerReady(page)
   await page.waitForFunction(() => Boolean((window as { __solva?: unknown }).__solva), {

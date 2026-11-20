@@ -93,7 +93,7 @@ export const envSchema = z.object({
   RL_BAD_CREDENTIAL_IP_POINTS: positiveIntEnv(30),
   RL_BAD_CREDENTIAL_IP_WINDOW_SEC: positiveIntEnv(300),
   RL_DEVICE_PUSH_PER_MIN: positiveIntEnv(60),
-  RL_DEVICE_PULL_PER_MIN: positiveIntEnv(30),
+  RL_DEVICE_PULL_PER_MIN: positiveIntEnv(120),
   RL_DEVICE_PING_PER_MIN: positiveIntEnv(30),
   RL_DEVICE_HANDOVER_PER_MIN: positiveIntEnv(30),
   RL_DEVICE_LOG_PER_10MIN: positiveIntEnv(20),
