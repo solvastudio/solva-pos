@@ -14,6 +14,7 @@ import { Route as TenantRouteImport } from './routes/$tenant'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as TenantIndexRouteImport } from './routes/$tenant/index'
 import { Route as TenantJoinRouteImport } from './routes/$tenant/join'
+import { Route as TenantPosRouteImport } from './routes/$tenant/pos'
 import { Route as TenantResetRouteImport } from './routes/$tenant/reset'
 import { Route as DevUiRouteImport } from './routes/_dev/ui'
 import { Route as PlatformIndexRouteImport } from './routes/platform/index'
@@ -22,6 +23,9 @@ import { Route as TenantAdminAuthedRouteImport } from './routes/$tenant/admin/_a
 import { Route as TenantAdminLoginRouteImport } from './routes/$tenant/admin/login'
 import { Route as TenantApiJoinRouteImport } from './routes/$tenant/api/join'
 import { Route as TenantApiResetRouteImport } from './routes/$tenant/api/reset'
+import { Route as TenantPosIndexRouteImport } from './routes/$tenant/pos/index'
+import { Route as TenantPosSplatRouteImport } from './routes/$tenant/pos/$'
+import { Route as TenantPosManifestDotwebmanifestRouteImport } from './routes/$tenant/pos/manifest[.]webmanifest'
 import { Route as PlatformApiSplatRouteImport } from './routes/platform/api/$'
 import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants.$tenantId'
 import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants.new'
@@ -64,6 +68,11 @@ const TenantJoinRoute = TenantJoinRouteImport.update({
   path: '/join',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantPosRoute = TenantPosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
+  getParentRoute: () => TenantRoute,
+} as any)
 const TenantResetRoute = TenantResetRouteImport.update({
   id: '/reset',
   path: '/reset',
@@ -104,6 +113,22 @@ const TenantApiResetRoute = TenantApiResetRouteImport.update({
   path: '/api/reset',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantPosIndexRoute = TenantPosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosSplatRoute = TenantPosSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosManifestDotwebmanifestRoute =
+  TenantPosManifestDotwebmanifestRouteImport.update({
+    id: '/manifest.webmanifest',
+    path: '/manifest.webmanifest',
+    getParentRoute: () => TenantPosRoute,
+  } as any)
 const PlatformApiSplatRoute = PlatformApiSplatRouteImport.update({
   id: '/platform/api/$',
   path: '/platform/api/$',
@@ -192,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/$tenant': typeof TenantRouteWithChildren
   '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
+  '/$tenant/pos': typeof TenantPosRouteWithChildren
   '/$tenant/reset': typeof TenantResetRoute
   '/ui': typeof DevUiRoute
   '/platform/login': typeof PlatformLoginRoute
@@ -201,9 +227,12 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
+  '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
@@ -230,9 +259,12 @@ export interface FileRoutesByTo {
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
+  '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/$tenant/pos': typeof TenantPosIndexRoute
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
@@ -253,6 +285,7 @@ export interface FileRoutesById {
   '/$tenant': typeof TenantRouteWithChildren
   '/health': typeof HealthRoute
   '/$tenant/join': typeof TenantJoinRoute
+  '/$tenant/pos': typeof TenantPosRouteWithChildren
   '/$tenant/reset': typeof TenantResetRoute
   '/_dev/ui': typeof DevUiRoute
   '/platform/login': typeof PlatformLoginRoute
@@ -262,9 +295,12 @@ export interface FileRoutesById {
   '/$tenant/admin/login': typeof TenantAdminLoginRoute
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
+  '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/$tenant/pos/': typeof TenantPosIndexRoute
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
@@ -286,6 +322,7 @@ export interface FileRouteTypes {
     | '/$tenant'
     | '/health'
     | '/$tenant/join'
+    | '/$tenant/pos'
     | '/$tenant/reset'
     | '/ui'
     | '/platform/login'
@@ -295,9 +332,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/login'
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
+    | '/$tenant/pos/$'
+    | '/$tenant/pos/manifest.webmanifest'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
+    | '/$tenant/pos/'
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
@@ -324,9 +364,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/login'
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
+    | '/$tenant/pos/$'
+    | '/$tenant/pos/manifest.webmanifest'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
+    | '/$tenant/pos'
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
@@ -346,6 +389,7 @@ export interface FileRouteTypes {
     | '/$tenant'
     | '/health'
     | '/$tenant/join'
+    | '/$tenant/pos'
     | '/$tenant/reset'
     | '/_dev/ui'
     | '/platform/login'
@@ -355,9 +399,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/login'
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
+    | '/$tenant/pos/$'
+    | '/$tenant/pos/manifest.webmanifest'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
+    | '/$tenant/pos/'
     | '/$tenant/admin/_authed/account'
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
@@ -428,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantJoinRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/$tenant/pos': {
+      id: '/$tenant/pos'
+      path: '/pos'
+      fullPath: '/$tenant/pos'
+      preLoaderRoute: typeof TenantPosRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/$tenant/reset': {
       id: '/$tenant/reset'
       path: '/reset'
@@ -483,6 +537,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/$tenant/api/reset'
       preLoaderRoute: typeof TenantApiResetRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/$tenant/pos/': {
+      id: '/$tenant/pos/'
+      path: '/'
+      fullPath: '/$tenant/pos/'
+      preLoaderRoute: typeof TenantPosIndexRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/$': {
+      id: '/$tenant/pos/$'
+      path: '/$'
+      fullPath: '/$tenant/pos/$'
+      preLoaderRoute: typeof TenantPosSplatRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/manifest.webmanifest': {
+      id: '/$tenant/pos/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/$tenant/pos/manifest.webmanifest'
+      preLoaderRoute: typeof TenantPosManifestDotwebmanifestRouteImport
+      parentRoute: typeof TenantPosRoute
     }
     '/platform/api/$': {
       id: '/platform/api/$'
@@ -599,6 +674,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface TenantPosRouteChildren {
+  TenantPosSplatRoute: typeof TenantPosSplatRoute
+  TenantPosManifestDotwebmanifestRoute: typeof TenantPosManifestDotwebmanifestRoute
+  TenantPosIndexRoute: typeof TenantPosIndexRoute
+}
+
+const TenantPosRouteChildren: TenantPosRouteChildren = {
+  TenantPosSplatRoute: TenantPosSplatRoute,
+  TenantPosManifestDotwebmanifestRoute: TenantPosManifestDotwebmanifestRoute,
+  TenantPosIndexRoute: TenantPosIndexRoute,
+}
+
+const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(
+  TenantPosRouteChildren,
+)
+
 interface TenantAdminAuthedRouteChildren {
   TenantAdminAuthedAccountRoute: typeof TenantAdminAuthedAccountRoute
   TenantAdminAuthedSettingsRoute: typeof TenantAdminAuthedSettingsRoute
@@ -618,6 +709,7 @@ const TenantAdminAuthedRouteWithChildren =
 
 interface TenantRouteChildren {
   TenantJoinRoute: typeof TenantJoinRoute
+  TenantPosRoute: typeof TenantPosRouteWithChildren
   TenantResetRoute: typeof TenantResetRoute
   TenantIndexRoute: typeof TenantIndexRoute
   TenantAdminAuthedRoute: typeof TenantAdminAuthedRouteWithChildren
@@ -629,6 +721,7 @@ interface TenantRouteChildren {
 
 const TenantRouteChildren: TenantRouteChildren = {
   TenantJoinRoute: TenantJoinRoute,
+  TenantPosRoute: TenantPosRouteWithChildren,
   TenantResetRoute: TenantResetRoute,
   TenantIndexRoute: TenantIndexRoute,
   TenantAdminAuthedRoute: TenantAdminAuthedRouteWithChildren,

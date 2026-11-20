@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = resolve(import.meta.dirname, '../..')
 
+// T-01 static fallback exception: zero-bundle fallback page cannot consume Tailwind tokens.css.
+export const TOKEN_GUARD_STATIC_EXCLUSIONS = ['public/recovery.html'] as const
+
 const RULES: Array<{ name: string; pattern: RegExp }> = [
   {
     name: 'hardcoded-color',

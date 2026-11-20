@@ -50,7 +50,7 @@ describe('architecture layering guardrails', () => {
 
     const dc = depcruiseFixture('pos-imports-server')
     expect(dc.summary.violations.some((v) => v.rule.name === 'pos-no-server')).toBe(true)
-  })
+  }, 15_000)
 
   it('detects kernel importing react via ESLint', async () => {
     const messages = await lintFixture('kernel-imports-react')

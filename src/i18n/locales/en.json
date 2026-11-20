@@ -731,5 +731,27 @@
       "emptyTitle": "No products yet",
       "emptyDesc": "Add your first product to start selling."
     }
+  },
+  "pos": {
+    "placeholder": {
+      "title": "POS Terminal — coming soon",
+      "body": "Cashier workspace shell and offline cache are active for this tenant.",
+      "offlineReady": "Offline shell ready",
+      "onlineStatus": "Online",
+      "offlineStatus": "Offline",
+      "tenantLabel": "Tenant"
+    }
+  },
+  "system": {
+    "recovery": {
+      "title": "App could not start",
+      "body": "Your unsent transactions remain safely stored on this device.",
+      "retry": "Retry",
+      "exportPending": "Export pending transactions",
+      "noPending": "No pending transactions found on this device.",
+      "reset": "Reset app",
+      "resetPrompt": "Type RESET to clear only this outlet's app cache without deleting local data.",
+      "resetConfirm": "RESET"
+    }
   }
 }

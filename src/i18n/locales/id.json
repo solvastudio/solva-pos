@@ -731,5 +731,27 @@
       "emptyTitle": "Belum ada produk",
       "emptyDesc": "Tambahkan produk pertama untuk mulai menjual."
     }
+  },
+  "pos": {
+    "placeholder": {
+      "title": "Terminal Kasir — segera hadir",
+      "body": "Shell ruang kasir dan cache offline sudah aktif untuk tenant ini.",
+      "offlineReady": "Shell offline siap",
+      "onlineStatus": "Online",
+      "offlineStatus": "Offline",
+      "tenantLabel": "Tenant"
+    }
+  },
+  "system": {
+    "recovery": {
+      "title": "Aplikasi tidak dapat dimulai",
+      "body": "Transaksi yang belum terkirim tetap aman tersimpan di perangkat ini.",
+      "retry": "Coba lagi",
+      "exportPending": "Ekspor transaksi tertunda",
+      "noPending": "Tidak ada transaksi tertunda di perangkat ini.",
+      "reset": "Reset aplikasi",
+      "resetPrompt": "Ketik RESET untuk membersihkan cache aplikasi tenant ini tanpa menghapus data lokal.",
+      "resetConfirm": "RESET"
+    }
   }
 }

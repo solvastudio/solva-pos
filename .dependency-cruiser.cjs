@@ -10,7 +10,9 @@ module.exports = {
     {
       name: 'pos-no-server',
       severity: 'error',
-      from: { path: '^src/(pos|components|hooks|queries|routes/(?!api|[^/]+/api|[^/]+/admin/api|platform/api|health\\.ts))' },
+      from: {
+        path: '^src/(pos|components|hooks|queries|routes/(?!api|[^/]+/api|[^/]+/admin/api|[^/]+/pos/manifest\\[\\.\\]webmanifest\\.ts|platform/api|health\\.ts))',
+      },
       to: { path: '^src/(server|modules/[^/]+/server)' },
     },
     {
@@ -37,7 +39,7 @@ module.exports = {
     {
       name: 'module-public-only',
       severity: 'error',
-      from: { path: '^src/(functions|routes/(?:api|[^/]+/api|[^/]+/admin/api|platform/api|health\\.ts)|server)' },
+      from: { path: '^src/(functions|routes/(?:api|[^/]+/api|[^/]+/admin/api|[^/]+/pos/manifest\\[\\.\\]webmanifest\\.ts|platform/api|health\\.ts)|server)' },
       to: { path: '^src/modules/[^/]+/(?!public\\.ts|shared\\.ts)' },
     },
     {

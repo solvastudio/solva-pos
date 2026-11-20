@@ -22,6 +22,7 @@
     "db:down": "docker compose down",
     "size": "size-limit",
     "logs:find": "tsx scripts/logs-find.ts",
+    "guard:bundle": "node scripts/ci/bundle-guard.mjs",
     "audit:verify": "node scripts/local.mjs tsx scripts/ops/verify-audit-chain.ts",
     "seed:dev-tenant": "node scripts/local.mjs tsx scripts/seed/dev-tenant.ts",
     "seed:dev-owner": "node scripts/local.mjs tsx scripts/seed/dev-owner.ts",
@@ -54,6 +55,12 @@
     "react-i18next": "17.1.9",
     "tailwind-merge": "3.7.0",
     "uuidv7": "1.2.1",
+    "vite-plugin-pwa": "2.0.0",
+    "workbox-build": "7.4.1",
+    "workbox-core": "7.4.1",
+    "workbox-precaching": "7.4.1",
+    "workbox-routing": "7.4.1",
+    "workbox-window": "7.4.1",
     "zod": "4.6.7"
   },
   "devDependencies": {

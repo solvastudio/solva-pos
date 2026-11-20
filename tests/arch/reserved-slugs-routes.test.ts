@@ -41,14 +41,26 @@ describe('architecture reserved slug vs static route guard', () => {
   it('ensures $tenant child static segments are unique', () => {
     const tenantDir = join(ROUTES_DIR, '$tenant')
     if (!existsSync(tenantDir)) return
-    const childNames = readdirSync(tenantDir).map((entry) => {
+    const entries = readdirSync(tenantDir)
+    const fileStems = new Set<string>()
+    const dirNames = new Set<string>()
+    for (const entry of entries) {
       const st = statSync(join(tenantDir, entry))
-      return st.isDirectory() ? entry : entry.replace(/\.(?:tsx|ts|jsx|js)$/, '')
-    })
-    expect(new Set(childNames).size).toBe(childNames.length)
-    expect(childNames).toContain('api')
-    expect(childNames).toContain('join')
-    expect(childNames).toContain('reset')
+      if (st.isDirectory()) {
+        expect(dirNames.has(entry.toLowerCase())).toBe(false)
+        dirNames.add(entry.toLowerCase())
+      } else {
+        const stem = entry.replace(/\.(?:tsx|ts|jsx|js)$/, '').toLowerCase()
+        // Duplicate non-layout files resolving to the same segment are forbidden.
+        expect(fileStems.has(stem)).toBe(false)
+        fileStems.add(stem)
+      }
+    }
+    const allSegments = new Set([...fileStems, ...dirNames])
+    expect(allSegments.has('api')).toBe(true)
+    expect(allSegments.has('join')).toBe(true)
+    expect(allSegments.has('reset')).toBe(true)
+    expect(allSegments.has('pos')).toBe(true)
   })
 
   it('detects unreserved top-level route segment in fixture directory', () => {

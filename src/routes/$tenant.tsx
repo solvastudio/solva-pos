@@ -31,21 +31,40 @@ export const Route = createFileRoute('/$tenant')({
       throw notFound()
     }
 
-    const res = await resolveTenantFn({ data: { slug: params.tenant } })
-    if (res.kind === 'not_found') {
-      throw notFound()
-    }
-    if (res.kind === 'suspended') {
-      return { tenantStatus: 'suspended', tenant: null }
-    }
+    const isPosPath = /^\/[^/]+\/pos(\/|$)/.test(location.pathname)
+    try {
+      const res = await resolveTenantFn({ data: { slug: params.tenant } })
+      if (res.kind === 'not_found') {
+        throw notFound()
+      }
+      if (res.kind === 'suspended') {
+        return { tenantStatus: 'suspended', tenant: null }
+      }
 
-    return {
-      tenantStatus: 'active',
-      tenant: {
-        id: res.tenantId,
-        slug: res.slug,
-        name: res.name,
-      },
+      return {
+        tenantStatus: 'active',
+        tenant: {
+          id: res.tenantId,
+          slug: res.slug,
+          name: res.name,
+        },
+      }
+    } catch (err) {
+      // Re-throw real router throws (notFound / redirect); only fall back offline for /pos shell.
+      if (err && typeof err === 'object' && ('isNotFound' in err || 'status' in err)) {
+        throw err
+      }
+      if (!isPosPath) {
+        throw err
+      }
+      return {
+        tenantStatus: 'active',
+        tenant: {
+          id: '',
+          slug: params.tenant.toLowerCase(),
+          name: params.tenant.toLowerCase(),
+        },
+      }
     }
   },
   notFoundComponent: NotFoundView,
