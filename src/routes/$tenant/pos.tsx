@@ -1,15 +1,58 @@
-import { useCallback, useEffect, useState } from 'react'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { ErrorBoundaryArea, type ErrorBoundaryErrorDetails } from '~/components/layout/ErrorBoundaryArea'
-import { findTenantIdBySlug } from '~/pos/db/registry'
-import { openTenantDb } from '~/pos/db/solva-db'
-import { logDevice } from '~/pos/maintenance/device-log'
+import { useEffect, useState } from 'react'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
+import { changeLocale } from '~/i18n'
+import type { BootResult } from '~/pos/boot/boot'
+import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
+import { getCachedBootPos } from '~/pos/hooks/use-boot'
 import { clearBootCrashHistory } from '~/pwa/boot-guard'
 import { notifyPosBootOk, registerPosServiceWorker } from '~/pwa/register'
 import type { UpdateManager, UpdateStatus } from '~/pwa/update-manager'
 
+export interface PosRouteContext {
+  bootResult: BootResult
+  routeDecision: RouteDecision
+}
+
 export const Route = createFileRoute('/$tenant/pos')({
   ssr: false,
+  beforeLoad: async ({ params, location }): Promise<PosRouteContext> => {
+    const bootResult = await getCachedBootPos(params.tenant)
+    const routeDecision = decideRoute(bootResult)
+    const cleanSlug = params.tenant.toLowerCase()
+    const path = location.pathname.replace(/\/+$/, '')
+
+    const pairPath = `/${cleanSlug}/pos/pair`
+    const systemPath = `/${cleanSlug}/pos/system`
+    const loginPath = `/${cleanSlug}/pos/login`
+
+    if (routeDecision.to === 'pair' && path !== pairPath) {
+      throw redirect({
+        href: `${pairPath}${location.hash ?? ''}`,
+      })
+    }
+
+    if (routeDecision.to === 'system') {
+      const canRepairFromSystem =
+        (routeDecision.variant === 'revoked' ||
+          routeDecision.variant === 'credential_expired') &&
+        path === pairPath
+
+      if (!canRepairFromSystem && path !== systemPath) {
+        throw redirect({
+          href: `${systemPath}?variant=${routeDecision.variant}`,
+        })
+      }
+    }
+
+    if (routeDecision.to === 'login' && (path === `/${cleanSlug}/pos` || path === pairPath || path === systemPath)) {
+      throw redirect({
+        href: loginPath,
+      })
+    }
+
+    return { bootResult, routeDecision }
+  },
   head: () => ({
     links: [{ rel: 'manifest', href: './manifest.webmanifest' }],
   }),
@@ -18,6 +61,7 @@ export const Route = createFileRoute('/$tenant/pos')({
 
 function PosLayoutComponent() {
   const { tenant } = Route.useParams()
+  const { bootResult } = Route.useRouteContext()
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('none')
   const [updateManager, setUpdateManager] = useState<UpdateManager | null>(null)
 
@@ -27,9 +71,13 @@ function PosLayoutComponent() {
     const win = window as unknown as { __solvaPosMarkBootOk?: () => void }
     win.__solvaPosMarkBootOk?.()
 
+    if (bootResult.kind === 'READY') {
+      void changeLocale(bootResult.locale)
+    }
+
     const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
     notifyPosBootOk({ appVersion, dbVersion: 1 })
-  }, [tenant])
+  }, [bootResult, tenant])
 
   useEffect(() => {
     let cancelled = false
@@ -58,30 +106,8 @@ function PosLayoutComponent() {
     }
   }, [tenant])
 
-  const handlePosBoundaryError = useCallback(
-    (_refLocal: string, error: Error, details?: ErrorBoundaryErrorDetails) => {
-      void findTenantIdBySlug(tenant)
-        .then(async (tenantId) => {
-          if (!tenantId) return
-          const db = await openTenantDb(tenantId)
-          await logDevice(db, {
-            level: 'error',
-            code: 'APP_ERROR',
-            route: details?.route ?? `/${tenant}/pos`,
-            stack: error.stack ?? error.message,
-            componentStack: details?.componentStack,
-            ctx: { area: 'pos-shell', errorName: error.name },
-          })
-        })
-        .catch(() => {
-          // Swallow Dexie logging errors so boundary recovery UI always renders.
-        })
-    },
-    [tenant],
-  )
-
   return (
-    <ErrorBoundaryArea area="pos-shell" homeHref={`/${tenant}/pos/`} onError={handlePosBoundaryError}>
+    <PosRootBoundary tenantSlug={tenant}>
       <div
         data-pos-shell="true"
         data-tenant={tenant}
@@ -90,6 +116,6 @@ function PosLayoutComponent() {
       >
         <Outlet />
       </div>
-    </ErrorBoundaryArea>
+    </PosRootBoundary>
   )
 }

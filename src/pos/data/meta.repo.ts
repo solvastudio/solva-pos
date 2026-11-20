@@ -54,3 +54,29 @@ export async function bulkGetMeta<const Keys extends readonly MetaKey[]>(
   })
   return out as Partial<Pick<MetaValueMap, Keys[number]>>
 }
+
+/**
+ * Atomically writes all device pairing metadata records inside a single Dexie `rw` transaction.
+ */
+export async function writePairingMeta(
+  db: SolvaDb,
+  input: {
+    device: MetaValueMap['device']
+    tenant: MetaValueMap['tenant']
+    locale: MetaValueMap['locale']
+    clock: MetaValueMap['clock']
+  },
+): Promise<void> {
+  await db.transaction('rw', db.meta, async (tx) => {
+    await setMeta(tx, 'device', input.device)
+    await setMeta(tx, 'tenant', input.tenant)
+    await setMeta(tx, 'locale', input.locale)
+    await setMeta(tx, 'clock', input.clock)
+    await setMeta(tx, 'dexie_version', 1)
+    await setMeta(tx, 'device_flags', {
+      revoked: false,
+      credential_expired: false,
+      tenant_suspended: false,
+    })
+  })
+}

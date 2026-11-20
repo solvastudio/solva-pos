@@ -60,6 +60,7 @@ describe('pos/data/meta.repo', () => {
       dexie_version: 1,
       tenant: { id: T, name: 'Kopi Satu', default_locale: 'id-ID' },
       sync_protocol_version: 1,
+      device_flags: { revoked: false, credential_expired: false, tenant_suspended: false },
     }
 
     for (const key of Object.keys(samples) as MetaKey[]) {

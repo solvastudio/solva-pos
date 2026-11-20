@@ -1,0 +1,75 @@
+import { useEffect, useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import { LangToggle } from '~/components/layout/LangToggle'
+import { TenantBadge } from '~/components/layout/TenantBadge'
+import { Card } from '~/components/ui'
+import { APP_VERSION } from '~/lib/app-version'
+import { listActiveStaff } from '~/pos/data/master.repo'
+
+export const Route = createFileRoute('/$tenant/pos/login')({
+  ssr: false,
+  component: PosLoginPlaceholderRouteComponent,
+})
+
+function PosLoginPlaceholderRouteComponent() {
+  const { tenant } = Route.useParams()
+  const { bootResult } = Route.useRouteContext()
+  const { t } = useTranslation()
+  const [staffNames, setStaffNames] = useState<string[]>([])
+
+  const tenantName =
+    bootResult.kind === 'READY' && bootResult.tenant?.name ? bootResult.tenant.name : tenant
+  const appVersion = typeof APP_VERSION === 'string' ? APP_VERSION : 'dev'
+
+  useEffect(() => {
+    if (bootResult.kind !== 'READY') return
+    let cancelled = false
+    void listActiveStaff(bootResult.db)
+      .then((rows) => {
+        if (!cancelled) {
+          setStaffNames(rows.map((r) => r.display_name))
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [bootResult])
+
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10">
+      <Card className="w-full max-w-dialog-md p-6 md:p-8">
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <TenantBadge variant="compact" name={tenantName} slug={tenant} />
+          <LangToggle />
+        </div>
+
+        <h1 className="text-h2 font-semibold text-ink">{t('pos.login.placeholder.title')}</h1>
+        <p className="mt-2 text-body text-ink-soft">{t('pos.login.placeholder.body')}</p>
+
+        <div className="mt-6 rounded-card border border-line bg-surface-sunken p-4">
+          <p className="text-label font-medium text-ink">{t('pos.login.placeholder.staffHeading')}</p>
+          {staffNames.length === 0 ? (
+            <p className="mt-2 text-caption text-ink-soft">{t('pos.login.placeholder.noStaff')}</p>
+          ) : (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {staffNames.map((name, idx) => (
+                <li
+                  key={`${name}-${idx}`}
+                  className="rounded-md border border-line bg-surface px-3 py-1.5 text-body font-medium text-ink"
+                >
+                  {name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <footer className="mt-6 border-t border-line pt-4 text-center text-caption text-ink-muted">
+          {t('pos.login.placeholder.appVersion', { version: appVersion })}
+        </footer>
+      </Card>
+    </div>
+  )
+}

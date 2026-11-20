@@ -740,6 +740,82 @@
       "onlineStatus": "Online",
       "offlineStatus": "Offline",
       "tenantLabel": "Tenant"
+    },
+    "pair": {
+      "title": "Pair device to {{tenant}}",
+      "subtitle": "Enter the 8-character pairing code from Back Office -> Devices.",
+      "codeLabel": "Pairing code",
+      "codePlaceholder": "ABCD-EFGH",
+      "deviceNameLabel": "Device name",
+      "submit": "Pair Device",
+      "onlineHint": "Internet is required only once for pairing.",
+      "otherTenantNotice": "This device is also used for another business on this browser.",
+      "qrScan": "Scan QR",
+      "wrongAddress": "This QR code is not for this address. Open the address shown on the QR code.",
+      "errors": {
+        "INVALID": "Invalid or expired pairing code.",
+        "RATE_LIMITED": "Too many attempts. Wait a few minutes.",
+        "REGISTER_BUSY": "This register already has an active device. Ask a manager to revoke it first.",
+        "SUSPENDED": "Service for this tenant is currently unavailable.",
+        "NETWORK": "Internet connection required. Try again.",
+        "SERVER": "Could not complete pairing. Try again."
+      },
+      "progress": {
+        "label": "Setup progress",
+        "downloading": "Downloading data {{step}}/{{total}}"
+      }
+    },
+    "system": {
+      "actions": {
+        "retrySync": "Try Sync",
+        "retryCheck": "Check Again",
+        "exportPending": "Export Pending Transactions",
+        "repair": "Re-pair Device",
+        "reload": "Reload App"
+      },
+      "variants": {
+        "lease_expired": {
+          "title": "Device locked",
+          "body": "Device locked — It has been 7 days without syncing. Connect to the internet to unlock."
+        },
+        "clock_back": {
+          "title": "Device clock changed",
+          "body": "The device clock moved backwards by more than 5 minutes. Correct the date and time, then check again."
+        },
+        "update_required": {
+          "title": "App update required",
+          "body": "A newer app version is required to continue. Reload the app once connected."
+        },
+        "duplicate_instance": {
+          "title": "Already open in another tab",
+          "body": "Solva POS is already open in another tab or window for this device. Close the other tab to continue here automatically."
+        },
+        "revoked": {
+          "title": "Device access revoked",
+          "body": "A manager revoked this device. Ask for a new pairing code to link it again."
+        },
+        "credential_expired": {
+          "title": "Device credential expired",
+          "body": "This device credential has expired. Ask a manager for a new pairing code to re-pair."
+        },
+        "tenant_suspended": {
+          "title": "Business service suspended",
+          "body": "Service for this tenant is currently unavailable. Contact your service provider."
+        },
+        "local_db_failed": {
+          "title": "Local storage could not be opened",
+          "body": "Local data could not be opened on this device. Export any pending transactions before seeking support."
+        }
+      }
+    },
+    "login": {
+      "placeholder": {
+        "title": "Sign in with PIN — coming soon",
+        "body": "Device pairing and offline boot are active. Staff PIN login arrives in Fase 43.",
+        "staffHeading": "Registered staff on this outlet",
+        "noStaff": "No staff list synced yet.",
+        "appVersion": "Solva POS {{version}}"
+      }
     }
   },
   "system": {

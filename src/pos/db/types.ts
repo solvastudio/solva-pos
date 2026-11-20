@@ -72,6 +72,11 @@ export const META_SCHEMAS = {
     default_locale: z.enum(['id-ID', 'en-US']),
   }),
   sync_protocol_version: z.number().int().positive(),
+  device_flags: z.object({
+    revoked: z.boolean().optional(),
+    credential_expired: z.boolean().optional(),
+    tenant_suspended: z.boolean().optional(),
+  }),
 } as const
 
 export type MetaKey = keyof typeof META_SCHEMAS

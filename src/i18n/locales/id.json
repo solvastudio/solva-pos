@@ -740,6 +740,82 @@
       "onlineStatus": "Online",
       "offlineStatus": "Offline",
       "tenantLabel": "Tenant"
+    },
+    "pair": {
+      "title": "Pasangkan perangkat ke {{tenant}}",
+      "subtitle": "Masukkan kode 8 karakter dari Back Office -> Perangkat.",
+      "codeLabel": "Kode pairing",
+      "codePlaceholder": "ABCD-EFGH",
+      "deviceNameLabel": "Nama perangkat",
+      "submit": "Pasangkan",
+      "onlineHint": "Perlu internet hanya sekali untuk memasangkan perangkat.",
+      "otherTenantNotice": "Perangkat ini juga dipakai untuk tenant lain di peramban ini.",
+      "qrScan": "Pindai QR",
+      "wrongAddress": "QR ini bukan untuk alamat ini. Buka alamat yang tertera pada QR.",
+      "errors": {
+        "INVALID": "Kode tidak valid atau sudah kedaluwarsa.",
+        "RATE_LIMITED": "Terlalu banyak percobaan. Tunggu beberapa menit.",
+        "REGISTER_BUSY": "Register ini sudah memiliki perangkat aktif. Minta manager mencabutnya lebih dulu.",
+        "SUSPENDED": "Layanan untuk tenant ini sedang tidak tersedia.",
+        "NETWORK": "Perlu internet. Coba lagi.",
+        "SERVER": "Pemasangan gagal. Coba lagi."
+      },
+      "progress": {
+        "label": "Progres unduhan awal",
+        "downloading": "Mengunduh data {{step}}/{{total}}"
+      }
+    },
+    "system": {
+      "actions": {
+        "retrySync": "Coba sinkronkan",
+        "retryCheck": "Periksa lagi",
+        "exportPending": "Ekspor transaksi pending",
+        "repair": "Pasangkan ulang",
+        "reload": "Muat Ulang Aplikasi"
+      },
+      "variants": {
+        "lease_expired": {
+          "title": "Perangkat terkunci",
+          "body": "Perangkat terkunci — Sudah 7 hari tanpa sinkronisasi. Sambungkan ke internet untuk membuka kunci."
+        },
+        "clock_back": {
+          "title": "Jam perangkat mundur",
+          "body": "Jam perangkat mundur lebih dari 5 menit. Perbaiki jam perangkat lalu periksa lagi."
+        },
+        "update_required": {
+          "title": "Aplikasi perlu diperbarui",
+          "body": "Versi aplikasi lebih baru wajib dipasang. Muat ulang aplikasi saat terhubung."
+        },
+        "duplicate_instance": {
+          "title": "Sudah terbuka di tab lain",
+          "body": "Aplikasi sudah terbuka di tab/jendela lain. Tutup tab lain tersebut untuk melanjutkan di sini otomatis."
+        },
+        "revoked": {
+          "title": "Akses perangkat dicabut",
+          "body": "Perangkat ini telah dicabut oleh manager. Minta kode pairing baru untuk memasangkan ulang."
+        },
+        "credential_expired": {
+          "title": "Kredensial perangkat kedaluwarsa",
+          "body": "Kredensial perangkat sudah habis masa berlakunya. Minta kode pairing baru untuk memasangkan ulang."
+        },
+        "tenant_suspended": {
+          "title": "Layanan tenant ditangguhkan",
+          "body": "Layanan untuk tenant ini sedang tidak tersedia. Hubungi penyedia layanan."
+        },
+        "local_db_failed": {
+          "title": "Data lokal tidak dapat dibuka",
+          "body": "Penyimpanan lokal perangkat tidak bisa dibuka. Ekspor transaksi tertunda lalu hubungi dukungan."
+        }
+      }
+    },
+    "login": {
+      "placeholder": {
+        "title": "Masuk dengan PIN — segera hadir",
+        "body": "Pairing perangkat dan boot offline sudah aktif. Layar PIN staf hadir di Fase 43.",
+        "staffHeading": "Daftar staf outlet ini",
+        "noStaff": "Belum ada daftar staf tersinkron.",
+        "appVersion": "Solva POS {{version}}"
+      }
     }
   },
   "system": {

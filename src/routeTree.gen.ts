@@ -25,7 +25,10 @@ import { Route as TenantApiJoinRouteImport } from './routes/$tenant/api/join'
 import { Route as TenantApiResetRouteImport } from './routes/$tenant/api/reset'
 import { Route as TenantPosIndexRouteImport } from './routes/$tenant/pos/index'
 import { Route as TenantPosSplatRouteImport } from './routes/$tenant/pos/$'
+import { Route as TenantPosLoginRouteImport } from './routes/$tenant/pos/login'
 import { Route as TenantPosManifestDotwebmanifestRouteImport } from './routes/$tenant/pos/manifest[.]webmanifest'
+import { Route as TenantPosPairRouteImport } from './routes/$tenant/pos/pair'
+import { Route as TenantPosSystemRouteImport } from './routes/$tenant/pos/system'
 import { Route as PlatformApiSplatRouteImport } from './routes/platform/api/$'
 import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants.$tenantId'
 import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants.new'
@@ -123,12 +126,27 @@ const TenantPosSplatRoute = TenantPosSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => TenantPosRoute,
 } as any)
+const TenantPosLoginRoute = TenantPosLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => TenantPosRoute,
+} as any)
 const TenantPosManifestDotwebmanifestRoute =
   TenantPosManifestDotwebmanifestRouteImport.update({
     id: '/manifest.webmanifest',
     path: '/manifest.webmanifest',
     getParentRoute: () => TenantPosRoute,
   } as any)
+const TenantPosPairRoute = TenantPosPairRouteImport.update({
+  id: '/pair',
+  path: '/pair',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosSystemRoute = TenantPosSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => TenantPosRoute,
+} as any)
 const PlatformApiSplatRoute = PlatformApiSplatRouteImport.update({
   id: '/platform/api/$',
   path: '/platform/api/$',
@@ -228,7 +246,10 @@ export interface FileRoutesByFullPath {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
+  '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -260,7 +281,10 @@ export interface FileRoutesByTo {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
+  '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -296,7 +320,10 @@ export interface FileRoutesById {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
+  '/$tenant/pos/pair': typeof TenantPosPairRoute
+  '/$tenant/pos/system': typeof TenantPosSystemRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -333,7 +360,10 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
+    | '/$tenant/pos/pair'
+    | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -365,7 +395,10 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
+    | '/$tenant/pos/pair'
+    | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -400,7 +433,10 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
+    | '/$tenant/pos/pair'
+    | '/$tenant/pos/system'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -552,11 +588,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantPosSplatRouteImport
       parentRoute: typeof TenantPosRoute
     }
+    '/$tenant/pos/login': {
+      id: '/$tenant/pos/login'
+      path: '/login'
+      fullPath: '/$tenant/pos/login'
+      preLoaderRoute: typeof TenantPosLoginRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
     '/$tenant/pos/manifest.webmanifest': {
       id: '/$tenant/pos/manifest.webmanifest'
       path: '/manifest.webmanifest'
       fullPath: '/$tenant/pos/manifest.webmanifest'
       preLoaderRoute: typeof TenantPosManifestDotwebmanifestRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/pair': {
+      id: '/$tenant/pos/pair'
+      path: '/pair'
+      fullPath: '/$tenant/pos/pair'
+      preLoaderRoute: typeof TenantPosPairRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/system': {
+      id: '/$tenant/pos/system'
+      path: '/system'
+      fullPath: '/$tenant/pos/system'
+      preLoaderRoute: typeof TenantPosSystemRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/platform/api/$': {
@@ -676,13 +733,19 @@ declare module '@tanstack/react-router' {
 
 interface TenantPosRouteChildren {
   TenantPosSplatRoute: typeof TenantPosSplatRoute
+  TenantPosLoginRoute: typeof TenantPosLoginRoute
   TenantPosManifestDotwebmanifestRoute: typeof TenantPosManifestDotwebmanifestRoute
+  TenantPosPairRoute: typeof TenantPosPairRoute
+  TenantPosSystemRoute: typeof TenantPosSystemRoute
   TenantPosIndexRoute: typeof TenantPosIndexRoute
 }
 
 const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosSplatRoute: TenantPosSplatRoute,
+  TenantPosLoginRoute: TenantPosLoginRoute,
   TenantPosManifestDotwebmanifestRoute: TenantPosManifestDotwebmanifestRoute,
+  TenantPosPairRoute: TenantPosPairRoute,
+  TenantPosSystemRoute: TenantPosSystemRoute,
   TenantPosIndexRoute: TenantPosIndexRoute,
 }
 
