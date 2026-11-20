@@ -33,6 +33,10 @@ const CLIENT_SERVER_PATTERNS = [
     group: ['rate-limiter-flexible', 'rate-limiter-flexible/*'],
     message: 'rate-limiter-flexible is only allowed in server code (ARCHITECTURE §6.9.4 / OQ-A26)',
   },
+  {
+    group: ['@jridgewell/trace-mapping', '@jridgewell/trace-mapping/*'],
+    message: '@jridgewell/trace-mapping is server/ops only and must not be imported in client code',
+  },
 ]
 
 const PURE_FORBIDDEN_PATTERNS = [

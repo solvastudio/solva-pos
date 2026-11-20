@@ -60,6 +60,12 @@ export const envSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.string().url().optional(),
   ),
+  SOURCEMAP_DIR: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v),
+    z.string().min(1).default('./sourcemaps'),
+  ),
+  TELEGRAM_BOT_TOKEN: optionalNonEmpty,
+  TELEGRAM_CHAT_ID: optionalNonEmpty,
 
   RL_LOGIN_SCHEDULE_SEC: scheduleCsvSchema,
   RL_LOGIN_RESET_AFTER_SEC: positiveIntEnv(900),

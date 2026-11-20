@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { createLogger } from '../log'
+import { recordInternalError } from '../notify/error-spike'
 import { runWithContext, type LogContext } from './log-context'
 import { resolveRequestId } from './request-id'
 
@@ -60,6 +61,7 @@ export async function handleRequestWithLog(
       response = await next(request)
     } catch (err: unknown) {
       const durationMs = Math.round(performance.now() - startedAt)
+      recordInternalError()
       log.error({ err, method: request.method, path, status: 500, durationMs }, 'request failed')
       return Response.json(
         { error: { code: 'INTERNAL_ERROR', ref: reqId } },

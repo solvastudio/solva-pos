@@ -29,6 +29,7 @@ import { Route as TenantAdminAuthedIndexRouteImport } from './routes/$tenant/adm
 import { Route as TenantAdminAuthedAccountRouteImport } from './routes/$tenant/admin/_authed/account'
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
+import { Route as ApiPosV1DeviceLogRouteImport } from './routes/api/pos/v1/device-log'
 import { Route as ApiPosV1EnrollRouteImport } from './routes/api/pos/v1/enroll'
 import { Route as ApiPosV1PingRouteImport } from './routes/api/pos/v1/ping'
 import { Route as ApiPosV1PullRouteImport } from './routes/api/pos/v1/pull'
@@ -140,6 +141,11 @@ const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => TenantAdminAuthedRoute,
 } as any)
+const ApiPosV1DeviceLogRoute = ApiPosV1DeviceLogRouteImport.update({
+  id: '/api/pos/v1/device-log',
+  path: '/api/pos/v1/device-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPosV1EnrollRoute = ApiPosV1EnrollRouteImport.update({
   id: '/api/pos/v1/enroll',
   path: '/api/pos/v1/enroll',
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/account': typeof TenantAdminAuthedAccountRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
+  '/api/pos/v1/device-log': typeof ApiPosV1DeviceLogRoute
   '/api/pos/v1/enroll': typeof ApiPosV1EnrollRoute
   '/api/pos/v1/ping': typeof ApiPosV1PingRoute
   '/api/pos/v1/pull': typeof ApiPosV1PullRouteWithChildren
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/account'
     | '/$tenant/admin/settings'
     | '/$tenant/admin/users'
+    | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/account'
     | '/$tenant/admin/_authed/settings'
     | '/$tenant/admin/_authed/users'
+    | '/api/pos/v1/device-log'
     | '/api/pos/v1/enroll'
     | '/api/pos/v1/ping'
     | '/api/pos/v1/pull'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   PlatformApiSplatRoute: typeof PlatformApiSplatRoute
   PlatformTenantsTenantIdRoute: typeof PlatformTenantsTenantIdRoute
   PlatformTenantsNewRoute: typeof PlatformTenantsNewRoute
+  ApiPosV1DeviceLogRoute: typeof ApiPosV1DeviceLogRoute
   ApiPosV1EnrollRoute: typeof ApiPosV1EnrollRoute
   ApiPosV1PingRoute: typeof ApiPosV1PingRoute
   ApiPosV1PullRoute: typeof ApiPosV1PullRouteWithChildren
@@ -520,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedUsersRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/api/pos/v1/device-log': {
+      id: '/api/pos/v1/device-log'
+      path: '/api/pos/v1/device-log'
+      fullPath: '/api/pos/v1/device-log'
+      preLoaderRoute: typeof ApiPosV1DeviceLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pos/v1/enroll': {
       id: '/api/pos/v1/enroll'
       path: '/api/pos/v1/enroll'
@@ -645,6 +665,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformApiSplatRoute: PlatformApiSplatRoute,
   PlatformTenantsTenantIdRoute: PlatformTenantsTenantIdRoute,
   PlatformTenantsNewRoute: PlatformTenantsNewRoute,
+  ApiPosV1DeviceLogRoute: ApiPosV1DeviceLogRoute,
   ApiPosV1EnrollRoute: ApiPosV1EnrollRoute,
   ApiPosV1PingRoute: ApiPosV1PingRoute,
   ApiPosV1PullRoute: ApiPosV1PullRouteWithChildren,

@@ -1,8 +1,9 @@
 import '~/i18n'
 import type { QueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext, type ErrorComponentProps } from '@tanstack/react-router'
 import { NotFoundView } from '~/components/layout/NotFoundView'
+import { RecoveryScreen } from '~/components/layout/RecoveryScreen'
 import { getPublicLocaleFn } from '~/functions/i18n/public-locale.fn'
 import { i18next, type Locale } from '~/i18n'
 import { BRAND_NAME } from '~/lib/brand'
@@ -33,8 +34,13 @@ export const Route = createRootRouteWithContext<RootRouterContext>()({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   notFoundComponent: NotFoundView,
+  errorComponent: RootErrorComponent,
   component: RootComponent,
 })
+
+function RootErrorComponent({ error, reset }: ErrorComponentProps) {
+  return <RecoveryScreen error={error} onReload={reset} />
+}
 
 function RootComponent() {
   const { publicLocale } = Route.useRouteContext()

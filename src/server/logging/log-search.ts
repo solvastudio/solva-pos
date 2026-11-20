@@ -24,6 +24,7 @@ export interface LogEntry {
 
 export interface LogSearchFilters {
   ref?: string
+  refLocal?: string
   level?: string
   from?: string
   to?: string
@@ -57,6 +58,10 @@ export function matchesLogFilters(entry: LogEntry, filters: LogSearchFilters): b
     if (!matchesRef) return false
   }
 
+  if (filters.refLocal && entry.refLocal !== filters.refLocal) {
+    return false
+  }
+
   if (filters.level) {
     const minRank = SEARCH_LEVEL_RANK[filters.level] ?? 0
     const actualRank = SEARCH_LEVEL_RANK[entry.level] ?? 0
@@ -79,12 +84,22 @@ function addUtcDays(isoDay: string, deltaDays: number): string {
   return new Date(ms).toISOString().slice(0, 10)
 }
 
+function extractSearchDay(filters: Pick<LogSearchFilters, 'ref' | 'refLocal'>): string | null {
+  const token = filters.refLocal ?? filters.ref
+  if (!token) return null
+  const localMatch = /^D-(\d{4})(\d{2})(\d{2})-/.exec(token)
+  if (localMatch) {
+    return `${localMatch[1]}-${localMatch[2]}-${localMatch[3]}`
+  }
+  return dayOfLogId(token)
+}
+
 export function candidateLogFiles(
   fileNames: readonly string[],
-  filters: Pick<LogSearchFilters, 'ref' | 'from' | 'to'>,
+  filters: Pick<LogSearchFilters, 'ref' | 'refLocal' | 'from' | 'to'>,
   todayUtcStr: string,
 ): string[] {
-  const refDay = filters.ref ? dayOfLogId(filters.ref) : null
+  const refDay = extractSearchDay(filters)
   const rawFrom = refDay ?? (filters.from ? filters.from.slice(0, 10) : addUtcDays(todayUtcStr, -1))
   const rawTo = refDay ?? (filters.to ? filters.to.slice(0, 10) : todayUtcStr)
 

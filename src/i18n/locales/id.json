@@ -152,6 +152,28 @@
     },
     "FEATURE_DISABLED": {
       "action": "Fitur ini tidak aktif untuk tenant Anda."
+    },
+    "codeBlock": {
+      "label": "Kode error dan referensi",
+      "copy": "Salin kode",
+      "local": "Referensi perangkat lokal; belum terkirim ke server"
+    },
+    "copy": {
+      "done": "Tersalin",
+      "fallback": "Kode sudah dipilih — tekan Salin / Ctrl+C"
+    },
+    "boundary": {
+      "title": "Layar ini mengalami masalah",
+      "retry": "Coba lagi",
+      "home": "Kembali ke Beranda",
+      "reload": "Muat Ulang Aplikasi"
+    },
+    "recovery": {
+      "title": "Aplikasi gagal dimuat",
+      "body": "Solva POS mengalami kesalahan saat memuat. Transaksi tertunda di perangkat ini tetap aman.",
+      "reload": "Muat Ulang Aplikasi",
+      "exportPending": "Ekspor Transaksi Tertunda",
+      "safeMode": "Buka Mode Aman"
     }
   },
   "tenant": {

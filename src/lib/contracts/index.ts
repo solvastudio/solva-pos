@@ -1,4 +1,5 @@
 export * from './commands'
+export * from './device-log'
 export * from './enroll'
 export * from './enums'
 export * from './envelope'

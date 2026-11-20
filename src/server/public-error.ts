@@ -5,6 +5,7 @@ import {
   type ErrorCode,
 } from '~/lib/contracts/error-codes'
 import { classifyError } from './error-classify'
+import { recordInternalError } from './notify/error-spike'
 
 export interface PublicErrorResult {
   code: ErrorCode
@@ -16,6 +17,9 @@ export interface PublicErrorResult {
 
 export function toPublicError(err: unknown, reqId: string): PublicErrorResult {
   const classified = classifyError(err)
+  if (classified.code === 'INTERNAL_ERROR') {
+    recordInternalError()
+  }
   return {
     code: classified.code,
     ref: reqId,

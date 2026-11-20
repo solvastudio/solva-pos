@@ -152,6 +152,28 @@
     },
     "FEATURE_DISABLED": {
       "action": "This feature isn't enabled for your tenant."
+    },
+    "codeBlock": {
+      "label": "Error code and reference",
+      "copy": "Copy code",
+      "local": "Local device reference; not yet sent to the server"
+    },
+    "copy": {
+      "done": "Copied",
+      "fallback": "Code selected — press Ctrl+C / Copy to copy"
+    },
+    "boundary": {
+      "title": "This screen encountered an error",
+      "retry": "Retry",
+      "home": "Back to Home",
+      "reload": "Reload App"
+    },
+    "recovery": {
+      "title": "App failed to load",
+      "body": "Solva POS hit an unexpected error during startup. Your pending transactions on this device remain safe.",
+      "reload": "Reload App",
+      "exportPending": "Export Pending Transactions",
+      "safeMode": "Open Safe Mode"
     }
   },
   "tenant": {

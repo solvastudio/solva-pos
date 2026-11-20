@@ -53,6 +53,7 @@ export {
   type ReleasePolicy,
   type VersionEvaluationResult,
 } from './server/release.service'
+export { ingestDeviceLog } from './server/device-log.service'
 export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
 export {
   CommandRejected,
