@@ -1,0 +1,4 @@
+kategori,kode_produk,nama_produk,tipe,uom_dasar,kode_sku,label_varian,barcode,harga_default,pajak,lacak_stok,open_price,aktif
+Minuman > Kopi,KP-100,Kopi Aren,MENU_FNB,pcs,KP-100-REG,Reguler,8991001001,18000,Y,Y,N,Y
+Minuman > Kopi,KP-100,Kopi Aren,MENU_FNB,pcs,KP-100-LRG,Large,8991001002,24000,Y,Y,N,Y
+Snack,SN-200,Keripik Singkong,RETAIL,pcs,SN-200,,8991002001,12000,Y,Y,N,Y

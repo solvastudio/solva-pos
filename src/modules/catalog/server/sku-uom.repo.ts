@@ -1,7 +1,8 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, inArray, isNull, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
+import { chunkArray } from './chunk'
 import { sku, skuUom } from './schema'
 
 export interface SkuUomRow {
@@ -62,11 +63,35 @@ export async function listSkuUomsBySkuIds(
   skuIds: readonly string[],
 ): Promise<SkuUomRow[]> {
   if (skuIds.length === 0) return []
-  return tx
-    .select(skuUomSelect)
-    .from(skuUom)
-    .where(and(eq(skuUom.tenantId, tenantId), inArray(skuUom.skuId, skuIds), isNull(skuUom.deletedAt)))
-    .orderBy(asc(skuUom.skuId), asc(skuUom.uomId))
+  const out: SkuUomRow[] = []
+  for (const batch of chunkArray(skuIds)) {
+    const rows = await tx
+      .select(skuUomSelect)
+      .from(skuUom)
+      .where(and(eq(skuUom.tenantId, tenantId), inArray(skuUom.skuId, batch), isNull(skuUom.deletedAt)))
+      .orderBy(asc(skuUom.skuId), asc(skuUom.uomId))
+    out.push(...rows)
+  }
+  return out
+}
+
+export async function listActiveSkuUomsByBarcodes(
+  tx: TenantTx,
+  tenantId: string,
+  barcodes: readonly string[],
+): Promise<SkuUomRow[]> {
+  if (barcodes.length === 0) return []
+  const out: SkuUomRow[] = []
+  for (const batch of chunkArray(barcodes)) {
+    const rows = await tx
+      .select(skuUomSelect)
+      .from(skuUom)
+      .where(
+        and(eq(skuUom.tenantId, tenantId), inArray(skuUom.barcode, batch), isNull(skuUom.deletedAt)),
+      )
+    out.push(...rows)
+  }
+  return out
 }
 
 export async function findActiveSkuUomByBarcode(
@@ -254,4 +279,52 @@ export async function tombstoneSkuUomsBySku(
       updatedBy: w.actorUserId,
     })
     .where(and(eq(skuUom.tenantId, w.tenantId), eq(skuUom.skuId, skuId), isNull(skuUom.deletedAt)))
+}
+
+export async function upsertSkuUomBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    skuId: string
+    uomId: string
+    conversionFactor: string
+    isBase: boolean
+    barcode: string | null
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(skuUom)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          skuId: p.skuId,
+          uomId: p.uomId,
+          conversionFactor: p.conversionFactor,
+          isBase: p.isBase,
+          barcode: p.barcode,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [skuUom.skuId, skuUom.uomId],
+        set: {
+          conversionFactor: sql`excluded.conversion_factor`,
+          isBase: sql`excluded.is_base`,
+          barcode: sql`excluded.barcode`,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
 }

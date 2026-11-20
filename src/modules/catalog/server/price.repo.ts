@@ -1,7 +1,8 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, isNull, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
+import { chunkArray } from './chunk'
 import { priceEntry } from './schema'
 
 export interface PriceEntryRow {
@@ -193,4 +194,74 @@ export async function tombstonePriceEntriesForSku(
     .where(
       and(eq(priceEntry.tenantId, w.tenantId), eq(priceEntry.skuId, skuId), isNull(priceEntry.deletedAt)),
     )
+}
+
+export async function listActivePriceEntriesBySkuIds(
+  tx: TenantTx,
+  tenantId: string,
+  skuIds: readonly string[],
+): Promise<PriceEntryRow[]> {
+  if (skuIds.length === 0) return []
+  const out: PriceEntryRow[] = []
+  for (const batch of chunkArray(skuIds)) {
+    const rows = await tx
+      .select(priceEntrySelect)
+      .from(priceEntry)
+      .where(
+        and(
+          eq(priceEntry.tenantId, tenantId),
+          inArray(priceEntry.skuId, batch),
+          isNull(priceEntry.deletedAt),
+        ),
+      )
+    out.push(...rows)
+  }
+  return out
+}
+
+export async function upsertPriceEntryBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    skuId: string
+    uomId: string
+    outletId: string | null
+    price: number
+    currency: string
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(priceEntry)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          skuId: p.skuId,
+          uomId: p.uomId,
+          outletId: p.outletId,
+          price: p.price,
+          currency: p.currency,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [priceEntry.tenantId, priceEntry.skuId, priceEntry.uomId, priceEntry.outletId],
+        set: {
+          price: sql`excluded.price`,
+          currency: sql`excluded.currency`,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
 }

@@ -1,7 +1,8 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
+import { chunkArray } from './chunk'
 import { category, product } from './schema'
 
 export interface CategoryRow {
@@ -158,4 +159,48 @@ export async function tombstoneCategoryRow(
     .where(and(eq(category.tenantId, w.tenantId), eq(category.id, id), isNull(category.deletedAt)))
     .returning({ id: category.id })
   return rows.length > 0
+}
+
+export async function upsertCategoryBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    parentId: string | null
+    name: string
+    sortOrder: number
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(category)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          parentId: p.parentId,
+          name: p.name,
+          sortOrder: p.sortOrder,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [category.tenantId, category.id],
+        set: {
+          parentId: sql`excluded.parent_id`,
+          name: sql`excluded.name`,
+          sortOrder: sql`excluded.sort_order`,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
 }

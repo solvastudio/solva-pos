@@ -30,6 +30,25 @@ export {
   registerHasTransactionsPort,
   type HasTransactionsPort,
 } from './server/ports'
+export { exportCatalogCsv, type ExportCatalogCsvOptions } from './server/export.service'
+export {
+  commitAvailabilityImport,
+  previewAvailabilityImport,
+} from './server/import/availability-import'
+export {
+  commitCatalogImport,
+  previewCatalogImport,
+} from './server/import/catalog-import'
+export { __clearImportPlansForTests } from './server/import/plan-cache'
+export { commitPriceImport, previewPriceImport } from './server/import/price-import'
+export type {
+  CommitImportResult,
+  EntityDiffCounts,
+  ImportKind,
+  ImportReport,
+  ImportRowErrorCode,
+  RowError,
+} from './server/import/types'
 export { type PriceEntryRow } from './server/price.repo'
 export {
   clearOutletPrice,

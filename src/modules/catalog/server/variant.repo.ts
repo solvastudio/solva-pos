@@ -1,7 +1,8 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
+import { chunkArray } from './chunk'
 import { attributeValue, productAttribute, sku, skuAttributeValue } from './schema'
 
 export interface ProductAttributeRow {
@@ -367,4 +368,212 @@ export async function tombstoneSkuAttributeValuesForSku(
         isNull(skuAttributeValue.deletedAt),
       ),
     )
+}
+
+export async function listSkusByCodes(
+  tx: TenantTx,
+  tenantId: string,
+  skuCodes: readonly string[],
+): Promise<SkuRow[]> {
+  if (skuCodes.length === 0) return []
+  const out: SkuRow[] = []
+  for (const batch of chunkArray(skuCodes)) {
+    const rows = await tx
+      .select(skuSelect)
+      .from(sku)
+      .where(and(eq(sku.tenantId, tenantId), inArray(sku.skuCode, batch), isNull(sku.deletedAt)))
+    out.push(...rows)
+  }
+  return out
+}
+
+export async function listSkusByProductIds(
+  tx: TenantTx,
+  tenantId: string,
+  productIds: readonly string[],
+): Promise<SkuRow[]> {
+  if (productIds.length === 0) return []
+  const out: SkuRow[] = []
+  for (const batch of chunkArray(productIds)) {
+    const rows = await tx
+      .select(skuSelect)
+      .from(sku)
+      .where(and(eq(sku.tenantId, tenantId), inArray(sku.productId, batch), isNull(sku.deletedAt)))
+    out.push(...rows)
+  }
+  return out
+}
+
+export async function listAllActiveSkus(
+  tx: TenantTx,
+  tenantId: string,
+  limit = 20_000,
+): Promise<SkuRow[]> {
+  return tx
+    .select(skuSelect)
+    .from(sku)
+    .where(and(eq(sku.tenantId, tenantId), isNull(sku.deletedAt)))
+    .orderBy(asc(sku.productId), asc(sku.sortOrder), asc(sku.skuCode), asc(sku.id))
+    .limit(limit)
+}
+
+export async function listProductAttributesByProductIds(
+  tx: TenantTx,
+  tenantId: string,
+  productIds: readonly string[],
+): Promise<ProductAttributeRow[]> {
+  if (productIds.length === 0) return []
+  const out: ProductAttributeRow[] = []
+  for (const batch of chunkArray(productIds)) {
+    const rows = await tx
+      .select({
+        id: productAttribute.id,
+        productId: productAttribute.productId,
+        name: productAttribute.name,
+        sortOrder: productAttribute.sortOrder,
+        deletedAt: productAttribute.deletedAt,
+      })
+      .from(productAttribute)
+      .where(
+        and(
+          eq(productAttribute.tenantId, tenantId),
+          inArray(productAttribute.productId, batch),
+          isNull(productAttribute.deletedAt),
+        ),
+      )
+    out.push(...rows)
+  }
+  return out
+}
+
+export async function upsertSkuBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    productId: string
+    skuCode: string
+    variantLabel: string | null
+    isDefault: boolean
+    isActive: boolean
+    sortOrder: number
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(sku)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          productId: p.productId,
+          skuCode: p.skuCode,
+          variantLabel: p.variantLabel,
+          isDefault: p.isDefault,
+          isActive: p.isActive,
+          sortOrder: p.sortOrder,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [sku.tenantId, sku.id],
+        set: {
+          skuCode: sql`excluded.sku_code`,
+          variantLabel: sql`excluded.variant_label`,
+          isDefault: sql`excluded.is_default`,
+          isActive: sql`excluded.is_active`,
+          sortOrder: sql`excluded.sort_order`,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
+}
+
+export async function insertProductAttributeBatch(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  items: ReadonlyArray<{ id: string; productId: string; name: string; sortOrder: number; nowIso: string }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(productAttribute)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: actorUserId,
+          updatedBy: actorUserId,
+          deletedAt: null,
+          productId: p.productId,
+          name: p.name,
+          sortOrder: p.sortOrder,
+        })),
+      )
+      .onConflictDoNothing()
+  }
+}
+
+export async function insertAttributeValueBatch(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  items: ReadonlyArray<{ id: string; attributeId: string; value: string; sortOrder: number; nowIso: string }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(attributeValue)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: actorUserId,
+          updatedBy: actorUserId,
+          deletedAt: null,
+          attributeId: p.attributeId,
+          value: p.value,
+          sortOrder: p.sortOrder,
+        })),
+      )
+      .onConflictDoNothing()
+  }
+}
+
+export async function insertSkuAttributeValueBatch(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  items: ReadonlyArray<{ id: string; skuId: string; attributeValueId: string; nowIso: string }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(skuAttributeValue)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: actorUserId,
+          updatedBy: actorUserId,
+          deletedAt: null,
+          skuId: p.skuId,
+          attributeValueId: p.attributeValueId,
+        })),
+      )
+      .onConflictDoNothing()
+  }
 }

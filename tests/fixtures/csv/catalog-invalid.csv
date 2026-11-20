@@ -1,0 +1,4 @@
+kategori,kode_produk,nama_produk,tipe,uom_dasar,kode_sku,label_varian,barcode,harga_default,pajak,lacak_stok,open_price,aktif
+A > B > C,BAD-1,Depth Too Deep,RETAIL,pcs,BAD-1,,8990001,10000,Y,Y,N,Y
+Snack,BAD-2,Unknown Uom,RETAIL,boxx,BAD-2,,8990002,10000,Y,Y,N,Y
+Snack,BAD-3,Negative Price,RETAIL,pcs,BAD-3,,8990003,-50,Y,Y,N,Y

@@ -1,8 +1,9 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import type { ProductType } from '../shared'
+import { chunkArray } from './chunk'
 import { product } from './schema'
 
 export interface ProductRow {
@@ -175,4 +176,91 @@ export async function tombstoneProductRow(
     .where(and(eq(product.tenantId, w.tenantId), eq(product.id, id), isNull(product.deletedAt)))
     .returning({ id: product.id })
   return rows.length > 0
+}
+
+export async function listProductsByCodes(
+  tx: TenantTx,
+  tenantId: string,
+  codes: readonly string[],
+): Promise<ProductRow[]> {
+  if (codes.length === 0) return []
+  const out: ProductRow[] = []
+  for (const batch of chunkArray(codes)) {
+    const rows = await tx
+      .select(productSelect)
+      .from(product)
+      .where(
+        and(eq(product.tenantId, tenantId), inArray(product.code, batch), isNull(product.deletedAt)),
+      )
+    out.push(...rows.map(toProductRow))
+  }
+  return out
+}
+
+export async function upsertProductBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    categoryId: string
+    code: string
+    name: string
+    productType: ProductType
+    hasVariants: boolean
+    baseUomId: string
+    trackStock: boolean
+    taxable: boolean
+    isActive: boolean
+    isOpenPrice: boolean
+    sortOrder: number
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(product)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          categoryId: p.categoryId,
+          code: p.code,
+          name: p.name,
+          productType: p.productType,
+          hasVariants: p.hasVariants,
+          baseUomId: p.baseUomId,
+          trackStock: p.trackStock,
+          taxable: p.taxable,
+          isActive: p.isActive,
+          isOpenPrice: p.isOpenPrice,
+          sortOrder: p.sortOrder,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [product.tenantId, product.id],
+        set: {
+          categoryId: sql`excluded.category_id`,
+          code: sql`excluded.code`,
+          name: sql`excluded.name`,
+          productType: sql`excluded.product_type`,
+          hasVariants: sql`excluded.has_variants`,
+          baseUomId: sql`excluded.base_uom_id`,
+          trackStock: sql`excluded.track_stock`,
+          taxable: sql`excluded.taxable`,
+          isActive: sql`excluded.is_active`,
+          isOpenPrice: sql`excluded.is_open_price`,
+          sortOrder: sql`excluded.sort_order`,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
 }

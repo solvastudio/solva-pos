@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import type { AvailabilityStatus } from '../shared'
+import { chunkArray } from './chunk'
 import { itemOutletAvailability } from './schema'
 
 export interface AvailabilityRow {
@@ -45,6 +46,42 @@ export async function listActiveOutletIds(tx: TenantTx, tenantId: string): Promi
   return res.rows
     .map((r) => (r as { id?: unknown }).id)
     .filter((id): id is string => typeof id === 'string')
+}
+
+export async function listActiveOutletsWithCodes(
+  tx: TenantTx,
+  tenantId: string,
+): Promise<Array<{ id: string; code: string }>> {
+  const res = await tx.execute(
+    sql`SELECT id, code FROM outlet WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL ORDER BY code ASC, id ASC`,
+  )
+  return res.rows.map((r) => {
+    const row = r as { id: string; code: string }
+    return { id: String(row.id), code: String(row.code) }
+  })
+}
+
+export async function listAvailabilityByProductIds(
+  tx: TenantTx,
+  tenantId: string,
+  productIds: readonly string[],
+): Promise<AvailabilityRow[]> {
+  if (productIds.length === 0) return []
+  const out: AvailabilityRow[] = []
+  for (const batch of chunkArray(productIds)) {
+    const rows = await tx
+      .select(availabilitySelect)
+      .from(itemOutletAvailability)
+      .where(
+        and(
+          eq(itemOutletAvailability.tenantId, tenantId),
+          inArray(itemOutletAvailability.productId, batch),
+          isNull(itemOutletAvailability.deletedAt),
+        ),
+      )
+    out.push(...rows.map(toAvailabilityRow))
+  }
+  return out
 }
 
 export async function listAvailabilityForOutlet(
@@ -268,4 +305,112 @@ export async function createDefaultAvailabilityForOutlet(
       AND p.deleted_at IS NULL
     ON CONFLICT ON CONSTRAINT uq_item_outlet_avail__outlet_prod_sku DO NOTHING
   `)
+}
+
+export async function upsertAvailabilityBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  items: ReadonlyArray<{
+    id: string
+    outletId: string
+    productId: string
+    skuId: string | null
+    status: AvailabilityStatus
+    nowIso: string
+  }>,
+): Promise<void> {
+  for (const batch of chunkArray(items)) {
+    await tx
+      .insert(itemOutletAvailability)
+      .values(
+        batch.map((p) => ({
+          id: p.id,
+          tenantId: w.tenantId,
+          version: w.version,
+          createdAt: p.nowIso,
+          updatedAt: p.nowIso,
+          createdBy: w.actorUserId,
+          updatedBy: w.actorUserId,
+          deletedAt: null,
+          outletId: p.outletId,
+          productId: p.productId,
+          skuId: p.skuId,
+          status: p.status,
+          changedAt: p.nowIso,
+          changedBy: w.actorUserId,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [
+          itemOutletAvailability.outletId,
+          itemOutletAvailability.productId,
+          itemOutletAvailability.skuId,
+        ],
+        set: {
+          status: sql`excluded.status`,
+          changedAt: sql`excluded.changed_at`,
+          changedBy: w.actorUserId,
+          deletedAt: null,
+          version: w.version,
+          updatedAt: sql`excluded.updated_at`,
+          updatedBy: w.actorUserId,
+        },
+      })
+  }
+}
+
+export async function insertDefaultAvailabilityForProductsBatch(
+  tx: TenantTx,
+  w: MasterWriter,
+  productIds: readonly string[],
+  outletIds: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  if (productIds.length === 0 || outletIds.length === 0) return
+  const outletSqlList = sql.join(
+    outletIds.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  )
+  for (const prodBatch of chunkArray(productIds)) {
+    const prodSqlList = sql.join(
+      prodBatch.map((id) => sql`${id}::uuid`),
+      sql`, `,
+    )
+    await tx.execute(sql`
+      INSERT INTO item_outlet_availability (
+        id,
+        tenant_id,
+        version,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by,
+        deleted_at,
+        outlet_id,
+        product_id,
+        sku_id,
+        status,
+        changed_at,
+        changed_by
+      )
+      SELECT
+        uuidv7(),
+        ${w.tenantId}::uuid,
+        ${w.version}::bigint,
+        ${nowIso}::timestamptz,
+        ${nowIso}::timestamptz,
+        ${w.actorUserId}::uuid,
+        ${w.actorUserId}::uuid,
+        NULL,
+        o.oid,
+        p.pid,
+        NULL,
+        'AVAILABLE',
+        ${nowIso}::timestamptz,
+        ${w.actorUserId}::uuid
+      FROM unnest(ARRAY[${outletSqlList}]) AS o(oid)
+      CROSS JOIN unnest(ARRAY[${prodSqlList}]) AS p(pid)
+      ON CONFLICT ON CONSTRAINT uq_item_outlet_avail__outlet_prod_sku DO NOTHING
+    `)
+  }
 }
