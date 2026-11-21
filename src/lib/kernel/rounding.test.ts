@@ -6,6 +6,7 @@ import {
   allocateLR,
   mulRound,
   percentOf,
+  proRate,
   ratioRound,
   roundHalfUp,
   roundToUnit,
@@ -76,5 +77,26 @@ describe('kernel/rounding (V-01, V-02, V-03)', () => {
     expect(roundToUnit(toMoney(1250), 500)).toBe(1500)
     expect(roundToUnit(toMoney(1500), 1000)).toBe(2000)
     expect(() => roundToUnit(toMoney(-10), 100)).toThrowError(RangeError)
+  })
+})
+
+describe('kernel/proRate (BR-HPP-003, angka V-12..V-16)', () => {
+  it('menghitung R(value×num/den) half-up dengan pembulatan tunggal', () => {
+    expect(proRate(toMoney(800000), parseQty('30'), parseQty('100'))).toBe(240000)
+    expect(proRate(toMoney(985000), parseQty('7'), parseQty('120'))).toBe(57458)
+    expect(proRate(toMoney(985000), parseQty('10'), parseQty('120'))).toBe(82083)
+    expect(proRate(toMoney(328333), parseQty('38'), parseQty('40'))).toBe(311916)
+    expect(proRate(toMoney(656667), parseQty('3'), parseQty('80'))).toBe(24625)
+    expect(proRate(toMoney(656667), parseQty('5'), parseQty('80'))).toBe(41042)
+    expect(proRate(toMoney(57458), parseQty('1'), parseQty('7'))).toBe(8208)
+    expect(proRate(toMoney(0), parseQty('5'), parseQty('7'))).toBe(0)
+  })
+
+  it('simetris untuk nilai negatif: R(-x) = -R(x)', () => {
+    expect(proRate(toMoney(-985000), parseQty('7'), parseQty('120'))).toBe(-57458)
+  })
+
+  it('menolak penyebut nol', () => {
+    expect(() => proRate(toMoney(100), parseQty('1'), parseQty('0'))).toThrow()
   })
 })

@@ -1,5 +1,5 @@
 import { toMoney, type Money } from './money'
-import { D, type KernelDecimal, qtyToDecimal, type Qty } from './qty'
+import { D, type KernelDecimal, QtyError, qtyToDecimal, type Qty } from './qty'
 
 const PERCENT_PATTERN = /^-?\d+(?:\.\d{1,4})?$/
 
@@ -121,6 +121,21 @@ export function ratioRound(base: Money, numerator: string, denominator: string):
     throw new RangeError(`ratioRound denominator must be > 0: "${denominator}"`)
   }
   return roundHalfUp(new D(base).times(new D(numerator)).div(denomDec))
+}
+
+/**
+ * `R(value × num / den)` half-up simetris (BR-MNY-003): perkalian lalu pembagian dalam Decimal presisi
+ * penuh, pembulatan hanya sekali di akhir. `den` wajib > 0 (QtyError NOT_POSITIVE).
+ */
+export function proRate(value: Money, num: Qty, den: Qty): Money {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    throw new RangeError(`proRate value must be a safe integer: ${value}`)
+  }
+  const denDec = qtyToDecimal(den)
+  if (!denDec.gt(0)) {
+    throw new QtyError('NOT_POSITIVE', `proRate denominator must be > 0: "${den}"`)
+  }
+  return roundHalfUp(new D(value).times(qtyToDecimal(num)).div(denDec))
 }
 
 export type CashRoundingUnit = 0 | 100 | 500 | 1000

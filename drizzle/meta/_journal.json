@@ -232,6 +232,20 @@
       "when": 1795180942670,
       "tag": "0032_pin_constraints_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795270384358,
+      "tag": "0033_inventory_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795270408700,
+      "tag": "0034_inventory_constraints_rls",
+      "breakpoints": true
     }
   ]
 }
