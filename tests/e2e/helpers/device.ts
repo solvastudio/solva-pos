@@ -35,7 +35,7 @@ export async function pairDeviceViaUi(
   await page.getByRole('button', { name: /Pair Device|^Pasangkan$/i }).click()
 
   await page.waitForURL(new RegExp(`/${slug}/pos/login`), { timeout: waitTimeoutMs })
-  await expect(page.locator('h1')).toContainText(/PIN/i)
+  await expect(page.locator('h1')).toContainText(/Staff Sign In|Masuk Staf/i)
   await waitForServiceWorkerReady(page)
   await page.waitForFunction(() => Boolean((window as { __solva?: unknown }).__solva), {
     timeout: 15_000,

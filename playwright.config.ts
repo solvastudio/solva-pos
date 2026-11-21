@@ -79,6 +79,10 @@ export default defineConfig({
       LOG_DIR: e2eLogDir,
       LOG_LEVEL: 'info',
       RL_FULL_RESYNC_PER_HOUR: '5',
+      // The suite pairs 20+ devices from one IP in a few minutes; production defaults (10 per IP per
+      // 5 min) would rate-limit later specs. Login limits (F1-K11) are deliberately left at defaults.
+      RL_ENROLL_IP_POINTS: '500',
+      RL_ENROLL_SLUG_POINTS: '500',
     },
   },
 })

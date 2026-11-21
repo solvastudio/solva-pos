@@ -46,12 +46,12 @@ test.describe('F1-K06: Instant offline i18n language switch without reload', () 
 
       const tStart = await page.evaluate(() => performance.now())
       await page.getByRole('button', { name: 'EN', exact: true }).click()
-      await expect(page.locator('h1')).toContainText('Sign in with PIN')
+      await expect(page.locator('h1')).toContainText('Staff Sign In')
       const tMid = await page.evaluate(() => performance.now())
       expect(tMid - tStart).toBeLessThanOrEqual(200)
 
       await page.getByRole('button', { name: 'ID', exact: true }).click()
-      await expect(page.locator('h1')).toContainText('Masuk dengan PIN')
+      await expect(page.locator('h1')).toContainText('Masuk Staf')
       const tEnd = await page.evaluate(() => performance.now())
       expect(tEnd - tMid).toBeLessThanOrEqual(200)
 

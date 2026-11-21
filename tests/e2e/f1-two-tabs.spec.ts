@@ -30,7 +30,7 @@ test.describe('Two-tab exclusive instance lock', () => {
       // Closing primary tab promotes page2 automatically to /acme/pos/login!
       await page1.close()
       await page2.waitForURL(/\/acme\/pos\/login/, { timeout: 15_000 })
-      await expect(page2.locator('h1')).toContainText(/PIN/i)
+      await expect(page2.locator('h1')).toContainText(/Staff Sign In|Masuk Staf/i)
     } finally {
       await clearActiveDevicesOnRegister(state.tenants.acme.id, state.tenants.acme.registerId)
       await ctx.close()

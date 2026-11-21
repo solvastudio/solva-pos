@@ -54,7 +54,7 @@ test.describe('F1-K03 & F1-K08: Device pairing, offline POS shell, and remote re
       const docRes = await offlinePage.goto('/acme/pos/login', { waitUntil: 'domcontentloaded' })
       expect(docRes?.fromServiceWorker()).toBe(true)
       expect(docRes?.headers()['x-from-sw']).toBe('1')
-      await expect(offlinePage.locator('h1')).toContainText(/PIN/i)
+      await expect(offlinePage.locator('h1')).toContainText(/Staff Sign In|Masuk Staf/i)
       await expect(offlinePage.locator('footer')).toContainText(/Solva POS/i)
 
       expect(failedRequests).toEqual([])

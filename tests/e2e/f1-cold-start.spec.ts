@@ -26,7 +26,7 @@ test.describe('Offline cold start latency', () => {
 
       const t0 = Date.now()
       await coldPage.goto('/acme/pos/login', { waitUntil: 'domcontentloaded' })
-      await expect(coldPage.locator('h1')).toContainText(/PIN/i)
+      await expect(coldPage.locator('h1')).toContainText(/Staff Sign In|Masuk Staf/i)
       const durationMs = Date.now() - t0
 
       testInfo.annotations.push({
