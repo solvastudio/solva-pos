@@ -246,6 +246,27 @@
       "when": 1795270408700,
       "tag": "0034_inventory_constraints_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795299735056,
+      "tag": "0035_inventory_doc_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795300044822,
+      "tag": "0036_inventory_valuation_view",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795300935485,
+      "tag": "0037_inventory_doc_number_guard",
+      "breakpoints": true
     }
   ]
 }

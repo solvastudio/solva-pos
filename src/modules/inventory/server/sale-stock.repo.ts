@@ -82,3 +82,43 @@ export async function readOutletStockRows(
     count: res.rows.length,
   }
 }
+
+/** Movement asal per sumber untuk jenis tertentu (mis. GR_IN untuk reversal GR). */
+export async function findMovementIdsBySource(
+  tx: TenantTx,
+  tenantId: string,
+  sourceIds: readonly string[],
+  movementType: string,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (sourceIds.length === 0) return out
+  const rows = await tx
+    .select({ id: stockMovement.id, sourceId: stockMovement.sourceId })
+    .from(stockMovement)
+    .where(
+      and(
+        eq(stockMovement.tenantId, tenantId),
+        eq(stockMovement.movementType, movementType),
+        inArray(stockMovement.sourceId, [...sourceIds]),
+      ),
+    )
+  for (const r of rows) out.set(r.sourceId, r.id)
+  return out
+}
+
+/** SKU dengan saldo ≥ 0 pada outlet (syarat penyelesaian flag STOK_MINUS, ARCH §5.2). */
+export async function nonNegativeSkuIds(
+  tx: TenantTx,
+  tenantId: string,
+  outletId: string,
+  skuIds: readonly string[],
+): Promise<string[]> {
+  if (skuIds.length === 0) return []
+  const res = await tx.execute<{ sku_id: string }>(sql`
+    SELECT sku_id FROM stock_balance
+    WHERE tenant_id = ${tenantId}::uuid AND outlet_id = ${outletId}::uuid
+      AND qty >= 0
+      AND sku_id IN (${sql.join(skuIds.map((id) => sql`${id}::uuid`), sql`, `)})
+  `)
+  return res.rows.map((r) => r.sku_id)
+}

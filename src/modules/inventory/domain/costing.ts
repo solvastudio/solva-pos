@@ -168,6 +168,36 @@ export function applyIn(
  * Masuk pada saldo ≤ 0 dengan nilai biaya referensi (BR-HPP-005): `R(refValue × qtyIn / refQty)`,
  * nol bila referensi kosong.
  */
+/**
+ * Keluar dengan nilai yang sudah ditetapkan (pembalikan GR, BR-STK-022): qty berkurang `qtyOut`,
+ * nilai berkurang persis `valueOut` (bukan rata-rata). Saldo boleh negatif (tidak ditolak). Bila saldo
+ * menjadi 0, nilai dipaksa 0 dan `valueDelta` membawa sisa nilai ke 0 (selisih tercatat di movement).
+ */
+export function applyReversalAtValue(b: StockBalance, qtyOut: Qty, valueOut: Money): CostResult {
+  requirePositive(qtyOut, 'qtyOut')
+  if (valueOut < 0) {
+    throw new QtyError('NOT_POSITIVE', 'valueOut must not be negative')
+  }
+  const qtyAfter = subQty(b.qty, qtyOut)
+  let valueDelta: Money = negMoney(valueOut)
+  let valueAfter: Money = subMoney(b.inventoryValue, valueOut)
+  if (cmpQty(qtyAfter, ZERO_QTY) === 0) {
+    valueDelta = negMoney(b.inventoryValue)
+    valueAfter = toMoney(0)
+  }
+  const next = withReference({ qty: qtyAfter, inventoryValue: valueAfter, rev: b.rev }, b)
+  assertInvariant(next)
+  return {
+    valueDelta,
+    next,
+    costBasis: 'DECLARED',
+    isNegativeResult: cmpQty(qtyAfter, ZERO_QTY) < 0,
+    qtyAfter,
+    valueAfter,
+    noReference: false,
+  }
+}
+
 export function applyInAtReference(b: StockBalance, qtyIn: Qty): CostResult {
   requirePositive(qtyIn, 'qtyIn')
   const valueIn = cmpQty(b.refQty, ZERO_QTY) > 0 ? proRate(b.refValue, qtyIn, b.refQty) : toMoney(0)

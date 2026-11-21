@@ -23,6 +23,7 @@ export interface AdminNavItem {
     | 'catalog'
     | 'prices'
     | 'availability'
+    | 'stock'
     | 'features'
     | 'attention'
     | 'settings'
@@ -37,6 +38,7 @@ export interface AdminNavItem {
     | 'admin.nav.catalog'
     | 'admin.nav.prices'
     | 'admin.nav.availability'
+    | 'admin.nav.stock'
     | 'admin.nav.features'
     | 'admin.nav.attention'
     | 'admin.nav.settings'
@@ -44,7 +46,7 @@ export interface AdminNavItem {
     | 'admin.nav.account'
   icon: ComponentType<{ className?: string }>
   requiredPermission?: PermissionCode
-  phase?: 'F1' | 'F2' | 'F3'
+  phase?: 'F1' | 'F2' | 'F3' | 'F4'
 }
 
 export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
@@ -102,6 +104,14 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     icon: Store,
     requiredPermission: 'catalog.manage',
     phase: 'F2',
+  },
+  {
+    id: 'stock',
+    path: '/admin/stock',
+    labelKey: 'admin.nav.stock',
+    icon: Package,
+    requiredPermission: 'report.view',
+    phase: 'F4',
   },
   {
     id: 'features',

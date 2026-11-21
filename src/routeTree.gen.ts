@@ -70,6 +70,8 @@ import { Route as TenantAdminAuthedCatalogNewRouteImport } from './routes/$tenan
 import { Route as TenantAdminAuthedReportsOperationsRouteImport } from './routes/$tenant/admin/_authed/reports/operations'
 import { Route as TenantAdminAuthedReportsSalesRouteImport } from './routes/$tenant/admin/_authed/reports/sales'
 import { Route as TenantAdminAuthedReportsShiftsRouteImport } from './routes/$tenant/admin/_authed/reports/shifts'
+import { Route as TenantAdminAuthedStockIndexRouteImport } from './routes/$tenant/admin/_authed/stock/index'
+import { Route as TenantAdminAuthedStockDocumentsRouteImport } from './routes/$tenant/admin/_authed/stock/documents'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
 import { Route as ApiPosV1AssetsLogoOutletIdRouteImport } from './routes/api/pos/v1/assets.logo.$outletId'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
@@ -393,6 +395,18 @@ const TenantAdminAuthedReportsShiftsRoute =
     path: '/reports/shifts',
     getParentRoute: () => TenantAdminAuthedRoute,
   } as any)
+const TenantAdminAuthedStockIndexRoute =
+  TenantAdminAuthedStockIndexRouteImport.update({
+    id: '/stock/',
+    path: '/stock/',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
+const TenantAdminAuthedStockDocumentsRoute =
+  TenantAdminAuthedStockDocumentsRouteImport.update({
+    id: '/stock/documents',
+    path: '/stock/documents',
+    getParentRoute: () => TenantAdminAuthedRoute,
+  } as any)
 const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   id: '/admin/api/auth/$',
   path: '/admin/api/auth/$',
@@ -476,8 +490,10 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/reports/operations': typeof TenantAdminAuthedReportsOperationsRoute
   '/$tenant/admin/reports/sales': typeof TenantAdminAuthedReportsSalesRoute
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
+  '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
+  '/$tenant/admin/stock/': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
@@ -540,8 +556,10 @@ export interface FileRoutesByTo {
   '/$tenant/admin/reports/operations': typeof TenantAdminAuthedReportsOperationsRoute
   '/$tenant/admin/reports/sales': typeof TenantAdminAuthedReportsSalesRoute
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
+  '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/catalog': typeof TenantAdminAuthedCatalogIndexRoute
+  '/$tenant/admin/stock': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
@@ -608,8 +626,10 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/reports/operations': typeof TenantAdminAuthedReportsOperationsRoute
   '/$tenant/admin/_authed/reports/sales': typeof TenantAdminAuthedReportsSalesRoute
   '/$tenant/admin/_authed/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
+  '/$tenant/admin/_authed/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
   '/$tenant/admin/_authed/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
+  '/$tenant/admin/_authed/stock/': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
@@ -677,8 +697,10 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/operations'
     | '/$tenant/admin/reports/sales'
     | '/$tenant/admin/reports/shifts'
+    | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/catalog/'
+    | '/$tenant/admin/stock/'
     | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
@@ -741,8 +763,10 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/operations'
     | '/$tenant/admin/reports/sales'
     | '/$tenant/admin/reports/shifts'
+    | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/catalog'
+    | '/$tenant/admin/stock'
     | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
@@ -808,8 +832,10 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/reports/operations'
     | '/$tenant/admin/_authed/reports/sales'
     | '/$tenant/admin/_authed/reports/shifts'
+    | '/$tenant/admin/_authed/stock/documents'
     | '/$tenant/admin/api/auth/$'
     | '/$tenant/admin/_authed/catalog/'
+    | '/$tenant/admin/_authed/stock/'
     | '/api/pos/v1/assets/logo/$outletId'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
@@ -1266,6 +1292,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedReportsShiftsRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/$tenant/admin/_authed/stock/': {
+      id: '/$tenant/admin/_authed/stock/'
+      path: '/stock'
+      fullPath: '/$tenant/admin/stock/'
+      preLoaderRoute: typeof TenantAdminAuthedStockIndexRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
+    '/$tenant/admin/_authed/stock/documents': {
+      id: '/$tenant/admin/_authed/stock/documents'
+      path: '/stock/documents'
+      fullPath: '/$tenant/admin/stock/documents'
+      preLoaderRoute: typeof TenantAdminAuthedStockDocumentsRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
     '/$tenant/admin/api/auth/$': {
       id: '/$tenant/admin/api/auth/$'
       path: '/admin/api/auth/$'
@@ -1362,7 +1402,9 @@ interface TenantAdminAuthedRouteChildren {
   TenantAdminAuthedReportsOperationsRoute: typeof TenantAdminAuthedReportsOperationsRoute
   TenantAdminAuthedReportsSalesRoute: typeof TenantAdminAuthedReportsSalesRoute
   TenantAdminAuthedReportsShiftsRoute: typeof TenantAdminAuthedReportsShiftsRoute
+  TenantAdminAuthedStockDocumentsRoute: typeof TenantAdminAuthedStockDocumentsRoute
   TenantAdminAuthedCatalogIndexRoute: typeof TenantAdminAuthedCatalogIndexRoute
+  TenantAdminAuthedStockIndexRoute: typeof TenantAdminAuthedStockIndexRoute
 }
 
 const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
@@ -1382,7 +1424,9 @@ const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
     TenantAdminAuthedReportsOperationsRoute,
   TenantAdminAuthedReportsSalesRoute: TenantAdminAuthedReportsSalesRoute,
   TenantAdminAuthedReportsShiftsRoute: TenantAdminAuthedReportsShiftsRoute,
+  TenantAdminAuthedStockDocumentsRoute: TenantAdminAuthedStockDocumentsRoute,
   TenantAdminAuthedCatalogIndexRoute: TenantAdminAuthedCatalogIndexRoute,
+  TenantAdminAuthedStockIndexRoute: TenantAdminAuthedStockIndexRoute,
 }
 
 const TenantAdminAuthedRouteWithChildren =

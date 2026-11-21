@@ -54,6 +54,7 @@ export {
   type VersionEvaluationResult,
 } from './server/release.service'
 export { ingestDeviceLog } from './server/device-log.service'
+export { resolveStockMinusFlags } from './server/flag-resolution.repo'
 export {
   __clearOutletStockReaderForTests,
   buildStockSnapshot,

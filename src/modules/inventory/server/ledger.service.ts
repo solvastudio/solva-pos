@@ -7,6 +7,7 @@ import {
   applyIn,
   applyInAtReference,
   applyOut,
+  applyReversalAtValue,
   type CostBasis,
   type CostResult,
   type StockBalance,
@@ -42,7 +43,7 @@ const ledgerIdGen = createIdGenerator({
 export interface MovementIntent {
   readonly outletId: string
   readonly skuId: string
-  readonly kind: 'OUT' | 'IN' | 'IN_REF' | 'ADJUST'
+  readonly kind: 'OUT' | 'OUT_VALUE' | 'IN' | 'IN_REF' | 'ADJUST'
   readonly qty: Qty
   readonly valueIn?: Money
   readonly costBasisHint?: 'DECLARED' | 'TRANSFER' | 'SNAPSHOT'
@@ -104,8 +105,8 @@ function validateIntent(i: MovementIntent): void {
   } else if (sign <= 0) {
     throw new RangeError(`movement intent ${i.kind}: qty harus positif`)
   }
-  if (i.kind === 'IN' && i.valueIn === undefined) {
-    throw new RangeError('movement intent IN: valueIn wajib')
+  if ((i.kind === 'IN' || i.kind === 'OUT_VALUE') && i.valueIn === undefined) {
+    throw new RangeError(`movement intent ${i.kind}: valueIn wajib`)
   }
 }
 
@@ -113,6 +114,8 @@ function applyOne(balance: StockBalance, i: MovementIntent): CostResult {
   switch (i.kind) {
     case 'OUT':
       return applyOut(balance, i.qty)
+    case 'OUT_VALUE':
+      return applyReversalAtValue(balance, i.qty, i.valueIn ?? toMoney(0))
     case 'IN':
       return applyIn(balance, i.qty, i.valueIn ?? toMoney(0), i.costBasisHint ?? 'DECLARED')
     case 'IN_REF':
@@ -218,7 +221,7 @@ export async function applyMovements(
       occurredAt: i.occurredAt,
       businessDate: i.businessDate,
       movementType: i.movementType,
-      qtyDelta: i.kind === 'OUT' ? negate(i.qty) : i.qty,
+      qtyDelta: i.kind === 'OUT' || i.kind === 'OUT_VALUE' ? negate(i.qty) : i.qty,
       valueDelta: result.valueDelta,
       qtyAfter: result.next.qty,
       valueAfter: result.next.inventoryValue,

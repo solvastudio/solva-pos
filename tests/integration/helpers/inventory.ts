@@ -159,3 +159,20 @@ export async function setSkuProductFlags(
     await masterUpdate(tenantId, "UPDATE product SET product_type = $3, version = $4 WHERE tenant_id = $1 AND id = (SELECT product_id FROM sku WHERE id = $2)", [tenantId, skuId, flags.productType])
   }
 }
+
+/** Menambah UOM kedua (mis. `dus` dengan faktor 12) untuk SKU uji. */
+export async function addSkuUom(tenantId: string, skuId: string, code: string, factor: number): Promise<string> {
+  return masterTx(tenantId, async (c, v) => {
+    const uomId = (
+      await c.query<{ id: string }>(
+        `INSERT INTO uom (tenant_id, version, code, name) VALUES ($1, $2, $3, $3) RETURNING id`,
+        [tenantId, v, code],
+      )
+    ).rows[0]!.id
+    await c.query(
+      `INSERT INTO sku_uom (tenant_id, version, sku_id, uom_id, conversion_factor, is_base) VALUES ($1, $2, $3, $4, $5, false)`,
+      [tenantId, v, skuId, uomId, factor],
+    )
+    return uomId
+  })
+}
