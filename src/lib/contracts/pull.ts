@@ -99,7 +99,7 @@ export const StockSnapshotBlockSchema = z.object({
   etag: z.string().regex(/^[0-9a-f]{16}$/),
   as_of_server_time: z.iso.datetime(),
   acked_device_seq: z.number().int().nonnegative(),
-  rows: z.array(z.object({ sku_id: z.uuid(), qty: z.string().regex(/^-?d+(.d{1,4})?$/) }).strict()),
+  rows: z.array(z.object({ sku_id: z.uuid(), qty: z.string().regex(/^-?\d+(\.\d{1,4})?$/) }).strict()),
 })
 export type StockSnapshotBlock = z.infer<typeof StockSnapshotBlockSchema>
 
