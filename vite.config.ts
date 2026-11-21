@@ -13,6 +13,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig, type PluginOption } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { createPosPrecacheTransform } from './scripts/ci/bundle-guard.mjs'
 
 function readMigrationCount(): number {
   try {
@@ -124,6 +125,9 @@ export default defineConfig({
           '**/_dev*',
           '**/PlatformShell*.js',
         ],
+        // Admin route chunks are named per route component (users-*.js, settings-*.js, ...), so the
+        // name globs above miss them. Filter by reachability from the POS graph instead.
+        manifestTransforms: [createPosPrecacheTransform()],
         maximumFileSizeToCacheInBytes: 3_000_000,
       },
     }),

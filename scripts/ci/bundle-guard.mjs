@@ -172,6 +172,79 @@ export function getPosInitialAssetPaths(clientDir = resolve('dist/client')) {
   return [...graph.files, ...graph.cssFiles].map((relFile) => join(clientDir, relFile))
 }
 
+const NON_POS_ROUTE_KEY_PATTERNS = [
+  /routes\/\$tenant\/admin/,
+  /routes\/platform/,
+  /routes\/\$tenant\/join/,
+  /routes\/\$tenant\/reset/,
+]
+const ROUTER_FANOUT_KEY_PATTERNS = [/routeTree\.gen/, /src\/router\./]
+
+/**
+ * Every JS/CSS file the POS may need offline: the static initial graph plus all lazy chunks reachable
+ * from it. Unlike the strict initial-budget graph, lazy imports are followed from any POS-side module
+ * (e.g. `src/components/pos/**`), but never through the router fan-out (`routeTree.gen`, `router`) nor
+ * into admin/platform/join/reset route modules, so those stay out of the device precache.
+ */
+function collectPosPrecacheFiles(manifest) {
+  const graph = collectPosGraph(manifest)
+  const seen = new Set([...graph.visitedKeys, ...graph.lazyKeys])
+  const queue = [...seen]
+  const files = new Set([
+    ...graph.files,
+    ...graph.cssFiles,
+    ...graph.lazyFiles,
+    ...graph.lazyCssFiles,
+  ])
+
+  while (queue.length > 0) {
+    const key = queue.shift()
+    const entry = key ? manifest[key] : undefined
+    if (!entry) continue
+    if (ROUTER_FANOUT_KEY_PATTERNS.some((re) => re.test(key))) continue
+    const next = [...(entry.imports ?? []), ...(entry.dynamicImports ?? [])]
+    for (const target of next) {
+      if (seen.has(target)) continue
+      if (NON_POS_ROUTE_KEY_PATTERNS.some((re) => re.test(target))) continue
+      const t = manifest[target]
+      if (!t) continue
+      seen.add(target)
+      queue.push(target)
+      if (t.file) files.add(t.file)
+      for (const css of t.css ?? []) files.add(css)
+    }
+  }
+  return files
+}
+
+/** Relative JS/CSS files listed in the Vite manifest that the POS never needs (admin-only chunks). */
+export function getNonPosManifestFiles(clientDir = resolve('dist/client')) {
+  const manifestPath = join(clientDir, '.vite', 'manifest.json')
+  if (!existsSync(manifestPath)) {
+    return new Set()
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const pos = collectPosPrecacheFiles(manifest)
+  const all = new Set()
+  for (const entry of Object.values(manifest)) {
+    if (entry?.file) all.add(entry.file)
+    for (const css of entry?.css ?? []) all.add(css)
+  }
+  return new Set([...all].filter((f) => /\.(m?js|css)$/.test(f) && !pos.has(f)))
+}
+
+/**
+ * Workbox `manifestTransforms` entry: drops precache entries for chunks only the admin/platform
+ * routes use. Evaluated at SW generation time, after the Vite client manifest has been written.
+ */
+export function createPosPrecacheTransform(clientDir = resolve('dist/client')) {
+  return async (entries) => {
+    const nonPos = getNonPosManifestFiles(clientDir)
+    const manifest = entries.filter((e) => !nonPos.has(e.url.replace(/^\/+/, '')))
+    return { manifest, warnings: [] }
+  }
+}
+
 function extractPrecacheUrlsFromSw(swContent) {
   const urls = new Set()
   const urlRe = /(?:["']url["']|\burl)\s*:\s*["']([^"']+)["']/g
@@ -287,8 +360,14 @@ export function checkBundleGuard(clientDir = resolve('dist/client')) {
   } else {
     const swText = readFileSync(swPath, 'utf8')
     const precacheUrls = extractPrecacheUrlsFromSw(swText)
+    const nonPosFiles = getNonPosManifestFiles(clientDir)
     for (const u of precacheUrls) {
       const cleanRel = u.replace(/^\/+/, '')
+      if (nonPosFiles.has(cleanRel)) {
+        violations.push(
+          `Service worker precache must not include admin-only chunk (not reachable from POS graph): ${cleanRel}`,
+        )
+      }
       for (const pat of FORBIDDEN_ADMIN_CHUNK_PATTERNS) {
         if (pat.test(cleanRel)) {
           violations.push(`Service worker precache must not include admin/chart chunk: ${cleanRel}`)
