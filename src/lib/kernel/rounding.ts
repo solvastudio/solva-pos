@@ -30,9 +30,11 @@ export function percentOf(base: Money, percent: string): Money {
 /**
  * Largest Remainder allocation (BR-MNY-006):
  * `total >= 0`, all `weights[i] >= 0` safe integers, `sum(weights) > 0`.
- * Fractional ties are broken in favor of smaller indices (stable).
+ * Fractional ties are broken in favor of the smaller `tieRank` (BR-MNY-006 langkah 4: nomor baris/bill
+ * anak yang lebih kecil). Bila `tieRank` tidak diberikan, urutan indeks array dipakai. Hasil tidak boleh
+ * bergantung pada urutan penyajian baris bila pemanggil memberi `tieRank` yang unik.
  */
-export function allocateLR(total: Money, weights: readonly number[]): Money[] {
+export function allocateLR(total: Money, weights: readonly number[], tieRank?: readonly number[]): Money[] {
   if (!Number.isSafeInteger(total) || total < 0) {
     throw new RangeError(`LR allocation total must be an integer >= 0: ${total}`)
   }
@@ -71,13 +73,17 @@ export function allocateLR(total: Money, weights: readonly number[]): Money[] {
 
   const left = Number(totalBig - sumBase)
   if (left > 0) {
+    if (tieRank !== undefined && tieRank.length !== weights.length) {
+      throw new RangeError('LR allocation tieRank must have the same length as weights')
+    }
+    const rank = tieRank ?? weights.map((_, idx) => idx)
     const order = Array.from({ length: weights.length }, (_, idx) => idx)
     order.sort((a, b) => {
       const ra = remainders[a]!
       const rb = remainders[b]!
       if (rb > ra) return 1
       if (rb < ra) return -1
-      return a - b
+      return rank[a]! - rank[b]!
     })
 
     for (let k = 0; k < left; k += 1) {

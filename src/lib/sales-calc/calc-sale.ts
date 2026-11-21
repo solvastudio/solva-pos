@@ -142,13 +142,15 @@ export function calcSale(input: SaleCalcInput): SaleCalc {
 
   const billDiscountTotal = calcLineDiscount(s1, input.billDiscount)
   const netSubtotal = toMoney(s1 - billDiscountTotal)
-  const billDiscountAlloc = allocateComponentLR(billDiscountTotal, lineNets)
+  // Seri LR diputuskan oleh nomor baris (BR-MNY-006), bukan posisi array: hasil tidak bergantung urutan penyajian.
+  const tieRank = input.lines.map((l) => l.lineNo)
+  const billDiscountAlloc = allocateComponentLR(billDiscountTotal, lineNets, tieRank)
 
   const weightsS2 = lineNets.map((ln, idx) => ln - billDiscountAlloc[idx]!)
   const serviceCharge = config.serviceChargeEnabled
     ? percentOf(netSubtotal, config.serviceChargeRate)
     : ZERO
-  const serviceAlloc = allocateComponentLR(serviceCharge, weightsS2)
+  const serviceAlloc = allocateComponentLR(serviceCharge, weightsS2, tieRank)
 
   // Tax base & allocation weights (non-taxable lines ALWAYS receive weight 0)
   let productTaxBaseNum = 0
@@ -186,7 +188,7 @@ export function calcSale(input: SaleCalcInput): SaleCalc {
   }
 
   const taxAlloc =
-    sumTaxWeights > 0 ? allocateComponentLR(taxAmount, taxWeights) : input.lines.map(() => ZERO)
+    sumTaxWeights > 0 ? allocateComponentLR(taxAmount, taxWeights, tieRank) : input.lines.map(() => ZERO)
 
   const grandTotal =
     config.priceTaxMode === 'EXCLUSIVE'
