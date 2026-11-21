@@ -982,4 +982,33 @@ describe('push pipeline integration (idempotency, attention queue, dependencies,
       ref: 'req-fs-bad',
     })
   })
+
+  it('stamps received_at per command instead of sharing one request-level timestamp', async () => {
+    const slug = uniqueSlug('push-per-cmd-ts')
+    const fx = await setupDeviceFixture(slug)
+    const c1 = makeAuditCmd(1)
+    const c2 = makeAuditCmd(2)
+    const c3 = makeAuditCmd(3)
+
+    let tick = 0
+    const nowIso = () => new Date(Date.UTC(2026, 10, 21, 0, 0, tick++)).toISOString()
+
+    const res = await processPush(
+      fx.syncDevice,
+      { sent_at_device: new Date().toISOString(), clock_offset_ms: 0, commands: [c1, c2, c3] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'req-per-cmd-ts' },
+      { nowIso },
+    )
+    expect(res.results.map((r) => r.outcome)).toEqual(['ACK', 'ACK', 'ACK'])
+
+    await withTenant(fx.tenantId, async (tx) => {
+      const rows = await tx.execute(
+        sql`SELECT command_id, received_at FROM idempotency_command WHERE command_id IN (${c1.id}::uuid, ${c2.id}::uuid, ${c3.id}::uuid) ORDER BY device_seq`,
+      )
+      const times = rows.rows.map((r) => new Date(String(r.received_at)).getTime())
+      expect(times).toHaveLength(3)
+      expect(new Set(times).size).toBe(3)
+      expect(times[0]! < times[1]! && times[1]! < times[2]!).toBe(true)
+    })
+  })
 })

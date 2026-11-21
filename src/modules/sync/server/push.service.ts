@@ -575,7 +575,12 @@ export async function processPush(
   let ackCount = 0
   let hasRetry = false
 
+  const readClock = deps?.nowIso ?? (() => new Date().toISOString())
+
   for (const cmd of sorted) {
+    // Server processing time is per command (BR-HPP-004, RSK-A31): a batch of many commands must not
+    // share one request-level timestamp for `received_at` / `processed_at`.
+    const commandReceivedAtIso = readClock()
     const item = await processSingleCommand(
       device,
       cmd,
@@ -584,7 +589,7 @@ export async function processPush(
         appVersion: safeAppVersion,
         requestRef: meta.requestRef,
       },
-      receivedAtIso,
+      commandReceivedAtIso,
       deps?.lockTimeoutMs,
       maxFailureAttempts,
       maxTransientAttempts,
