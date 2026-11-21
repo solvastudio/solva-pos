@@ -4,8 +4,10 @@ import { argon2id } from 'hash-wasm'
 import type { PinKdfParams } from './pin-schema'
 
 /**
- * Default OWASP Argon2id parameters calibrated on real target hardware (`_dev/argon-bench`)
- * targeting 250–500 ms per attempt (NFR-PERF-007). Never auto-tuned without user calibration.
+ * Default Argon2id parameters: the OWASP minimum starting point (19 MiB, t=2, p=1). They are NOT yet
+ * calibrated on the target devices. Before the first production release, measure with the dev-only
+ * `/<slug>/pos/_dev/argon-bench` route on the real tablets/phones and adjust so one attempt takes
+ * roughly 250–500 ms (NFR-PERF-007). Never auto-tuned without user calibration.
  */
 export const DEFAULT_ARGON2ID_PARAMS: PinKdfParams = {
   memorySize: 19_456,
