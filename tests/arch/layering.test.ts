@@ -1,7 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { ESLint } from 'eslint'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// Each case spawns ESLint and/or dependency-cruiser; under the parallel unit run (100+ workers) the
+// default and 15 s timeouts are not reliable, which made this file flaky.
+vi.setConfig({ testTimeout: 60_000 })
 
 const ROOT = resolve(import.meta.dirname, '../..')
 const FIXTURES = resolve(import.meta.dirname, 'fixtures')
@@ -50,7 +54,7 @@ describe('architecture layering guardrails', () => {
 
     const dc = depcruiseFixture('pos-imports-server')
     expect(dc.summary.violations.some((v) => v.rule.name === 'pos-no-server')).toBe(true)
-  }, 15_000)
+  })
 
   it('detects kernel importing react via ESLint', async () => {
     const messages = await lintFixture('kernel-imports-react')
