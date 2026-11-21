@@ -36,6 +36,11 @@ describe('pos/data/meta.repo', () => {
         max_seen_time: '2026-11-20T01:00:01.000Z',
       },
       last_success_sync_at: '2026-11-20T01:00:00.000Z',
+      stock_snapshot_meta: {
+        etag: '0123456789abcdef',
+        as_of_server_time: '2026-11-20T01:00:00.000Z',
+        acked_device_seq: 7,
+      },
       locale: 'en-US',
       idle_lock: {
         locked: false,

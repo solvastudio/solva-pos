@@ -68,6 +68,8 @@ export const PullRequest = z
     page_size: z.number().int().min(1).max(500).default(500),
     attention_ids: z.array(z.uuid()).max(100).default([]),
     report: DeviceReportSchema.optional(),
+    /** Etag snapshot stok yang terakhir diterima klien (Fase 53); `null`/absen = belum ada. */
+    stock_etag: z.string().regex(/^[0-9a-f]{16}$/).nullable().optional(),
   })
   .strict()
 export type PullRequest = z.infer<typeof PullRequest>
@@ -92,6 +94,15 @@ export const PullResyncRequiredResponse = z.object({
   reason: z.enum(['CURSOR_BELOW_FLOOR', 'SCHEMA_INCOMPATIBLE']),
 })
 
+/** Snapshot stok outlet (kelas P; BR-STK-005). Dikirim hanya pada halaman terakhir dan bila etag berubah. */
+export const StockSnapshotBlockSchema = z.object({
+  etag: z.string().regex(/^[0-9a-f]{16}$/),
+  as_of_server_time: z.iso.datetime(),
+  acked_device_seq: z.number().int().nonnegative(),
+  rows: z.array(z.object({ sku_id: z.uuid(), qty: z.string().regex(/^-?d+(.d{1,4})?$/) }).strict()),
+})
+export type StockSnapshotBlock = z.infer<typeof StockSnapshotBlockSchema>
+
 export const PullPageSuccessResponse = z.object({
   server_time: z.iso.datetime(),
   upper: z.number().int().nonnegative(),
@@ -103,6 +114,7 @@ export const PullPageSuccessResponse = z.object({
   release: ReleaseBlockSchema.nullable(),
   command_updates: z.array(PullCommandUpdateSchema).optional(),
   manifest: PullManifestSchema.optional(),
+  stock: z.union([z.literal('unchanged'), StockSnapshotBlockSchema]).optional(),
 })
 
 export const PullResponse = z.union([PullResyncRequiredResponse, PullPageSuccessResponse])

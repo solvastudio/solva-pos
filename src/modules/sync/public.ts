@@ -54,6 +54,13 @@ export {
   type VersionEvaluationResult,
 } from './server/release.service'
 export { ingestDeviceLog } from './server/device-log.service'
+export {
+  __clearOutletStockReaderForTests,
+  buildStockSnapshot,
+  registerOutletStockReader,
+  stockEtag,
+  type OutletStockReader,
+} from './server/stock-snapshot.service'
 export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
 export {
   createSignalsHub,

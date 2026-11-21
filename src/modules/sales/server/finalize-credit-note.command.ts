@@ -23,10 +23,14 @@ import type { TenantTx } from '~/server/db'
 import {
   findOriginalSaleForCreditNote,
   insertCreditNoteFacts,
+  loadSaleLineStockInfo,
   lockSaleLinesOrderedForUpdate,
+  persistCreditNoteCosts,
   sumPriorCreditNoteReturns,
 } from './credit-note.repo'
+import { loadReturnedTotals } from './sale.repo'
 import { registerReceivedNumber } from './invoice-series.service'
+import { getSaleStockPort } from './stock-port'
 
 /**
  * Handles `FinalizeCreditNote`: validates structural integrity, return window,
@@ -147,6 +151,9 @@ export const finalizeCreditNoteCommandHandler: CommandHandler<
     const saleLineIds = payload.lines.map((l) => l.sale_line_id)
     const lockedLines = await lockSaleLinesOrderedForUpdate(tx, tenantId, saleLineIds)
     const priorReturns = await sumPriorCreditNoteReturns(tx, tenantId, saleLineIds)
+    // Total HPP & qty KEMBALI_STOK sebelum retur ini (dibaca sebelum baris retur ini ditulis).
+    const priorStockReturns = await loadReturnedTotals(tx, tenantId, saleLineIds)
+    const saleStockInfo = await loadSaleLineStockInfo(tx, tenantId, saleLineIds)
 
     const incomingQtyPerLine = new Map<string, ReturnType<typeof parseQty>>()
     for (const line of payload.lines) {
@@ -211,6 +218,41 @@ export const finalizeCreditNoteCommandHandler: CommandHandler<
       finalCnNo: seriesOutcome.finalNo,
       cnConflictIdx: seriesOutcome.conflictIdx,
     })
+
+    // 4b. Stok retur (Fase 53): KEMBALI_STOK membuat RETURN_IN dan cost_returned (BR-HPP-007).
+    const stockReturn = await getSaleStockPort().applyReturn(tx, {
+      tenantId,
+      outletId: ctx.device.outletId,
+      occurredAt: cn.occurred_at,
+      businessDate: cn.business_date,
+      processedAt: ctx.receivedAtIso,
+      commandId: ctx.commandId,
+      actorId: cn.created_by,
+      lines: payload.lines.map((l) => {
+        const info = saleStockInfo.get(l.sale_line_id)
+        const prior = priorStockReturns.get(l.sale_line_id)
+        return {
+          creditNoteLineId: l.id,
+          lineNo: l.line_no,
+          saleLineId: l.sale_line_id,
+          skuId: info?.skuId ?? null,
+          disposition: l.disposition,
+          qtyReturnedBase: parseQty(l.qty_returned_base),
+          saleQtyBase: parseQty(info?.qtyBase ?? '0'),
+          costSnapshot: info?.costSnapshot == null ? null : toMoney(info.costSnapshot),
+          returnedQtyBefore: parseQty(prior?.qty ?? '0'),
+          costReturnedBefore: toMoney(prior?.cost ?? 0),
+        }
+      }),
+    })
+    await persistCreditNoteCosts(
+      tx,
+      tenantId,
+      stockReturn.lines.map((l) => ({
+        creditNoteLineId: l.creditNoteLineId,
+        costReturned: l.costReturned,
+      })),
+    )
 
     const flags = new Set<FlagCode>()
 

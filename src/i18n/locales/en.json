@@ -1838,6 +1838,9 @@
       "hardBody": "The app will update automatically once this shift ends and unsent queue clears.",
       "laterButton": "Later",
       "reloadNowButton": "Update Now"
+    },
+    "stock": {
+      "estimateLow": "Estimated stock ≤ 0"
     }
   },
   "receipt": {

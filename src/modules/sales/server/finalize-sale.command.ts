@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { parseCommandPayload, type FinalizeSalePayloadV1, type FlagCode } from '~/lib/contracts'
-import { formatInvoiceNo, invoicePeriod } from '~/lib/kernel'
+import { formatInvoiceNo, invoicePeriod, parseQty } from '~/lib/kernel'
 import { filterMissingCatalogRefs } from '~/modules/catalog/public'
 import { findRegisterPrefixForBusinessDate, validateSaleIdentityRefs } from '~/modules/identity/public'
 import { getShiftForCommand, recomputeRecapIfClosed } from '~/modules/shift/public'
@@ -16,7 +16,8 @@ import { createLogger } from '~/server/log'
 import { registerReceivedNumber } from './invoice-series.service'
 import { evaluateSaleBusinessFlags } from './sale-flags.service'
 import { verifyFinalizeSalePayload } from './sale-verify.adapter'
-import { insertSaleFacts } from './sale.repo'
+import { insertSaleFacts, persistSaleCosts } from './sale.repo'
+import { getSaleStockPort } from './stock-port'
 
 const log = createLogger('sales.finalize_sale')
 
@@ -182,6 +183,32 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
       invoiceConflictIdx: seriesOutcome.conflictIdx,
     })
 
+    // 3b. Stok & HPP otoritatif (Fase 53): movement SALE dan cost_snapshot dalam transaksi ini (BR-HPP-004).
+    //     Tidak pernah menolak karena stok (AP-02); saldo negatif hanya ditandai di langkah 5b.
+    const stock = await getSaleStockPort().applySale(tx, {
+      tenantId,
+      outletId: ctx.device.outletId,
+      saleId: s.id,
+      occurredAt: s.occurred_at,
+      businessDate: s.business_date,
+      processedAt: ctx.receivedAtIso,
+      commandId: ctx.commandId,
+      actorId: s.created_by,
+      lines: payload.lines.map((l) => ({
+        lineId: l.id,
+        lineNo: l.line_no,
+        lineKind: l.line_kind,
+        skuId: l.sku_id,
+        qtyBase: parseQty(l.qty_base),
+      })),
+    })
+    await persistSaleCosts(tx, {
+      tenantId,
+      saleId: s.id,
+      costTotal: stock.costTotal,
+      lines: stock.lines,
+    })
+
     const flags = new Set<FlagCode>()
 
     if (seriesOutcome.isConflict) {
@@ -238,15 +265,36 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
       flags.add(f)
     }
 
+    // 5b. Saldo stok negatif (BR-STK-002): tandai, jangan tolak (AP-02).
+    for (const neg of stock.negativeResults) {
+      const line = payload.lines.find((l) => l.sku_id === neg.skuId)
+      await createDataFlag(tx, {
+        tenantId,
+        outletId: ctx.device.outletId,
+        businessDate: s.business_date,
+        flagCode: 'STOK_MINUS',
+        entityType: line ? 'SALE_LINE' : 'SALE',
+        entityId: line ? line.id : s.id,
+        commandId: ctx.commandId,
+        detail: { sku_id: neg.skuId, qty_after: neg.qtyAfter },
+      })
+      raisedAdd(flags, 'STOK_MINUS')
+    }
+
     await recomputeRecapIfClosed(tx, s.shift_id, ctx.receivedAtIso)
 
+    const lineNoById = new Map(payload.lines.map((l) => [l.id, l.line_no] as const))
     return {
       sale_id: s.id,
       invoice_no: seriesOutcome.finalNo,
       invoice_conflict_idx: seriesOutcome.conflictIdx,
       received_at: ctx.receivedAtIso,
       flags: [...flags],
-      cost_total: null,
+      cost_total: stock.costTotal,
+      lines: stock.lines.map((l) => ({
+        line_no: lineNoById.get(l.lineId) ?? null,
+        cost_snapshot: l.costSnapshot,
+      })),
     }
   },
 }

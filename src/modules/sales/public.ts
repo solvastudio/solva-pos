@@ -1,6 +1,15 @@
 import '@tanstack/react-start/server-only'
 
 export { hasSalesForProductOrSku } from './server/has-transactions'
+export {
+  __clearSaleStockPortForTests,
+  getSaleStockPort,
+  registerSaleStockPort,
+  type ReturnStockInputPort,
+  type SaleStockInputPort,
+  type SaleStockPort,
+  type VoidStockInputPort,
+} from './server/stock-port'
 export { finalizeSaleCommandHandler } from './server/finalize-sale.command'
 export { voidSaleCommandHandler } from './server/void-sale.command'
 export { finalizeCreditNoteCommandHandler } from './server/finalize-credit-note.command'

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { cn } from '~/lib/cn'
-import { formatMoney } from '~/lib/kernel'
+import { formatMoney, type Qty } from '~/lib/kernel'
+import { StockChip } from '~/components/pos/StockChip'
 import type { SellCatalogItem } from './types'
 
 export interface ProductCardProps {
@@ -55,18 +56,14 @@ export function ProductCard({ item, onSelect }: ProductCardProps) {
         </span>
 
         {product.track_stock && stockQty !== null ? (
-          <span
-            className={cn(
-              'shrink-0 rounded-pill px-2 py-0.5 text-caption font-medium tabular-nums',
-              outOfStock
-                ? 'bg-danger-soft text-danger-ink'
-                : 'bg-surface-sunken text-ink-soft',
-            )}
-          >
-            {outOfStock
-              ? t('pos.sell.outOfStockBadge')
-              : t('pos.sell.stockBadge', { qty: stockQty })}
-          </span>
+          outOfStock ? (
+            // Estimasi ≤ 0: chip non-blokir (tombol tetap bisa dipakai; FR-POS-011).
+            <StockChip estimate={stockQty as Qty} className="shrink-0" />
+          ) : (
+            <span className="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-caption font-medium tabular-nums text-ink-soft">
+              {t('pos.sell.stockBadge', { qty: stockQty })}
+            </span>
+          )
         ) : null}
       </div>
     </button>

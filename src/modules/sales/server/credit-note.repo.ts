@@ -197,3 +197,62 @@ export async function insertCreditNoteFacts(
     })),
   )
 }
+
+export interface SaleLineStockInfo {
+  readonly saleLineId: string
+  readonly lineNo: number
+  readonly skuId: string | null
+  readonly qtyBase: string
+  readonly costSnapshot: number | null
+}
+
+/** Info stok baris penjualan asal untuk retur (SKU, qty base, cost_snapshot). */
+export async function loadSaleLineStockInfo(
+  tx: TenantTx,
+  tenantId: string,
+  saleLineIds: readonly string[],
+): Promise<Map<string, SaleLineStockInfo>> {
+  const out = new Map<string, SaleLineStockInfo>()
+  if (saleLineIds.length === 0) return out
+  const res = await tx.execute<{
+    id: string
+    line_no: number
+    sku_id: string | null
+    qty_base: string
+    cost_snapshot: string | number | null
+  }>(sql`
+    SELECT id, line_no, sku_id, qty_base::text AS qty_base, cost_snapshot
+    FROM sale_line
+    WHERE tenant_id = ${tenantId}::uuid
+      AND id IN (${sql.join(saleLineIds.map((id) => sql`${id}::uuid`), sql`, `)})
+  `)
+  for (const r of res.rows) {
+    out.set(r.id, {
+      saleLineId: r.id,
+      lineNo: r.line_no,
+      skuId: r.sku_id,
+      qtyBase: r.qty_base,
+      costSnapshot: r.cost_snapshot === null ? null : Number(r.cost_snapshot),
+    })
+  }
+  return out
+}
+
+/** Menulis `credit_note_line.cost_returned` (set-based). NULL untuk disposisi tanpa HPP kembali. */
+export async function persistCreditNoteCosts(
+  tx: TenantTx,
+  tenantId: string,
+  lines: readonly { creditNoteLineId: string; costReturned: number | null }[],
+): Promise<void> {
+  const tracked = lines.filter((l) => l.costReturned !== null)
+  if (tracked.length === 0) return
+  await tx.execute(sql`
+    UPDATE credit_note_line AS cl
+    SET cost_returned = v.cost
+    FROM (VALUES ${sql.join(
+      tracked.map((l) => sql`(${l.creditNoteLineId}::uuid, ${l.costReturned}::bigint)`),
+      sql`, `,
+    )}) AS v(id, cost)
+    WHERE cl.tenant_id = ${tenantId}::uuid AND cl.id = v.id
+  `)
+}

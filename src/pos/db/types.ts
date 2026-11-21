@@ -30,6 +30,14 @@ export const META_SCHEMAS = {
     server_time_at_measure: z.number().optional(),
   }),
   last_success_sync_at: z.string().min(1).nullable(),
+  /** Metadata snapshot stok terakhir (Fase 53): etag untuk permintaan berikutnya dan acuan estimasi. */
+  stock_snapshot_meta: z
+    .object({
+      etag: z.string().regex(/^[0-9a-f]{16}$/),
+      as_of_server_time: z.string().min(1),
+      acked_device_seq: z.number().int().nonnegative(),
+    })
+    .nullable(),
   locale: z.enum(['id-ID', 'en-US']),
   idle_lock: z.object({
     locked: z.boolean(),

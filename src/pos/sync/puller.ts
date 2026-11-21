@@ -8,11 +8,13 @@ import {
 import { createIdGenerator } from '~/lib/kernel'
 import { getMeta, setMeta } from '../data/meta.repo'
 import { getOutboxQueueSummary } from '../data/outbox.repo'
+import { applyStockSnapshot } from '../data/stock.repo'
 import { clearPullStageCycle, stagePullRows } from '../data/pull-stage.repo'
 import type { SolvaDb } from '../db/solva-db'
 import { applyPullCycle, LARGE_INCREMENTAL_THRESHOLD } from './applier'
 import type { SyncClock } from './clock'
 import { applyCommandUpdates } from './command-updates'
+import { logDevice } from '../maintenance/device-log'
 import { deviceFetch, type DeviceAuthFailureCode } from './device-http'
 
 export const DEFAULT_PULL_PAGE_SIZE = 500
@@ -112,6 +114,9 @@ export async function runIncrementalPull(
   let lastServerTimeMs: number | undefined
   let stagedRowCount = 0
 
+  // Etag snapshot stok terakhir (Fase 53); server hanya mengirim blok `stock` bila berubah.
+  const stockEtag = (await getMeta(opts.db, 'stock_snapshot_meta'))?.etag ?? null
+
   while (true) {
     const res = await deviceFetch<unknown>('/api/pos/v1/pull', {
       method: 'POST',
@@ -125,6 +130,7 @@ export async function runIncrementalPull(
         cycle: cycleUpper !== null ? { id: cycleId, upper: cycleUpper } : null,
         page_size: DEFAULT_PULL_PAGE_SIZE,
         attention_ids: queue.attentionIds,
+        stock_etag: stockEtag,
         // Included cleanly so whichever page finishes (`has_more: false`) persists DeviceReport.
         report,
       },
@@ -208,6 +214,17 @@ export async function runIncrementalPull(
         catalogCursor: parsed.upper,
         immediate: opts.immediateApply,
       })
+
+      // Snapshot stok: galat tidak boleh menggagalkan siklus pull (dicatat saja).
+      if (parsed.stock && parsed.stock !== 'unchanged') {
+        await applyStockSnapshot(opts.db, parsed.stock).catch(() =>
+          logDevice(opts.db, {
+            level: 'warn',
+            code: 'SYNC_FAILED',
+            ctx: { reason: 'stock_snapshot_apply' },
+          }).catch(() => {}),
+        )
+      }
 
       return {
         kind: 'ok',

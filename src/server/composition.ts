@@ -17,13 +17,16 @@ import {
   touchDeviceStatus,
 } from '~/modules/identity/public'
 import {
+  __clearSaleStockPortForTests,
   finalizeCreditNoteCommandHandler,
   finalizeSaleCommandHandler,
   getRecoveryCountersAndBindDevice,
   getShiftCashSalesAndRefundTotals,
   hasSalesForProductOrSku,
+  registerSaleStockPort,
   voidSaleCommandHandler,
 } from '~/modules/sales/public'
+import { applyReturnStock, applySaleStock, applyVoidStock, readOutletStockForSnapshot } from '~/modules/inventory/public'
 import {
   __clearShiftRecapSalesPortForTests,
   closeShiftCommandHandler,
@@ -32,6 +35,8 @@ import {
   registerShiftRecapSalesPort,
 } from '~/modules/shift/public'
 import {
+  __clearOutletStockReaderForTests,
+  registerOutletStockReader,
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
   __resetForTests,
@@ -80,6 +85,18 @@ export function composeServer(): void {
   registerOutletCreatedHook((tx, w, outlet) =>
     createDefaultAvailabilityForOutlet(tx, w, outlet.id),
   )
+  // Adaptor stok (Fase 53): sales hanya mengenal port; implementasi dari inventory.
+  registerSaleStockPort({
+    applySale: (tx, input) => applySaleStock(tx, input),
+    applyVoid: async (tx, input) => {
+      await applyVoidStock(tx, input)
+    },
+    applyReturn: (tx, input) => applyReturnStock(tx, input),
+  })
+  // Pembaca snapshot stok untuk pull (Fase 53).
+  registerOutletStockReader({
+    read: (tx, tenantId, outletId) => readOutletStockForSnapshot(tx, tenantId, outletId),
+  })
   composed = true
 }
 
@@ -91,5 +108,7 @@ export function resetCompositionForTests(): void {
   __clearOutletCreatedHooksForTests()
   __clearShiftRecapSalesPortForTests()
   __clearEnrollmentCounterProviderForTests()
+  __clearSaleStockPortForTests()
+  __clearOutletStockReaderForTests()
   composed = false
 }

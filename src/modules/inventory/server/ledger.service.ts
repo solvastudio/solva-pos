@@ -58,6 +58,7 @@ export interface MovementIntent {
 
 export interface AppliedMovement {
   readonly movementId: string
+  readonly sourceId: string
   readonly outletId: string
   readonly skuId: string
   readonly movementType: MovementType
@@ -181,6 +182,7 @@ export async function applyMovements(
     if (prior) {
       applied.push({
         movementId: prior.id,
+        sourceId: i.sourceId,
         outletId: i.outletId,
         skuId: i.skuId,
         movementType: i.movementType,
@@ -231,6 +233,7 @@ export async function applyMovements(
     })
     applied.push({
       movementId,
+      sourceId: i.sourceId,
       outletId: i.outletId,
       skuId: i.skuId,
       movementType: i.movementType,

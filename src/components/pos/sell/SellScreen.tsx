@@ -11,6 +11,7 @@ import type { SellCatalogItem, SellSkuUomOption } from '~/components/pos/sell/ty
 import type { VariantPickerOption } from '~/components/pos/sell/VariantPickerDialog'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
 import { CircleAlert, TriangleAlert } from '~/components/ui/icons'
+import { getEstimatesBulk } from '~/pos/data/stock.repo'
 import { businessDate, toMoney, type OutletTimezone } from '~/lib/kernel'
 import type { PriceResolution } from '~/modules/catalog/shared'
 import type { BootResult } from '~/pos/boot/boot'
@@ -155,6 +156,7 @@ export function SellScreen({ tenant, bootResult }: SellScreenProps) {
         stocks,
       ]) => {
         if (cancelled) return
+        const estimates = await getEstimatesBulk(db, [...stocks.keys()])
 
         const staffRec = staffList.find((s) => s.id === sessionStaff.staffId)
         setStaffName(staffRec?.display_name ?? '')
@@ -225,14 +227,14 @@ export function SellScreen({ tenant, bootResult }: SellScreenProps) {
                     suggested: rawPrice?.kind === 'PRICE' ? rawPrice.price : null,
                   }
                 : rawPrice ?? { kind: 'NO_PRICE' }
-              const stock = stocks.get(defaultSku.id)
               return {
                 product: entry.product,
                 defaultSku,
                 skus: entry.skus,
                 baseUom,
                 price,
-                stockQty: stock?.qty_on_hand ?? null,
+                // Estimasi = snapshot server − penjualan lokal belum ACK (Fase 53, BR-STK-005).
+                stockQty: estimates.get(defaultSku.id) ?? null,
               }
             })
             .filter((x): x is SellCatalogItem => x !== null)

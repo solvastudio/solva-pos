@@ -1838,6 +1838,9 @@
       "hardBody": "Aplikasi akan diperbarui otomatis setelah shift selesai dan antrean kosong.",
       "laterButton": "Nanti",
       "reloadNowButton": "Perbarui sekarang"
+    },
+    "stock": {
+      "estimateLow": "Stok estimasi ≤ 0"
     }
   },
   "receipt": {

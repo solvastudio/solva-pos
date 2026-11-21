@@ -219,3 +219,113 @@ export async function getShiftCashSalesAndRefundTotals(
     ),
   }
 }
+
+/**
+ * Menulis HPP hasil server: `sale.cost_total` dan `sale_line.cost_snapshot` (set-based, Fase 53).
+ * Baris tanpa biaya (tidak dilacak) dibiarkan NULL.
+ */
+export async function persistSaleCosts(
+  tx: TenantTx,
+  params: {
+    tenantId: string
+    saleId: string
+    costTotal: number | null
+    lines: readonly { lineId: string; costSnapshot: number | null }[]
+  },
+): Promise<void> {
+  const tracked = params.lines.filter((l) => l.costSnapshot !== null)
+  if (params.costTotal !== null) {
+    await tx
+      .update(sale)
+      .set({ costTotal: params.costTotal })
+      .where(and(eq(sale.tenantId, params.tenantId), eq(sale.id, params.saleId)))
+  }
+  if (tracked.length === 0) return
+  await tx.execute(sql`
+    UPDATE sale_line AS sl
+    SET cost_snapshot = v.cost
+    FROM (VALUES ${sql.join(
+      tracked.map((l) => sql`(${l.lineId}::uuid, ${l.costSnapshot}::bigint)`),
+      sql`, `,
+    )}) AS v(id, cost)
+    WHERE sl.tenant_id = ${params.tenantId}::uuid AND sl.id = v.id
+  `)
+}
+
+export interface SaleStockLineRow {
+  readonly lineId: string
+  readonly lineNo: number
+  readonly skuId: string | null
+  readonly lineKind: string
+  readonly qtyBase: string
+  readonly costSnapshot: number | null
+  readonly returnedQtyBase: string
+  readonly returnedCost: number
+}
+
+/** Konteks stok sebuah penjualan: outlet, tanggal bisnis, dan baris beserta total retur KEMBALI_STOK-nya. */
+export async function loadSaleStockContext(
+  tx: TenantTx,
+  tenantId: string,
+  saleId: string,
+): Promise<{ outletId: string; businessDate: string; lines: SaleStockLineRow[] } | null> {
+  const head = await tx.execute<{ outlet_id: string; business_date: string }>(sql`
+    SELECT outlet_id, business_date::text AS business_date
+    FROM sale WHERE tenant_id = ${tenantId}::uuid AND id = ${saleId}::uuid
+  `)
+  const h = head.rows[0]
+  if (!h) return null
+  const rows = await tx.execute<{
+    id: string
+    line_no: number
+    sku_id: string | null
+    line_kind: string
+    qty_base: string
+    cost_snapshot: string | number | null
+    returned_qty: string
+    returned_cost: string | number
+  }>(sql`
+    SELECT sl.id, sl.line_no, sl.sku_id, sl.line_kind, sl.qty_base::text AS qty_base, sl.cost_snapshot,
+           COALESCE(SUM(cl.qty_returned_base) FILTER (WHERE cl.disposition = 'KEMBALI_STOK'), 0)::text AS returned_qty,
+           COALESCE(SUM(cl.cost_returned) FILTER (WHERE cl.disposition = 'KEMBALI_STOK'), 0)::bigint AS returned_cost
+    FROM sale_line sl
+    LEFT JOIN credit_note_line cl ON cl.tenant_id = sl.tenant_id AND cl.sale_line_id = sl.id
+    WHERE sl.tenant_id = ${tenantId}::uuid AND sl.sale_id = ${saleId}::uuid
+    GROUP BY sl.id
+    ORDER BY sl.line_no
+  `)
+  return {
+    outletId: h.outlet_id,
+    businessDate: h.business_date,
+    lines: rows.rows.map((r) => ({
+      lineId: r.id,
+      lineNo: r.line_no,
+      skuId: r.sku_id,
+      lineKind: r.line_kind,
+      qtyBase: r.qty_base,
+      costSnapshot: r.cost_snapshot === null ? null : Number(r.cost_snapshot),
+      returnedQtyBase: r.returned_qty,
+      returnedCost: Number(r.returned_cost),
+    })),
+  }
+}
+
+/** Total retur KEMBALI_STOK per baris penjualan (dipakai retur untuk `returned_before`). */
+export async function loadReturnedTotals(
+  tx: TenantTx,
+  tenantId: string,
+  saleLineIds: readonly string[],
+): Promise<Map<string, { qty: string; cost: number }>> {
+  const out = new Map<string, { qty: string; cost: number }>()
+  if (saleLineIds.length === 0) return out
+  const res = await tx.execute<{ sale_line_id: string; qty: string; cost: string | number }>(sql`
+    SELECT cl.sale_line_id, SUM(cl.qty_returned_base)::text AS qty, COALESCE(SUM(cl.cost_returned), 0)::bigint AS cost
+    FROM credit_note_line cl
+    WHERE cl.tenant_id = ${tenantId}::uuid
+      AND cl.disposition = 'KEMBALI_STOK'
+      AND cl.sale_line_id IN (${sql.join(saleLineIds.map((id) => sql`${id}::uuid`), sql`, `)})
+    GROUP BY cl.sale_line_id
+  `)
+  for (const r of res.rows) out.set(r.sale_line_id, { qty: r.qty, cost: Number(r.cost) })
+  return out
+}

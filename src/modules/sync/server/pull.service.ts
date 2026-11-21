@@ -9,6 +9,7 @@ import {
   type FullStartResponse,
   type PullRequest,
   type PullResponse,
+  type StockSnapshotBlock,
 } from '~/lib/contracts'
 import { getLimiters } from '~/server/auth/rate-limit/limiters'
 import { parseSafeBigint, withTenant, withTenantReadOnly } from '~/server/db'
@@ -20,6 +21,7 @@ import { FULL_RESYNC_ENTITY_ORDER } from '../shared'
 import { getDeviceStatusPort } from './device-status-port'
 import { getFeedSources } from './feed-registry'
 import { findCommandStatusesForDevice } from './idempotency.repo'
+import { buildStockSnapshot } from './stock-snapshot.service'
 import { pullPage } from './pull'
 import {
   evaluateClientVersion,
@@ -150,6 +152,7 @@ export async function handlePull(
   const isLastPage = !page.hasMore
   let commandUpdates: Array<{ id: string; status: string }> | undefined
   let manifestCounts: Record<string, number> | undefined
+  let stockPayload: StockSnapshotBlock | 'unchanged' | undefined
 
   if (isLastPage) {
     const sources = getFeedSources()
@@ -163,13 +166,24 @@ export async function handlePull(
           async (source) => [source.entity, await source.count(tx, { upper: page.upper, scope })] as const,
         ),
       )
+      // Snapshot stok (Fase 53) dibaca dalam snapshot DB yang sama dengan manifest.
+      const stock = await buildStockSnapshot(tx, {
+        tenantId: device.tenantId,
+        outletId: device.outletId,
+        deviceId: device.deviceId,
+        nowIso,
+      })
       return {
         updates,
         counts: Object.fromEntries(countEntries) as Record<string, number>,
+        stock,
       }
     })
     commandUpdates = summary.updates
     manifestCounts = summary.counts
+    if (summary.stock) {
+      stockPayload = req.stock_etag === summary.stock.etag ? 'unchanged' : summary.stock.block
+    }
   }
 
   const statusPort = getDeviceStatusPort()
@@ -210,6 +224,7 @@ export async function handlePull(
       ? {
           command_updates: commandUpdates,
           manifest: { counts: manifestCounts ?? {} },
+          ...(stockPayload !== undefined ? { stock: stockPayload } : {}),
         }
       : {}),
   }

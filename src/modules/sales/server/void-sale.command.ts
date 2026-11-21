@@ -1,11 +1,13 @@
 import '@tanstack/react-start/server-only'
 import { parseCommandPayload, type VoidSalePayloadV1 } from '~/lib/contracts'
+import { parseQty, toMoney } from '~/lib/kernel'
 import { findMissingAppUserId } from '~/modules/identity/public'
 import { recomputeRecapIfClosed } from '~/modules/shift/public'
 import { CommandRejected, type CommandContext, type CommandHandler } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import { createLogger } from '~/server/log'
-import { findSaleForVoid, hasCreditNoteForSale, markSaleVoided } from './sale.repo'
+import { findSaleForVoid, hasCreditNoteForSale, loadSaleStockContext, markSaleVoided } from './sale.repo'
+import { getSaleStockPort } from './stock-port'
 
 const log = createLogger('sales.void_sale')
 
@@ -83,6 +85,29 @@ export const voidSaleCommandHandler: CommandHandler<VoidSalePayloadV1, TenantTx>
       voidReasonText: payload.reason_text,
       voidCommandId: ctx.commandId,
     })
+
+    // Stok (Fase 53): balikkan porsi yang belum diretur dengan SALE_VOID pada biaya snapshot (BR-HPP-007).
+    const stockCtx = await loadSaleStockContext(tx, tenantId, existing.id)
+    if (stockCtx) {
+      await getSaleStockPort().applyVoid(tx, {
+        tenantId,
+        outletId: stockCtx.outletId,
+        occurredAt: payload.voided_at,
+        businessDate: stockCtx.businessDate,
+        processedAt: ctx.receivedAtIso,
+        commandId: ctx.commandId,
+        actorId: payload.voided_by,
+        lines: stockCtx.lines.map((l) => ({
+          lineId: l.lineId,
+          lineNo: l.lineNo,
+          skuId: l.skuId,
+          qtyBase: parseQty(l.qtyBase),
+          costSnapshot: l.costSnapshot === null ? null : toMoney(l.costSnapshot),
+          returnedQtyBase: parseQty(l.returnedQtyBase),
+          returnedCost: toMoney(l.returnedCost),
+        })),
+      })
+    }
 
     await recomputeRecapIfClosed(tx, existing.shiftId, ctx.receivedAtIso)
 
