@@ -66,6 +66,11 @@ export function identityFeedSources(): FeedSource[] {
       },
       selectScopeWhere: (scope) => eq(outlet.id, scope.outletId),
       inScope: (row, scope) => row.id === scope.outletId,
+      // Kolom time PostgreSQL mengembalikan HH:MM:SS; klien memakai HH:MM (sama dengan enrollment).
+      project: (row) => ({
+        ...row,
+        day_cutoff_time: String(row.day_cutoff_time ?? '00:00').slice(0, 5),
+      }),
     }),
 
     buildFeedSource({

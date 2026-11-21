@@ -28,10 +28,14 @@ export default defineConfig({
         resolve: { alias: rootAlias },
         test: {
           name: 'db',
-          include: ['tests/integration/**/*.int.test.ts'],
+          include: [
+            'tests/integration/**/*.int.test.ts',
+            'tests/property/**/*.prop.test.ts',
+          ],
           globalSetup: ['./tests/integration/global-setup.ts'],
+          setupFiles: ['fake-indexeddb/auto'],
           environment: 'node',
-          testTimeout: 30_000,
+          testTimeout: 60_000,
           hookTimeout: 60_000,
           pool: 'forks',
           maxWorkers: 1,

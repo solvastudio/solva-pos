@@ -9,10 +9,16 @@ import {
 } from '~/pos/data/catalog.repo'
 import { featureEnabled } from '~/pos/data/feature-flag.repo'
 import { getMeta } from '~/pos/data/meta.repo'
-import { getOutboxQueueSummary, listSanitizedQueueItems, type SanitizedOutboxQueueItem } from '~/pos/data/outbox.repo'
+import {
+  getOutboxQueueSummary,
+  listAllOutboxRows,
+  listSanitizedQueueItems,
+  type SanitizedOutboxQueueItem,
+} from '~/pos/data/outbox.repo'
+import { listAllPrintJobs } from '~/pos/data/print-job.repo'
 import { stagePullRows } from '~/pos/data/pull-stage.repo'
 import type { SolvaDb } from '~/pos/db/solva-db'
-import type { MetaKey, MetaValueMap } from '~/pos/db/types'
+import type { MetaKey, MetaValueMap, OutboxCommandRow, PrintJobRecord } from '~/pos/db/types'
 import { exportPending, type ExportPendingResult } from '~/pos/maintenance/export-pending'
 import { getGlobalSyncStore, type SyncController } from '~/pos/sync'
 import { applyPullCycle } from '~/pos/sync/applier'
@@ -60,6 +66,8 @@ export interface SolvaE2eHandle {
   getSyncState: () => ReturnType<ReturnType<typeof getGlobalSyncStore>['getState']>
   getMeta: <K extends MetaKey>(key: K) => Promise<MetaValueMap[K] | null>
   getOutboxSummary: () => ReturnType<typeof getOutboxQueueSummary>
+  getOutbox: () => Promise<OutboxCommandRow[]>
+  getPrintJobs: () => Promise<PrintJobRecord[]>
   exportPending: () => Promise<ExportPendingResult>
   getQueue: (query?: string) => Promise<SanitizedOutboxQueueItem[]>
   runFullResync: () => Promise<'OK' | 'FAILED'>
@@ -99,6 +107,8 @@ export function installE2eHooks(opts: {
     getSyncState: () => getGlobalSyncStore().getState(),
     getMeta: (key) => getMeta(opts.db, key),
     getOutboxSummary: () => getOutboxQueueSummary(opts.db),
+    getOutbox: () => listAllOutboxRows(opts.db),
+    getPrintJobs: () => listAllPrintJobs(opts.db),
     exportPending: () => exportPending(opts.db),
     getQueue: (query?: string) => listSanitizedQueueItems(opts.db, { query }),
     runFullResync: async () => {

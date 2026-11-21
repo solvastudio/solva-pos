@@ -65,7 +65,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e:build
-      - name: Run Playwright F1 & F2 E2E acceptance suite
+      # Note: full `npm run gate:f3` (with FC_NUM_RUNS=200 & bench) is run manually/nightly before release.
+      - name: Run Playwright F1, F2 & F3-K E2E acceptance suite
         run: npm run test:e2e
         env:
           TEST_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres

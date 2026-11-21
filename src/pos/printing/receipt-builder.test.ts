@@ -236,6 +236,40 @@ describe('pos/printing/receipt-builder', () => {
     expect(rendered).toBe(golden)
   })
 
+  it('F3-K06: struk memakai locale snapshot outlet (en-US) dan format angka per locale; tanpa locale cadangan UI', () => {
+    const sample = createContoh1Sample()
+    const idDoc = buildReceipt({
+      kind: 'RECEIPT',
+      sale: { ...sample.sale, receipt_locale: 'id-ID' },
+      lines: sample.lines,
+      payments: sample.payments,
+      outlet: sample.outlet,
+      receiptSetting: sample.receiptSetting,
+      cashierName: 'Dewi',
+      locale: 'id-ID',
+      columns: 32,
+    })
+    const enDoc = buildReceipt({
+      kind: 'RECEIPT',
+      sale: { ...sample.sale, receipt_locale: 'en-US' },
+      lines: sample.lines,
+      payments: sample.payments,
+      outlet: sample.outlet,
+      receiptSetting: sample.receiptSetting,
+      cashierName: 'Dewi',
+      locale: 'en-US',
+      columns: 32,
+    })
+    const idTxt = renderReceiptDocText(idDoc, 32)
+    const enTxt = renderReceiptDocText(enDoc, 32)
+    // Angka: 112.500 (id-ID) vs 112,500 (en-US).
+    expect(idTxt).toContain('112.500')
+    expect(enTxt).toContain('112,500')
+    expect(enTxt).not.toContain('112.500')
+    // Bahasa struk mengikuti snapshot, bukan bahasa UI kasir.
+    expect(enTxt).not.toBe(idTxt)
+  })
+
   it('builds REPRINT with CETAK ULANG badge, inclusive tax suffix, bill discount + SC, NK, and 48-col layout', () => {
     const sample = createContoh1Sample()
     const reprintDoc = buildReceipt({

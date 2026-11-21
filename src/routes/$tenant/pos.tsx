@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
+import { ToastProvider } from '~/components/ui/Toast'
 import { changeLocale } from '~/i18n'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
@@ -338,6 +339,7 @@ function PosLayoutComponent() {
 
   return (
     <PosRootBoundary tenantSlug={tenant}>
+      <ToastProvider>
       <div
         data-pos-shell="true"
         data-tenant={tenant}
@@ -367,6 +369,7 @@ function PosLayoutComponent() {
           </Suspense>
         ) : null}
       </div>
+      </ToastProvider>
     </PosRootBoundary>
   )
 }

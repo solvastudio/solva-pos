@@ -164,3 +164,8 @@ export async function markPrintJobFailed(
 export async function dismissPrintJob(db: SolvaDb, id: string): Promise<void> {
   await db.print_job.delete(id)
 }
+
+/** Seluruh baris `print_job` (khusus hook E2E/diagnostik; tidak dipakai alur kasir). */
+export async function listAllPrintJobs(db: SolvaDb): Promise<PrintJobRecord[]> {
+  return db.print_job.toArray()
+}

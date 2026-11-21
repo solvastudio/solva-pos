@@ -145,7 +145,11 @@ export async function runPush(opts: RunPushOptions): Promise<PushRunResult> {
     }
     totalSent += batch.length
 
-    if (batch.length < maxBatch || !overallPushOk) {
+    // Perintah yang bergantung pada batch ini (mis. CloseShift) baru bisa dikirim setelah ACK.
+    // Lanjutkan selama ada kemajuan (ACK) dan tidak ada RETRY/HELD; listSendable berikutnya
+    // mengembalikan [] bila tidak ada lagi yang bisa dikirim.
+    const ackedInBatch = parsed.results.filter((r) => r.outcome === 'ACK').length
+    if (!overallPushOk || ackedInBatch === 0) {
       return {
         kind: 'ok',
         pushOk: overallPushOk,
