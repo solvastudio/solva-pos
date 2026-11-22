@@ -154,4 +154,41 @@ describe('pos/sync/pusher', () => {
     expect(after426?.status).toBe('PENDING')
     expect(after426?.last_error_class).toBe('SCHEMA')
   })
+
+  it('recovers stale SENDING commands and drains them idempotently on the next runPush cycle', async () => {
+    const db = await setupWithDevice()
+    const clock = createSyncClock({
+      db,
+      nowMs: () => Date.UTC(2026, 10, 20, 7, 5, 0),
+    })
+
+    const cmd = await enqueueCommandStandalone(db, {
+      id: '0192f1c2-0000-7000-8000-000000000099',
+      type: 'FinalizeSale',
+      payload: { sale: { id: '0192f1c2-0000-7000-8000-000000000099' } },
+      schemaVersion: 1,
+      registerId: REG_1,
+      createdAtDevice: '2026-11-20T07:00:00.000Z',
+    })
+    await db.outbox_command.update(cmd.id, { status: 'SENDING' })
+
+    const res = await runPush({
+      db,
+      clock,
+      fetch: vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            server_time: '2026-11-20T07:05:01.000Z',
+            results: [{ id: cmd.id, outcome: 'ACK', result: { invoice_no: 'INV-003' } }],
+          }),
+          { status: 200 },
+        ),
+      ) as unknown as typeof fetch,
+    })
+
+    expect(res).toMatchObject({ kind: 'ok', pushOk: true, sentCount: 1 })
+    const row = await db.outbox_command.get(cmd.id)
+    expect(row?.status).toBe('ACKED')
+    expect(row?.result).toEqual({ invoice_no: 'INV-003' })
+  })
 })

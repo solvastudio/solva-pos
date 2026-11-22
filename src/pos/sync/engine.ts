@@ -8,6 +8,7 @@ import {
 } from '../data/outbox.repo'
 import type { SolvaDb } from '../db/solva-db'
 import type { LockManagerLike } from '../locks/instance-lock'
+import { withResourceLock } from '../locks/resource-lock'
 import { logDevice } from '../maintenance/device-log'
 import { scheduleRetentionOnIdle } from '../maintenance/retention'
 import { checkAndPruneStorage } from '../maintenance/storage'
@@ -84,7 +85,13 @@ export async function startSyncEngine(
   }
 
   const nowMs = opts.nowMs ?? (() => Date.now())
-  await resetSending(opts.db)
+  await withResourceLock({
+    tenantId: opts.tenantId,
+    deviceId: opts.deviceId,
+    name: 'sync',
+    locks: opts.locks,
+    fn: () => resetSending(opts.db),
+  })
 
   const initialClockMeta = await getMeta(opts.db, 'clock')
   const clock = createSyncClock({

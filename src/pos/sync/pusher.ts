@@ -8,6 +8,7 @@ import {
   markOutboxSending,
   markSendingSchemaHeld,
   releaseEligibleSchemaHolds,
+  resetSending,
   revertSendingToPending,
 } from '../data/outbox.repo'
 import type { SolvaDb } from '../db/solva-db'
@@ -49,6 +50,9 @@ export async function runPush(opts: RunPushOptions): Promise<PushRunResult> {
   let totalSent = 0
   let overallPushOk = true
   let lastServerTimeMs: number | undefined
+
+  // Recover any stale SENDING rows left behind by an interrupted push before pulling sendable rows.
+  await resetSending(opts.db)
 
   while (true) {
     const nowMs = opts.clock.trustedNow()

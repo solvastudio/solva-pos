@@ -204,7 +204,13 @@ export function QueueScreen({ tenant, bootResult }: QueueScreenProps) {
 
   useEffect(() => {
     void refreshQueue()
-  }, [refreshQueue, syncState.queue.pending, syncState.queue.attention])
+  }, [
+    refreshQueue,
+    syncState.queue.pending,
+    syncState.queue.attention,
+    syncState.conn,
+    syncState.lastSuccessAt,
+  ])
 
   async function handleExport() {
     if (!shell.db) return
