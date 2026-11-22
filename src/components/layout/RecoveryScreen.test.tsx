@@ -4,7 +4,10 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearClientErrorBufferForTests } from '~/lib/client-errors/report-schema'
+import {
+  clearClientErrorBufferForTests,
+  getClientErrorBufferForTests,
+} from '~/lib/client-errors/report-schema'
 import {
   clearRootBootCrash,
   recordRootBootCrash,
@@ -76,5 +79,31 @@ describe('RecoveryScreen (SCR-P17)', () => {
     clearRootBootCrash('warung-demo', fakeStorage)
     const afterExpiry = recordRootBootCrash('warung-demo', 200_000, fakeStorage)
     expect(afterExpiry).toEqual({ count: 1, shouldRecover: false })
+  })
+
+  it('preserves server public code and reqId from error.message instead of masking as APP_ERROR#d-...', () => {
+    render(<RecoveryScreen error={new Error('INTERNAL_ERROR#20261122-022338-7h2wd')} />)
+
+    expect(screen.getByTestId('error-code-value').textContent).toBe(
+      'INTERNAL_ERROR#20261122-022338-7h2wd',
+    )
+    expect(screen.queryByText(/Local device reference/i)).toBeNull()
+
+    const logged = getClientErrorBufferForTests()
+    expect(logged).toHaveLength(1)
+    expect(logged[0]?.code).toBe('INTERNAL_ERROR')
+    expect(logged[0]?.ctx).toMatchObject({
+      surface: 'recovery',
+      serverRef: '20261122-022338-7h2wd',
+    })
+  })
+
+  it('falls back to APP_ERROR#d-... when error.message has no public code', () => {
+    render(<RecoveryScreen error={new Error('Something crashed in browser')} />)
+
+    expect(screen.getByTestId('error-code-value').textContent).toMatch(
+      /^APP_ERROR#d-\d{8}-\d{6}-[a-hj-km-np-z2-9]{5}$/,
+    )
+    expect(screen.getByText(/Local device reference/i)).toBeTruthy()
   })
 })

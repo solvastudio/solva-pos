@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/Button'
 import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
 import { RefreshCw, TriangleAlert } from '~/components/ui/icons'
+import { LOCAL_REF_PATTERN } from '~/lib/contracts/device-log'
+import { isErrorCode, parsePublicCode } from '~/lib/contracts/error-codes'
 import { newLocalRef } from '~/lib/client-errors/local-ref'
 import { logClientError } from '~/lib/client-errors/report-schema'
 import {
@@ -50,8 +52,16 @@ export interface RecoveryScreenProps {
   safeModeHref?: string
 }
 
+function extractPublicErrorFromError(error: unknown): { code: string; ref: string } | null {
+  const msg = error instanceof Error ? error.message : typeof error === 'string' ? error : null
+  if (!msg) return null
+  const parsed = parsePublicCode(msg.trim())
+  if (!parsed || !isErrorCode(parsed.code)) return null
+  return parsed
+}
+
 export function RecoveryScreen({
-  code = 'APP_ERROR',
+  code,
   refId,
   error,
   clockOffsetMs,
@@ -60,7 +70,11 @@ export function RecoveryScreen({
   safeModeHref,
 }: RecoveryScreenProps) {
   const { t } = useTranslation()
-  const [resolvedRef] = useState(() => refId ?? newLocalRef(clockOffsetMs))
+  const [generatedRef] = useState(() => newLocalRef(clockOffsetMs))
+  const parsedFromError = code === undefined && refId === undefined ? extractPublicErrorFromError(error) : null
+  const resolvedCode = code ?? parsedFromError?.code ?? 'APP_ERROR'
+  const resolvedRef = refId ?? parsedFromError?.ref ?? generatedRef
+  const isValidLocalRef = LOCAL_REF_PATTERN.test(resolvedRef)
 
   useEffect(() => {
     if (!error) {
@@ -68,15 +82,19 @@ export function RecoveryScreen({
     }
     const errObj = error instanceof Error ? error : new Error(String(error))
     logClientError({
-      refLocal: resolvedRef,
-      code,
+      refLocal: isValidLocalRef ? resolvedRef : undefined,
+      code: resolvedCode,
       level: 'error',
       route: typeof window !== 'undefined' && window.location ? window.location.pathname : 'root',
       stack: errObj.stack ?? errObj.message,
       clockOffsetMs,
-      ctx: { surface: 'recovery', errorName: errObj.name },
+      ctx: {
+        surface: 'recovery',
+        errorName: errObj.name,
+        ...(isValidLocalRef ? {} : { serverRef: resolvedRef }),
+      },
     })
-  }, [clockOffsetMs, code, error, resolvedRef])
+  }, [clockOffsetMs, error, isValidLocalRef, resolvedCode, resolvedRef])
 
   function handleReload() {
     if (onReload) {
@@ -100,7 +118,7 @@ export function RecoveryScreen({
           <p className="mt-2 text-body text-ink-soft">{t('error.recovery.body')}</p>
         </div>
 
-        <ErrorCodeBlock code={code} refId={resolvedRef} local className="w-full" />
+        <ErrorCodeBlock code={resolvedCode} refId={resolvedRef} className="w-full" />
 
         <div className="flex w-full flex-col gap-3">
           <Button type="button" variant="primary" size="xl" fullWidth onClick={handleReload}>
