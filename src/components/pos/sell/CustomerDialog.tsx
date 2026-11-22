@@ -69,7 +69,7 @@ export function CustomerDialog({
           />
         </Field>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
             type="button"
             variant="ghost"
@@ -81,11 +81,11 @@ export function CustomerDialog({
           >
             {t('pos.cart.customerClear')}
           </Button>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="md" onClick={() => onOpenChange(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" size="md">
               {t('pos.cart.customerSave')}
             </Button>
           </div>
