@@ -116,7 +116,7 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
                 loading={saveMut.isPending}
                 leadingIcon={!editing ? <Plus className="size-4" aria-hidden="true" /> : undefined}
               >
-                {editing ? t('common.save') : t('admin.catalog.uomSectionTitle')}
+                {editing ? t('common.save') : t('admin.catalog.addUom')}
               </Button>
             </div>
           </div>
@@ -131,16 +131,16 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
 
       <ul className="divide-y divide-line rounded-sm border border-line bg-surface">
         {uoms.map((u) => (
-          <li key={u.id} className="flex items-center justify-between gap-3 px-3 py-2">
-            <div className="flex items-center gap-2">
+          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="font-mono text-body font-semibold text-ink">{u.code}</span>
-              <span className="text-body text-ink-soft">{u.name}</span>
+              <span className="truncate text-body text-ink-soft">{u.name}</span>
               {u.allowFraction ? (
-                <Chip status="synced" label={t('admin.catalog.allowFractionLabel')} />
+                <Chip status="synced" size="sm" label={t('admin.catalog.allowFractionLabel')} />
               ) : null}
             </div>
             {canManage ? (
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1">
                 <Button
                   type="button"
                   size="sm"

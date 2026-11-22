@@ -161,6 +161,7 @@ function CatalogListPage() {
             aria-label={t('admin.catalog.searchPlaceholder')}
             placeholder={t('admin.catalog.searchPlaceholder')}
             onChange={(e) => setSearchDraft(e.target.value)}
+            className="min-w-0 flex-1"
           />
           <Button type="submit" variant="secondary" aria-label={t('common.search')}>
             <Search className="size-4" />

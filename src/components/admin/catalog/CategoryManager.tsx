@@ -77,8 +77,15 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
     <section className="flex flex-col gap-4">
       <h3 className="text-h3 font-semibold text-ink">{t('admin.catalog.categorySectionTitle')}</h3>
       {canManage ? (
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label={t('admin.catalog.categoryNameLabel')} htmlFor={`${idPrefix}-name`}>
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+        >
+          <Field
+            label={t('admin.catalog.categoryNameLabel')}
+            htmlFor={`${idPrefix}-name`}
+            className="min-w-0"
+          >
             <Input
               id={`${idPrefix}-name`}
               value={name}
@@ -86,7 +93,11 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
               disabled={saveMut.isPending}
             />
           </Field>
-          <Field label={t('admin.catalog.parentCategoryLabel')} htmlFor={`${idPrefix}-parent`}>
+          <Field
+            label={t('admin.catalog.parentCategoryLabel')}
+            htmlFor={`${idPrefix}-parent`}
+            className="min-w-0"
+          >
             <Select
               id={`${idPrefix}-parent`}
               value={parentId}
@@ -99,14 +110,13 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
               ]}
             />
           </Field>
-          <div className="flex items-end gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               type="submit"
               loading={saveMut.isPending}
               leadingIcon={!editing ? <Plus className="size-4" aria-hidden="true" /> : undefined}
-              className="min-h-control-md"
             >
-              {editing ? t('common.save') : t('admin.catalog.categorySectionTitle')}
+              {editing ? t('common.save') : t('admin.catalog.addCategory')}
             </Button>
             {editing ? (
               <Button
@@ -135,15 +145,13 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
         {categories.map((cat) => {
           const parent = cat.parentId ? catMap.get(cat.parentId) : null
           return (
-            <li key={cat.id} className="flex items-center justify-between gap-3 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className="text-body font-medium text-ink">
-                  {parent ? `${parent.name} > ${cat.name}` : cat.name}
-                </span>
-                {parent ? <Chip status="tag" label={parent.name} /> : null}
+            <li key={cat.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="truncate text-body font-medium text-ink">{cat.name}</span>
+                {parent ? <Chip status="tag" size="sm" label={parent.name} /> : null}
               </div>
               {canManage ? (
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
                   <Button
                     type="button"
                     size="sm"

@@ -71,7 +71,7 @@ function PriceMatrixPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-h1 font-semibold text-ink">{t('admin.prices.title')}</h1>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-4">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -84,6 +84,7 @@ function PriceMatrixPage() {
             aria-label={t('admin.prices.searchPlaceholder')}
             placeholder={t('admin.prices.searchPlaceholder')}
             onChange={(e) => setSearchDraft(e.target.value)}
+            className="min-w-0 flex-1"
           />
           <Button type="submit" variant="secondary" aria-label={t('common.search')}>
             <Search className="size-4" />

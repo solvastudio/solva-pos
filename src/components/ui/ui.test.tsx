@@ -142,6 +142,17 @@ describe('components/ui primitives and accessibility', () => {
             ]}
           />
         </Field>
+        <Field label="Category" htmlFor="category">
+          <Select
+            id="category"
+            ariaLabel="Category"
+            value=""
+            options={[
+              { value: '', label: 'All categories' },
+              { value: 'bev', label: 'Beverages' },
+            ]}
+          />
+        </Field>
       </div>,
     )
 
@@ -149,6 +160,7 @@ describe('components/ui primitives and accessibility', () => {
     expect(screen.getByLabelText('PIN')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Amount')).toHaveClass('tabular-nums')
     expect(screen.getByLabelText('Disabled Field')).toBeDisabled()
+    expect(screen.getByLabelText('Category')).toHaveTextContent('All categories')
 
     await expectZeroAxeViolations(container)
   })

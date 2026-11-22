@@ -71,7 +71,7 @@ function AvailabilityMatrixPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-h1 font-semibold text-ink">{t('admin.availability.title')}</h1>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-4">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -84,6 +84,7 @@ function AvailabilityMatrixPage() {
             aria-label={t('admin.availability.searchPlaceholder')}
             placeholder={t('admin.availability.searchPlaceholder')}
             onChange={(e) => setSearchDraft(e.target.value)}
+            className="min-w-0 flex-1"
           />
           <Button type="submit" variant="secondary" aria-label={t('common.search')}>
             <Search className="size-4" />

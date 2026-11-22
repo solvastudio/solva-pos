@@ -26,6 +26,8 @@ const SIZE_CLASSES: Record<'sm' | 'md' | 'lg', string> = {
   lg: 'h-control-lg text-body-lg',
 }
 
+const EMPTY_OPTION_VALUE = '__SELECT_EMPTY__'
+
 export function Select({
   options,
   value,
@@ -38,8 +40,20 @@ export function Select({
   size = 'lg',
   className,
 }: SelectProps) {
+  const hasEmptyOption = options.some((opt) => opt.value === '')
+  const normalizedValue =
+    hasEmptyOption && value === '' ? EMPTY_OPTION_VALUE : value
+
   return (
-    <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>
+    <RadixSelect.Root
+      value={normalizedValue}
+      onValueChange={
+        onValueChange
+          ? (next) => onValueChange(next === EMPTY_OPTION_VALUE ? '' : next)
+          : undefined
+      }
+      disabled={disabled}
+    >
       <RadixSelect.Trigger
         id={id}
         aria-label={ariaLabel}
@@ -63,18 +77,21 @@ export function Select({
           className="z-dropdown max-h-80 min-w-44 overflow-hidden rounded-lg border border-line bg-surface p-1 shadow-popover"
         >
           <RadixSelect.Viewport>
-            {options.map((opt) => (
-              <RadixSelect.Item
-                key={opt.value}
-                value={opt.value}
-                className="relative flex min-h-control-md cursor-pointer select-none items-center justify-between gap-2 rounded-md px-3 text-body text-ink outline-none hover:bg-surface-hover focus:bg-surface-hover data-[state=checked]:bg-action-soft data-[state=checked]:text-on-action-soft"
-              >
-                <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
-                <RadixSelect.ItemIndicator>
-                  <Check className="size-4 text-ink-brand" aria-hidden="true" />
-                </RadixSelect.ItemIndicator>
-              </RadixSelect.Item>
-            ))}
+            {options.map((opt) => {
+              const itemVal = opt.value === '' ? EMPTY_OPTION_VALUE : opt.value
+              return (
+                <RadixSelect.Item
+                  key={itemVal}
+                  value={itemVal}
+                  className="relative flex min-h-control-md cursor-pointer select-none items-center justify-between gap-2 rounded-md px-3 text-body text-ink outline-none hover:bg-surface-hover focus:bg-surface-hover data-[state=checked]:bg-action-soft data-[state=checked]:text-on-action-soft"
+                >
+                  <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
+                  <RadixSelect.ItemIndicator>
+                    <Check className="size-4 text-ink-brand" aria-hidden="true" />
+                  </RadixSelect.ItemIndicator>
+                </RadixSelect.Item>
+              )
+            })}
           </RadixSelect.Viewport>
         </RadixSelect.Content>
       </RadixSelect.Portal>

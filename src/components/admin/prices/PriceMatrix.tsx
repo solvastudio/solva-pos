@@ -229,7 +229,7 @@ export function PriceMatrix({ tenantSlug, data }: PriceMatrixProps) {
               const defVal = cellVal(r.skuId, r.uomId, 'DEFAULT', r.defaultPrice)
               const defDirty = Object.hasOwn(drafts, `${r.skuId}:${r.uomId}:DEFAULT`)
               return (
-                <tr key={`${r.skuId}:${r.uomId}`}>
+                <tr key={`${r.skuId}:${r.uomId}`} className="align-top">
                   <td className="sticky left-0 bg-surface px-4 py-2">
                     <p className="font-medium text-ink">{r.productName}</p>
                     <p className="font-mono text-caption text-ink-soft">
@@ -248,7 +248,12 @@ export function PriceMatrix({ tenantSlug, data }: PriceMatrixProps) {
                         onChange={(v) => setCell(r.skuId, r.uomId, 'DEFAULT', v)}
                       />
                       {defVal === null && !r.isOpenPrice ? (
-                        <Chip status="stock_estimate_low" label={t('admin.prices.unsetChip')} />
+                        <Chip
+                          status="stock_estimate_low"
+                          size="sm"
+                          label={t('admin.prices.unsetChip')}
+                          className="self-start"
+                        />
                       ) : null}
                     </div>
                   </td>
