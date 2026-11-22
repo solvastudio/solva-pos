@@ -3,7 +3,16 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTableCmp10 } from '~/components/admin/reports/DataTableCmp10'
-import { Button, Chip, Dialog, Field, Select, useToast, type DataTableColumn } from '~/components/ui'
+import {
+  Button,
+  buttonVariants,
+  Chip,
+  Dialog,
+  Field,
+  Select,
+  useToast,
+  type DataTableColumn,
+} from '~/components/ui'
 import { listOutletsFn } from '~/functions/identity/org.fn'
 import { enableOutletTrackingFn } from '~/functions/inventory/stock-write.fn'
 import { getStockReportFn } from '~/functions/inventory/stock-read.fn'
@@ -152,11 +161,14 @@ function AdminStockPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-h1 font-semibold text-ink">{t('admin.stock.title')}</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="md" onClick={() => setActivateOpen(true)}>
             {t('admin.stock.activateAction')}
           </Button>
-          <a href={tenantHref(slug, '/admin/stock/documents')} className="text-body font-medium text-ink-brand hover:underline">
+          <a
+            href={tenantHref(slug, '/admin/stock/documents')}
+            className={buttonVariants({ variant: 'primary', size: 'md' })}
+          >
             {t('admin.stock.documentsLink')}
           </a>
         </div>
