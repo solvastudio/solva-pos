@@ -30,7 +30,7 @@ export function DataTableCmp10<T>({
       {truncated ? (
         <div
           role="status"
-          className="rounded-control border border-warning-border bg-warning-soft p-3 text-body-sm text-warning-ink"
+          className="rounded-control border border-warning-line bg-warning-soft p-3 text-body-sm text-warning-ink"
         >
           {t('admin.report.truncatedWarning')}
         </div>

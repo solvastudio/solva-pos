@@ -36,7 +36,7 @@ export function ShiftVarianceCell({ variance }: ShiftVarianceCellProps) {
     return (
       <span
         data-variance="negative"
-        className="inline-flex items-center gap-1 rounded-control border border-warning-border bg-warning-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-warning-ink"
+        className="inline-flex items-center gap-1 rounded-control border border-warning-line bg-warning-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-warning-ink"
       >
         <Minus className="size-3.5 shrink-0" aria-hidden="true" />
         <span>{`−${formatted}`}</span>
@@ -48,7 +48,7 @@ export function ShiftVarianceCell({ variance }: ShiftVarianceCellProps) {
   return (
     <span
       data-variance="positive"
-      className="inline-flex items-center gap-1 rounded-control border border-info-border bg-info-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-info-ink"
+      className="inline-flex items-center gap-1 rounded-control border border-info-line bg-info-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-info-ink"
     >
       <Plus className="size-3.5 shrink-0" aria-hidden="true" />
       <span>{`+${formatted}`}</span>

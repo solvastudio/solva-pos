@@ -104,12 +104,14 @@ export function DataTable<T>({
 
   if (rows.length === 0) {
     return (
-      <EmptyState
-        icon={emptyIcon}
-        title={emptyTitle}
-        description={emptyDescription}
-        action={emptyAction}
-      />
+      <div className={cn('rounded-card border border-line bg-surface', className)}>
+        <EmptyState
+          icon={emptyIcon}
+          title={emptyTitle}
+          description={emptyDescription}
+          action={emptyAction}
+        />
+      </div>
     )
   }
 

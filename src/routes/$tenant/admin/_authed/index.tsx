@@ -164,7 +164,7 @@ function AdminDashboardPage() {
       {isOffline ? (
         <div
           role="alert"
-          className="rounded-control border border-warning-border bg-warning-soft p-3 text-body-sm text-warning-ink"
+          className="rounded-control border border-warning-line bg-warning-soft p-3 text-body-sm text-warning-ink"
         >
           {t('admin.dashboard.offlineBanner')}
         </div>
@@ -198,7 +198,7 @@ function AdminDashboardPage() {
 
           {dash ? (
             <>
-              <Card className="flex flex-wrap items-center justify-between gap-4 border-info-border bg-info-soft p-4">
+              <Card className="flex flex-wrap items-center justify-between gap-4 border-info-line bg-info-soft p-4">
                 <div className="flex flex-col gap-1">
                   <h2 className="text-h3 font-semibold text-info-ink">
                     {t('admin.dashboard.attentionCardTitle', {

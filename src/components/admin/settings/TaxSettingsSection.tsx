@@ -118,7 +118,7 @@ export function TaxSettingsSection({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-control border border-info-border bg-info-soft p-4 text-body-sm text-info-ink">
+      <div className="rounded-control border border-info-line bg-info-soft p-4 text-body-sm text-info-ink">
         <p className="font-medium">{t('admin.settings.tax.nextTxBanner')}</p>
         <p className="mt-1 text-caption">{t('admin.settings.tax.rsk06Help')}</p>
       </div>
@@ -126,7 +126,7 @@ export function TaxSettingsSection({
       {!tax.legalEntityIsPkp ? (
         <div
           role="alert"
-          className="rounded-control border border-warning-border bg-warning-soft p-4 text-body-sm text-warning-ink"
+          className="rounded-control border border-warning-line bg-warning-soft p-4 text-body-sm text-warning-ink"
         >
           {t('admin.settings.tax.ppnRequiresPkpWarning')}
         </div>

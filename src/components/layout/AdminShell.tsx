@@ -41,8 +41,8 @@ export function AdminShell({ session, children }: AdminShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-header flex h-16 items-center justify-between gap-3 border-b border-line bg-surface px-4 md:px-6">
+    <div className="flex min-h-screen flex-col bg-canvas text-ink">
+      <header className="sticky top-0 z-header flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 md:px-6">
         <div className="flex items-center gap-3">
           <IconButton
             label={drawerOpen ? t('admin.shell.menuClose') : t('admin.shell.menuOpen')}
@@ -77,11 +77,11 @@ export function AdminShell({ session, children }: AdminShellProps) {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-screen-xl">
+      <div className="flex w-full flex-1">
         <aside
           aria-label={t('admin.shell.navLabel')}
           className={cn(
-            'w-60 shrink-0 border-r border-line bg-surface p-4 md:block md:min-h-screen',
+            'w-60 shrink-0 border-r border-line bg-surface p-4 md:block',
             drawerOpen ? 'fixed inset-y-16 left-0 z-nav shadow-card' : 'hidden',
           )}
         >
@@ -118,7 +118,9 @@ export function AdminShell({ session, children }: AdminShellProps) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-6">
+          <div className="mx-auto w-full max-w-screen-xl">{children}</div>
+        </main>
       </div>
     </div>
   )

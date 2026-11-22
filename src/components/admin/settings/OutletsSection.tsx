@@ -332,7 +332,7 @@ export function OutletsSection({ tenantSlug, canCreateOutlet }: OutletsSectionPr
           ) : null}
 
           {timeSettingsChanged ? (
-            <div className="flex items-start gap-2 rounded-control border border-info-border bg-info-soft p-3 text-body-sm text-info-ink">
+            <div className="flex items-start gap-2 rounded-control border border-info-line bg-info-soft p-3 text-body-sm text-info-ink">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>{t('admin.settings.outlet.nextTxBanner')}</span>
             </div>

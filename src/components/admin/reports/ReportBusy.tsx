@@ -36,7 +36,7 @@ export function ReportBusy({
     <Card
       role="status"
       aria-live="polite"
-      className="flex flex-wrap items-center justify-between gap-3 border-warning-border bg-warning-soft p-4 text-body-sm text-warning-ink"
+      className="flex flex-wrap items-center justify-between gap-3 border-warning-line bg-warning-soft p-4 text-body-sm text-warning-ink"
     >
       <div className="flex items-center gap-2">
         <CircleAlert className="size-4 shrink-0" aria-hidden="true" />

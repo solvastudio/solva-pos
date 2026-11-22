@@ -79,17 +79,23 @@ export function BarChartSvg({
     <Card className="flex flex-col gap-4 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-h3 font-semibold text-ink">{title}</h2>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowTable((prev) => !prev)}
-        >
-          {showTable ? t('admin.report.viewAsChart') : t('admin.report.viewAsTable')}
-        </Button>
+        {points.length > 0 ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowTable((prev) => !prev)}
+          >
+            {showTable ? t('admin.report.viewAsChart') : t('admin.report.viewAsTable')}
+          </Button>
+        ) : null}
       </div>
 
-      {showTable ? (
+      {points.length === 0 ? (
+        <p className="py-10 text-center text-body-sm text-ink-soft">
+          {t('admin.report.sales.emptyTitle')}
+        </p>
+      ) : showTable ? (
         <div className="overflow-x-auto">{tableElement}</div>
       ) : (
         <div>
