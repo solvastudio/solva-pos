@@ -22,6 +22,11 @@ export async function registerPosServiceWorker(
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return null
   }
+  // The dev server does not serve `/sw.js` (the PWA plugin's dev mode is off), so registering there only
+  // produces an unhandled rejection in the console. The worker exists in production and E2E builds.
+  if (import.meta.env.DEV) {
+    return null
+  }
   if (!isPosScopePath(window.location.pathname, slug)) {
     return null
   }
@@ -47,7 +52,14 @@ export async function registerPosServiceWorker(
     manager.handleControllerChange()
   })
 
-  await wb.register()
+  try {
+    await wb.register()
+  } catch (err: unknown) {
+    // A failed registration (blocked by the browser, script unreachable) must not surface as an unhandled
+    // rejection; the app keeps working online without the worker.
+    console.warn('[pwa] service worker registration failed', err)
+    return null
+  }
 
   // Also check if an update worker is already waiting prior to listener attachment.
   try {
