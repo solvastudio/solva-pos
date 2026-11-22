@@ -79,19 +79,19 @@ export function PosWorkspaceShell({
   return (
     <div className="flex min-h-screen flex-col bg-app">
       <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-2 border-b border-line bg-surface px-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <TenantBadge variant="compact" name={tenantName} slug={cleanSlug} />
           <span className="truncate text-label font-semibold text-ink">
             {outletLabel ?? t('pos.shell.registerFallback')}
           </span>
           {shiftOpen ? (
-            <span className="hidden rounded-pill bg-success-soft px-2 py-0.5 text-caption font-medium text-success-ink sm:inline-flex">
+            <span className="hidden shrink-0 rounded-pill bg-success-soft px-2 py-0.5 text-caption font-medium text-success-ink sm:inline-flex">
               {t('pos.shellNav.shiftOpenBadge')}
             </span>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {staffName ? (
             <span className="hidden text-caption font-medium text-ink-soft lg:inline">
               {t('pos.shellNav.staffLabel', { name: staffName })}

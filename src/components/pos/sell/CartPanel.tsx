@@ -55,21 +55,29 @@ export function CartPanel({
   return (
     <aside
       aria-label={t('pos.cart.title')}
-      className="flex w-full shrink-0 flex-col border-t border-line bg-surface md:w-96 md:border-t-0 md:border-l"
+      className="flex w-full min-w-0 shrink-0 flex-col border-t border-line bg-surface md:w-80 lg:w-96 md:border-t-0 md:border-l"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="size-4 text-ink-soft" aria-hidden="true" />
-          <h2 className="text-h3 font-semibold text-ink">{t('pos.cart.title')}</h2>
-          <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-caption font-medium text-ink-soft tabular-nums">
+      <div className="flex flex-col gap-2.5 border-b border-line px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <ShoppingCart className="size-4 shrink-0 text-ink-soft" aria-hidden="true" />
+            <h2 className="truncate text-h3 font-semibold text-ink">{t('pos.cart.title')}</h2>
+          </div>
+          <span className="shrink-0 whitespace-nowrap rounded-pill bg-surface-sunken px-2.5 py-0.5 text-caption font-medium text-ink-soft tabular-nums">
             {t('pos.cart.itemsCount', { count: itemCount })}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Button type="button" variant="secondary" size="sm" onClick={onOpenCustomer}>
-            <User className="size-3.5" aria-hidden="true" />
-            <span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onOpenCustomer}
+            className="min-w-0 flex-1 justify-start"
+          >
+            <User className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">
               {cart.customer?.name
                 ? cart.customer.name
                 : cart.customer?.phone ?? t('pos.cart.customerButton')}
@@ -81,8 +89,9 @@ export function CartPanel({
             size="sm"
             disabled={cart.lines.length === 0}
             onClick={onOpenBillDiscount}
+            className="shrink-0"
           >
-            <Percent className="size-3.5" aria-hidden="true" />
+            <Percent className="size-3.5 shrink-0" aria-hidden="true" />
             <span>{t('pos.cart.billDiscountButton')}</span>
           </Button>
         </div>
@@ -179,7 +188,7 @@ export function CartPanel({
           fullWidth
           disabled={!canPay}
           onClick={onPay}
-          className="mt-4 justify-between"
+          className="mt-4 justify-between border border-transparent disabled:border-line"
         >
           <span>{shiftOpen ? t('pos.cart.payButton') : t('pos.cart.shiftClosedDisabled')}</span>
           {shiftOpen ? (

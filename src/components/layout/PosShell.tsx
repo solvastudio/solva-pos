@@ -31,14 +31,14 @@ export function PosShell({
   return (
     <div className="flex min-h-screen flex-col bg-app">
       <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-3 border-b border-line bg-surface px-4">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <TenantBadge variant="compact" name={tenantName} slug={tenantSlug} />
           <span className="truncate text-label font-semibold text-ink">
             {registerName ?? t('pos.shell.registerFallback')}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <SyncIndicator indicator={indicator} />
           {onSyncNow ? (
             <Button

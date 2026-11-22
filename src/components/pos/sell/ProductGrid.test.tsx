@@ -95,4 +95,24 @@ describe('ProductGrid (SCR-P04)', () => {
     const axeRes = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
     expect(axeRes.violations).toEqual([])
   })
+
+  it('recomputes column count when transitioning from empty state to populated items', () => {
+    const items = makeCatalog(2)
+    const { rerender } = render(
+      <ProductGrid items={[]} searchQuery="" onSelectItem={vi.fn()} />,
+    )
+
+    const protoSpy = vi
+      .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+      .mockReturnValue(280)
+
+    try {
+      rerender(<ProductGrid items={items} searchQuery="" onSelectItem={vi.fn()} />)
+      const region = screen.getByRole('region')
+      const grid = region.querySelector('.grid') as HTMLElement | null
+      expect(grid?.style.gridTemplateColumns).toMatch(/^repeat\(1, minmax\(0(?:px)?, 1fr\)\)$/)
+    } finally {
+      protoSpy.mockRestore()
+    }
+  })
 })

@@ -31,7 +31,11 @@ export function TenantBadge({ name, slug, variant }: TenantBadgeProps) {
   return (
     <div
       title={displayName}
-      className={cn('flex min-w-0 items-center', variant === 'hero' ? 'gap-4' : 'gap-2.5')}
+      className={cn(
+        'flex items-center',
+        variant === 'compact' ? 'shrink-0' : 'min-w-0',
+        variant === 'hero' ? 'gap-4' : 'gap-2.5',
+      )}
     >
       {variant === 'compact' && (
         <span className="sr-only">{t('tenant.badgeLabel', { name: displayName })}</span>

@@ -33,22 +33,22 @@ export function ProductCard({ item, onSelect }: ProductCardProps) {
       disabled={disabled}
       onClick={() => onSelect(item)}
       className={cn(
-        'flex h-32 w-full flex-col justify-between rounded-card border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none',
+        'flex h-32 w-full min-w-0 flex-col justify-between overflow-hidden rounded-card border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none',
         disabled
           ? 'cursor-not-allowed border-line bg-surface-sunken text-ink-soft opacity-60'
           : 'border-line bg-surface text-ink hover:border-action hover:bg-surface-sunken active:scale-[0.99]',
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <span className="line-clamp-2 text-body font-semibold text-ink">
           {product.name}
         </span>
       </div>
 
-      <div className="flex items-end justify-between gap-2">
+      <div className="flex min-w-0 items-end justify-between gap-2">
         <span
           className={cn(
-            'font-mono text-label font-semibold tabular-nums',
+            'truncate font-mono text-label font-semibold tabular-nums',
             price.kind === 'NO_PRICE' ? 'text-danger-ink' : 'text-action',
           )}
         >

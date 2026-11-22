@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ProductCard } from './ProductCard'
 import type { SellCatalogItem } from './types'
@@ -16,19 +16,25 @@ const GRID_GAP = 12
 function computeColumns(width: number): number {
   if (width >= 960) return 4
   if (width >= 600) return 3
-  return 2
+  if (width >= 320) return 2
+  return 1
 }
 
 export function ProductGrid({ items, searchQuery, onSelectItem }: ProductGridProps) {
   const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const [columns, setColumns] = useState(4)
 
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    scrollRef.current = node
+    setScrollEl(node)
+  }, [])
+
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
+    if (!scrollEl) return
     const updateCols = () => {
-      const w = el.clientWidth
+      const w = scrollEl.clientWidth
       if (w > 0) {
         setColumns(computeColumns(w))
       }
@@ -36,9 +42,9 @@ export function ProductGrid({ items, searchQuery, onSelectItem }: ProductGridPro
     updateCols()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(updateCols)
-    ro.observe(el)
+    ro.observe(scrollEl)
     return () => ro.disconnect()
-  }, [])
+  }, [scrollEl])
 
   const { startIndex, endIndex, totalHeight, paddingTop, onScroll } = useWindowedGrid(scrollRef, {
     totalItems: items.length,
@@ -62,7 +68,7 @@ export function ProductGrid({ items, searchQuery, onSelectItem }: ProductGridPro
 
   return (
     <div
-      ref={scrollRef}
+      ref={setRefs}
       onScroll={onScroll}
       role="region"
       aria-label={t('pos.sell.gridAria')}

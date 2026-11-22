@@ -322,6 +322,7 @@ export function PaymentScreen({
               disabled={!preview.canFinalize || submitting}
               loading={submitting}
               onClick={handleFinish}
+              className="border border-transparent disabled:border-line"
             >
               {submitting ? t('pos.pay.processing') : t('pos.pay.finishButton')}
             </Button>

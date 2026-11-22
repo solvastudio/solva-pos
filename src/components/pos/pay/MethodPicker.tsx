@@ -32,7 +32,7 @@ export function MethodPicker({
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-label font-semibold text-ink">{t('pos.pay.methodHeading')}</h2>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="flex flex-wrap gap-2">
         {methods.map((method) => {
           const Icon = methodIcon(method)
           const active = method.id === selectedId
@@ -43,14 +43,14 @@ export function MethodPicker({
               aria-pressed={active}
               onClick={() => onSelect(method)}
               className={cn(
-                'flex min-h-touch items-center gap-2.5 rounded-card border px-3 py-2.5 text-left text-label font-medium transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none',
+                'flex min-h-touch flex-1 basis-36 items-center gap-2 rounded-card border px-3 py-2.5 text-left text-label font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:outline-none',
                 active
                   ? 'border-action bg-action text-on-action'
                   : 'border-line bg-surface text-ink hover:bg-surface-sunken',
               )}
             >
               <Icon className="size-5 shrink-0" aria-hidden="true" />
-              <span className="truncate">{method.name}</span>
+              <span>{method.name}</span>
             </button>
           )
         })}

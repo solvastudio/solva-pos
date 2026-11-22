@@ -23,7 +23,7 @@ export function CashQuickAmounts({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2">
       {amounts.map((amt, idx) => {
         const formatted = formatMoney(amt, locale)
         return (
@@ -34,9 +34,11 @@ export function CashQuickAmounts({
             size="lg"
             disabled={disabled}
             onClick={() => onPickAmount(amt)}
-            className="font-mono tabular-nums"
+            className="min-w-0 px-3 font-mono text-button tabular-nums"
           >
-            {idx === 0 ? t('pos.pay.exactCash', { amount: formatted }) : formatted}
+            <span className="truncate">
+              {idx === 0 ? t('pos.pay.exactCash', { amount: formatted }) : formatted}
+            </span>
           </Button>
         )
       })}
