@@ -59,7 +59,7 @@ export function Select({
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         className={cn(
-          'inline-flex w-full items-center justify-between gap-2 rounded-control border bg-surface px-3 text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:bg-surface-sunken disabled:text-ink-disabled disabled:border-line disabled:cursor-not-allowed',
+          'inline-flex w-full items-center justify-between gap-2 rounded-control border bg-surface px-3 text-left text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:bg-surface-sunken disabled:text-ink-disabled disabled:border-line disabled:cursor-not-allowed [&>span]:min-w-0 [&>span]:truncate',
           SIZE_CLASSES[size],
           invalid ? 'border-2 border-danger-solid' : 'border-line-input',
           className,

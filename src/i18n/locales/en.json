@@ -254,7 +254,7 @@
       "exportCsvButton": "Export CSV",
       "truncatedWarning": "Showing first 5,000 rows. Narrow your date or outlet filter.",
       "filterOutletsLabel": "Outlets",
-      "filterAllOutlets": "All outlets in scope",
+      "filterAllOutlets": "All outlets",
       "filterFromLabel": "From date",
       "filterToLabel": "To date",
       "filterGroupByLabel": "Group by",

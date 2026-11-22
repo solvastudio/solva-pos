@@ -254,7 +254,7 @@
       "exportCsvButton": "Ekspor CSV",
       "truncatedWarning": "Menampilkan 5.000 baris pertama. Persempit filter tanggal atau outlet.",
       "filterOutletsLabel": "Outlet",
-      "filterAllOutlets": "Semua outlet dalam cakupan",
+      "filterAllOutlets": "Semua outlet",
       "filterFromLabel": "Dari tanggal",
       "filterToLabel": "Sampai tanggal",
       "filterGroupByLabel": "Kelompokkan",
