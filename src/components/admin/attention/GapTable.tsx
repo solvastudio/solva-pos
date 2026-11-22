@@ -59,7 +59,7 @@ export function GapTable({ gaps, canAnnotate, onAnnotate, busy = false }: GapTab
       header: t('admin.attention.gaps.colStatus'),
       cell: (g) => (
         <Chip
-          status={g.status === 'OPEN' ? 'lease_warning' : 'synced'}
+          status={g.status === 'OPEN' ? 'gap_open' : 'synced'}
           label={g.status}
           size="sm"
         />

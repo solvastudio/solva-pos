@@ -145,7 +145,7 @@ function AdminOperationsReportPage() {
     {
       id: 'flag',
       header: t('admin.report.ops.colFlag'),
-      cell: (r) => <Chip status="lease_warning" label={r.flagCode} size="sm" />,
+      cell: (r) => <Chip status="flag_warning" label={r.flagCode} size="sm" />,
     },
     {
       id: 'invoice',

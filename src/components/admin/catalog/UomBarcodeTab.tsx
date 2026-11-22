@@ -98,9 +98,9 @@ export function UomBarcodeTab({
                 <span className="font-mono text-body font-semibold text-ink">{u?.code ?? su.uomId}</span>
                 <span className="text-body text-ink-soft">{u?.name}</span>
                 {su.isBase ? (
-                  <Chip status="open_price" label={t('admin.catalog.baseUomRowBadge')} />
+                  <Chip status="base_unit" label={t('admin.catalog.baseUomRowBadge')} />
                 ) : (
-                  <Chip status="void" label={`× ${su.conversionFactor}`} />
+                  <Chip status="tag" label={`× ${su.conversionFactor}`} />
                 )}
                 {u?.allowFraction ? (
                   <Chip status="synced" label={t('admin.catalog.allowFractionLabel')} />

@@ -166,7 +166,7 @@ export function ReceiptSettingsForm({
                   size="sm"
                 />
               ) : (
-                <Chip status="offline" label={t('admin.settings.receipt.logoNone')} size="sm" />
+                <Chip status="inactive" label={t('admin.settings.receipt.logoNone')} size="sm" />
               )}
             </div>
             <Field label={t('admin.settings.receipt.logoUploadLabel')} htmlFor={logoInputId}>

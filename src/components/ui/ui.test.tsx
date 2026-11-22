@@ -102,6 +102,10 @@ describe('components/ui primitives and accessibility', () => {
         <IconButton label="Notifications" icon={<Bell />} badge={120} />
         <Chip status="online" label="Online" />
         <Chip status="offline" label="Offline" />
+        <Chip status="active" label="Aktif" />
+        <Chip status="inactive" label="Nonaktif" />
+        <Chip status="tax_pkp" label="PKP" />
+        <Chip status="tax_non_pkp" label="Non-PKP" />
         <Chip status="needs_attention" label="Attention" size="sm" announce />
       </div>,
     )

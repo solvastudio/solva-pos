@@ -243,7 +243,7 @@ export function OutletsSection({ tenantSlug, canCreateOutlet }: OutletsSectionPr
       header: t('admin.settings.outlet.colStatus'),
       cell: (row) => (
         <Chip
-          status={row.isActive ? 'online' : 'item_unavailable'}
+          status={row.isActive ? 'active' : 'inactive'}
           label={row.isActive ? t('common.active') : t('common.inactive')}
           size="sm"
         />

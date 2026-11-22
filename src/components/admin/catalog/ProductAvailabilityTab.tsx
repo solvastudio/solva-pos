@@ -130,7 +130,7 @@ export function ProductAvailabilityTab({
                           </span>
                           {ov ? (
                             <Chip
-                              status={ov.status === 'AVAILABLE' ? 'synced' : 'stock_estimate_low'}
+                              status={ov.status === 'AVAILABLE' ? 'synced' : 'item_unavailable'}
                               label={
                                 ov.status === 'AVAILABLE'
                                   ? t('admin.availability.statusAvailable')

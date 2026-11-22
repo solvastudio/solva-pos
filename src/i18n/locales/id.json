@@ -804,7 +804,7 @@
     },
     "catalog": {
       "title": "Produk & Katalog",
-      "addButton": "+ Produk",
+      "addButton": "Tambah produk",
       "importButton": "Impor CSV",
       "exportButton": "Ekspor CSV",
       "exportSucceeded": "CSV katalog berhasil diekspor.",

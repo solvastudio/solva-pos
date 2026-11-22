@@ -352,7 +352,7 @@ export function UsersTab({
         <div className="flex flex-wrap items-center gap-2">
           <span>{row.displayName}</span>
           {row.membershipStatus === 'PENDING' ? (
-            <Chip status="pending" label={t('admin.users.pendingBadge')} size="sm" />
+            <Chip status="invite_pending" label={t('admin.users.pendingBadge')} size="sm" />
           ) : null}
         </div>
       ),
@@ -504,7 +504,7 @@ export function UsersTab({
       header: t('admin.users.pending.colStatus'),
       cell: (row) => (
         <Chip
-          status={row.status === 'PENDING' ? 'update_available' : 'item_unavailable'}
+          status={row.status === 'PENDING' ? 'invite_pending' : 'invite_expired'}
           label={
             row.status === 'PENDING'
               ? t('admin.users.pending.statusWaiting')

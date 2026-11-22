@@ -236,7 +236,7 @@ export function ImportWizard({ tenantSlug }: ImportWizardProps) {
                   <Chip status="synced" label={t('admin.import.summaryCreate', { count: counts.create })} />
                   <Chip status="open_price" label={t('admin.import.summaryUpdate', { count: counts.update })} />
                   <Chip
-                    status="void"
+                    status="inactive"
                     label={t('admin.import.summaryUnchanged', { count: counts.unchanged })}
                   />
                 </div>

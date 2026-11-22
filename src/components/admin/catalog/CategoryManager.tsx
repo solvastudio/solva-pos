@@ -100,8 +100,12 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
             />
           </Field>
           <div className="flex items-end gap-2">
-            <Button type="submit" loading={saveMut.isPending} className="min-h-control-md">
-              <Plus className="size-4" />
+            <Button
+              type="submit"
+              loading={saveMut.isPending}
+              leadingIcon={!editing ? <Plus className="size-4" aria-hidden="true" /> : undefined}
+              className="min-h-control-md"
+            >
               {editing ? t('common.save') : t('admin.catalog.categorySectionTitle')}
             </Button>
             {editing ? (
@@ -136,7 +140,7 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
                 <span className="text-body font-medium text-ink">
                   {parent ? `${parent.name} > ${cat.name}` : cat.name}
                 </span>
-                {parent ? <Chip status="void" label={parent.name} /> : null}
+                {parent ? <Chip status="tag" label={parent.name} /> : null}
               </div>
               {canManage ? (
                 <div className="flex items-center gap-2">

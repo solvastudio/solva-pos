@@ -107,7 +107,7 @@ export function PaymentMethodsTable({
       header: t('admin.settings.paymentMethods.colActive'),
       cell: (row) => (
         <Chip
-          status={row.isActive ? 'online' : 'item_unavailable'}
+          status={row.isActive ? 'active' : 'inactive'}
           label={
             row.isActive
               ? t('admin.settings.paymentMethods.activeYes')

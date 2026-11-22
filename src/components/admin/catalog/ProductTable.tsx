@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, DataTable, Package, PencilLine, type DataTableColumn } from '~/components/ui'
+import { Button, Chip, DataTable, Package, PencilLine, Plus, type DataTableColumn } from '~/components/ui'
 import { formatMoney, toMoney, type LocaleId } from '~/lib/kernel'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import type { AdminProductListItem } from '~/modules/catalog/shared'
@@ -59,7 +59,7 @@ export function ProductTable({
       header: t('admin.catalog.colType'),
       cell: (r) => (
         <Chip
-          status={r.productType === 'MENU_FNB' ? 'open_price' : 'void'}
+          status={r.productType === 'MENU_FNB' ? 'type_fnb' : 'type_retail'}
           label={t(`admin.catalog.type${r.productType}`)}
         />
       ),
@@ -103,7 +103,7 @@ export function ProductTable({
       header: t('admin.catalog.colStatus'),
       cell: (r) => (
         <Chip
-          status={r.isActive ? 'synced' : 'item_unavailable'}
+          status={r.isActive ? 'active' : 'inactive'}
           label={r.isActive ? t('common.active') : t('common.inactive')}
         />
       ),
@@ -138,7 +138,11 @@ export function ProductTable({
       emptyDescription={t('admin.catalog.emptyDesc')}
       emptyAction={
         onCreateAction ? (
-          <Button type="button" onClick={onCreateAction}>
+          <Button
+            type="button"
+            leadingIcon={<Plus className="size-4" aria-hidden="true" />}
+            onClick={onCreateAction}
+          >
             {t('admin.catalog.addButton')}
           </Button>
         ) : undefined

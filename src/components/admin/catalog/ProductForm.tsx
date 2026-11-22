@@ -410,7 +410,7 @@ export function ProductForm({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {variantPreview.specs.slice(0, 12).map((s) => (
-                        <Chip key={s.skuCode} status="void" label={`${s.skuCode}: ${s.variantLabel}`} />
+                        <Chip key={s.skuCode} status="tag" label={`${s.skuCode}: ${s.variantLabel}`} />
                       ))}
                     </div>
                   </div>
@@ -456,11 +456,11 @@ export function ProductForm({
             <p className="font-mono text-caption text-ink-soft">{code.trim() || 'SKU'}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Chip
-                status={productType === 'MENU_FNB' ? 'open_price' : 'void'}
+                status={productType === 'MENU_FNB' ? 'type_fnb' : 'type_retail'}
                 label={t(`admin.catalog.type${productType}`)}
               />
               {isOpenPrice ? (
-                <Chip status="stock_estimate_low" label={t('admin.catalog.openPriceBadge')} />
+                <Chip status="open_price" label={t('admin.catalog.openPriceBadge')} />
               ) : null}
             </div>
           </div>

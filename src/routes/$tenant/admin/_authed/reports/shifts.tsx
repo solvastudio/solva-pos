@@ -219,8 +219,10 @@ function AdminShiftReportPage() {
             r.status === 'COMPLETE'
               ? 'synced'
               : r.status === 'OPEN'
-                ? 'online'
-                : 'lease_warning'
+                ? 'shift_open'
+                : r.status === 'FORCE_CLOSED'
+                  ? 'force_closed'
+                  : 'flag_warning'
           }
           label={t(`admin.report.shifts.status${r.status}`)}
           size="sm"

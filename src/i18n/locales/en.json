@@ -804,7 +804,7 @@
     },
     "catalog": {
       "title": "Products & Catalog",
-      "addButton": "+ Product",
+      "addButton": "Add product",
       "importButton": "Import CSV",
       "exportButton": "Export CSV",
       "exportSucceeded": "Catalog CSV exported.",

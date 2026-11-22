@@ -327,7 +327,7 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
       header: t('admin.users.register.colStatus'),
       cell: (r) => (
         <Chip
-          status={r.status === 'ACTIVE' ? 'online' : 'item_unavailable'}
+          status={r.status === 'ACTIVE' ? 'active' : 'inactive'}
           label={r.status === 'ACTIVE' ? t('common.active') : t('common.inactive')}
           size="sm"
         />

@@ -151,7 +151,7 @@ export function LegalEntitiesSection({
       header: t('admin.settings.legalEntity.colPkp'),
       cell: (row) => (
         <Chip
-          status={row.isPkp ? 'update_available' : 'item_unavailable'}
+          status={row.isPkp ? 'tax_pkp' : 'tax_non_pkp'}
           label={
             row.isPkp
               ? t('admin.settings.legalEntity.pkpYes')

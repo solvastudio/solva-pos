@@ -169,7 +169,7 @@ export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: Variant
                   </td>
                   <td className="px-4 py-2 text-ink">
                     {s.variantLabel ?? (
-                      <Chip status="void" label={t('admin.catalog.baseUomRowBadge')} />
+                      <Chip status="base_unit" label={t('admin.catalog.baseUomRowBadge')} />
                     )}
                   </td>
                   <td className="px-4 py-2">

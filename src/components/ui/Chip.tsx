@@ -11,17 +11,22 @@ import {
   EyeOff,
   Hourglass,
   Inbox,
+  Layers,
   Lock,
   LockKeyhole,
+  Package,
   PencilLine,
   Printer,
+  ReceiptText,
   RefreshCw,
   Send,
   ShieldAlert,
+  Tag,
   TriangleAlert,
   Truck,
   Unlink,
   Upload,
+  Utensils,
   Wifi,
   WifiOff,
 } from './icons'
@@ -56,6 +61,17 @@ export type ChipStatus =
   | 'force_closed'
   | 'gap_open'
   | 'gap_explained'
+  | 'active'
+  | 'inactive'
+  | 'tax_pkp'
+  | 'tax_non_pkp'
+  | 'invite_pending'
+  | 'invite_expired'
+  | 'type_retail'
+  | 'type_fnb'
+  | 'tag'
+  | 'base_unit'
+  | 'flag_warning'
 
 type FamilyStyle =
   | 'success'
@@ -116,6 +132,17 @@ const STATUS_META: Record<ChipStatus, StatusMeta> = {
   force_closed: { family: 'warning', icon: ShieldAlert },
   gap_open: { family: 'danger', icon: Unlink },
   gap_explained: { family: 'neutral', icon: Unlink },
+  active: { family: 'success', icon: Check },
+  inactive: { family: 'neutral', icon: CircleMinus },
+  tax_pkp: { family: 'info', icon: ReceiptText },
+  tax_non_pkp: { family: 'neutral', icon: CircleMinus },
+  invite_pending: { family: 'info', icon: Hourglass },
+  invite_expired: { family: 'neutral', icon: ClockAlert },
+  type_retail: { family: 'neutral', icon: Package },
+  type_fnb: { family: 'info', icon: Utensils },
+  tag: { family: 'neutral', icon: Tag },
+  base_unit: { family: 'info', icon: Layers },
+  flag_warning: { family: 'warning', icon: TriangleAlert },
 }
 
 export interface ChipProps {

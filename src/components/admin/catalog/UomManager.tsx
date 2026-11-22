@@ -111,8 +111,11 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
                   {t('common.cancel')}
                 </Button>
               ) : null}
-              <Button type="submit" loading={saveMut.isPending}>
-                <Plus className="size-4" />
+              <Button
+                type="submit"
+                loading={saveMut.isPending}
+                leadingIcon={!editing ? <Plus className="size-4" aria-hidden="true" /> : undefined}
+              >
                 {editing ? t('common.save') : t('admin.catalog.uomSectionTitle')}
               </Button>
             </div>
@@ -133,7 +136,7 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
               <span className="font-mono text-body font-semibold text-ink">{u.code}</span>
               <span className="text-body text-ink-soft">{u.name}</span>
               {u.allowFraction ? (
-                <Chip status="open_price" label={t('admin.catalog.allowFractionLabel')} />
+                <Chip status="synced" label={t('admin.catalog.allowFractionLabel')} />
               ) : null}
             </div>
             {canManage ? (

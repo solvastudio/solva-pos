@@ -200,7 +200,7 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
         r.revokedAt ? (
           <Chip status="void" label={t('admin.devices.statusRevoked')} size="sm" />
         ) : (
-          <Chip status="online" label={t('admin.devices.statusActive')} size="sm" />
+          <Chip status="active" label={t('admin.devices.statusActive')} size="sm" />
         ),
     },
     {
