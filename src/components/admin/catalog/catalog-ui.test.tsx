@@ -228,6 +228,9 @@ describe('catalog admin UI components (jsdom + axe)', () => {
 
     const { container } = wrap(<AvailabilityMatrix tenantSlug="acme" data={data} />)
     expect(screen.getByLabelText('Outside your outlet scope')).toBeTruthy()
+    const selectRowCheckbox = screen.getByRole('checkbox', { name: 'Kopi' })
+    const selectRowLabel = container.querySelector(`label[for="${selectRowCheckbox.id}"]`)
+    expect(selectRowLabel?.className).toContain('sr-only')
 
     await user.click(screen.getByRole('button', { name: 'Kopi Outlet 1' }))
     expect(screen.getByText(/Hide items in selected outlets/i)).toBeTruthy()

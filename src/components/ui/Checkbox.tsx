@@ -6,6 +6,7 @@ import { Check } from './icons'
 export interface CheckboxProps {
   id?: string
   label: string
+  hideLabel?: boolean
   checked: boolean
   onCheckedChange: (checked: boolean) => void
   disabled?: boolean
@@ -15,6 +16,7 @@ export interface CheckboxProps {
 export function Checkbox({
   id,
   label,
+  hideLabel = false,
   checked,
   onCheckedChange,
   disabled = false,
@@ -24,7 +26,13 @@ export function Checkbox({
   const controlId = id ?? autoId
 
   return (
-    <div className={cn('inline-flex min-h-control-md items-center gap-3', className)}>
+    <div
+      className={cn(
+        'inline-flex min-h-control-md items-center',
+        hideLabel ? 'gap-0' : 'gap-3',
+        className,
+      )}
+    >
       <RadixCheckbox.Root
         id={controlId}
         checked={checked}
@@ -38,10 +46,14 @@ export function Checkbox({
       </RadixCheckbox.Root>
       <label
         htmlFor={controlId}
-        className={cn(
-          'cursor-pointer select-none py-2 text-body',
-          disabled ? 'text-ink-disabled cursor-not-allowed' : 'text-ink',
-        )}
+        className={
+          hideLabel
+            ? 'sr-only'
+            : cn(
+                'cursor-pointer select-none py-2 text-body',
+                disabled ? 'text-ink-disabled cursor-not-allowed' : 'text-ink',
+              )
+        }
       >
         {label}
       </label>

@@ -241,18 +241,18 @@ export function AvailabilityMatrix({ tenantSlug, data }: AvailabilityMatrixProps
       </div>
 
       {/* Desktop matrix */}
-      <div className="hidden overflow-x-auto rounded-md border border-line bg-surface md:block">
+      <div className="hidden overflow-x-auto rounded-card border border-line bg-surface shadow-card md:block">
         <table className="w-full text-left text-body">
-          <thead className="border-b border-line bg-surface-sunken text-caption font-semibold text-ink-soft">
+          <thead className="border-b border-line bg-surface-subtle text-label-sm font-semibold text-ink-soft">
             <tr>
-              <th className="w-10 px-3 py-3">
+              <th className="w-12 px-3 py-3 text-center">
                 <span className="sr-only">
                   {t('admin.availability.colSelect')}
                 </span>
               </th>
               <th className="px-4 py-3">{t('admin.catalog.colName')}</th>
               {data.outlets.map((o) => (
-                <th key={o.id} className="px-4 py-3">
+                <th key={o.id} className="px-4 py-3 whitespace-nowrap">
                   {o.name}
                 </th>
               ))}
@@ -264,10 +264,11 @@ export function AvailabilityMatrix({ tenantSlug, data }: AvailabilityMatrixProps
               const isExpanded = expandedProducts.has(r.productId)
               return (
                 <Fragment key={r.productId}>
-                  <tr>
-                    <td className="px-3 py-3">
+                  <tr className="hover:bg-surface-hover">
+                    <td className="w-12 px-3 py-3 text-center">
                       <Checkbox
                         label={r.productName}
+                        hideLabel
                         checked={isSelected}
                         onCheckedChange={(checked) => {
                           const next = new Set(selectedProducts)
@@ -349,7 +350,7 @@ export function AvailabilityMatrix({ tenantSlug, data }: AvailabilityMatrixProps
                                 stageProductStatus(r.productId, o.id, 'AVAILABLE')
                               }
                             }}
-                            className="inline-flex min-h-control-md items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-body disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-disabled"
+                            className="inline-flex min-h-control-md items-center gap-2 whitespace-nowrap rounded-control border border-line bg-surface px-3 py-1 text-body transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-disabled"
                           >
                             {!editable ? (
                               <Lock className="size-4 text-ink-disabled" />

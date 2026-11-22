@@ -212,7 +212,8 @@ export function RolesTab({ tenantSlug, canEditRoles }: RolesTabProps) {
                   return (
                     <td key={r.id} className="px-3 py-2 text-center">
                       <Checkbox
-                        className="justify-center [&>label]:sr-only"
+                        className="justify-center"
+                        hideLabel
                         label={`${t(`role.${r.code}`, { defaultValue: r.name })}: ${t(`permission.${code}`)}`}
                         checked={checked}
                         disabled={locked}
