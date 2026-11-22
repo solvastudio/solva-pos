@@ -45,6 +45,9 @@ export function TaxSettingsSection({
   const [serviceChargeRate, setServiceChargeRate] = useState(tax.serviceChargeRate)
   const [serviceChargeTaxable, setServiceChargeTaxable] = useState(tax.serviceChargeTaxable)
 
+  const [serviceChargeRateError, setServiceChargeRateError] = useState<string | null>(null)
+  const [rateFieldErrors, setRateFieldErrors] = useState<Record<string, string>>({})
+
   const [addRateOpen, setAddRateOpen] = useState(false)
   const [newTaxCode, setNewTaxCode] = useState<'PPN' | 'PB1'>('PPN')
   const [newTaxScope, setNewTaxScope] = useState<'OUTLET' | 'GLOBAL'>('OUTLET')
@@ -94,24 +97,51 @@ export function TaxSettingsSection({
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (serviceChargeEnabled) {
+      const cleanSc = serviceChargeRate.trim()
+      const n = Number(cleanSc)
+      if (!cleanSc || !Number.isFinite(n) || n < 0) {
+        setServiceChargeRateError(t('validation.nonNegativeNumber'))
+        return
+      }
+    }
+    setServiceChargeRateError(null)
     await onSaveTaxSettings({
       outletId: tax.outletId,
       taxProfile,
       priceTaxMode,
       cashRoundingUnit,
       serviceChargeEnabled,
-      serviceChargeRate,
+      serviceChargeRate: serviceChargeRate.trim(),
       serviceChargeTaxable,
     })
   }
 
   const handleAddRate = async (event: React.FormEvent) => {
     event.preventDefault()
+    const nextErrors: Record<string, string> = {}
+    const cleanRate = newTaxRate.trim()
+    const rateNum = Number(cleanRate)
+    if (!cleanRate) {
+      nextErrors.rate = t('validation.fieldRequired', {
+        field: t('admin.settings.tax.ratePctLabel'),
+      })
+    } else if (!Number.isFinite(rateNum) || rateNum < 0) {
+      nextErrors.rate = t('validation.nonNegativeNumber')
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newEffectiveFrom.trim())) {
+      nextErrors.effectiveFrom = t('validation.dateIso')
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setRateFieldErrors(nextErrors)
+      return
+    }
+    setRateFieldErrors({})
     await onAddTaxRate({
       outletId: newTaxScope === 'OUTLET' ? tax.outletId : null,
       taxCode: newTaxCode,
-      rate: newTaxRate,
-      effectiveFrom: newEffectiveFrom,
+      rate: cleanRate,
+      effectiveFrom: newEffectiveFrom.trim(),
     })
     setAddRateOpen(false)
   }
@@ -205,11 +235,16 @@ export function TaxSettingsSection({
             <Field
               label={t('admin.settings.tax.serviceChargeRateLabel')}
               htmlFor={`${idPrefix}-sc-rate`}
+              error={serviceChargeRateError ?? undefined}
             >
               <Input
                 id={`${idPrefix}-sc-rate`}
                 value={serviceChargeRate}
-                onChange={(e) => setServiceChargeRate(e.target.value)}
+                invalid={Boolean(serviceChargeRateError)}
+                onChange={(e) => {
+                  setServiceChargeRate(e.target.value)
+                  setServiceChargeRateError(null)
+                }}
                 disabled={!serviceChargeEnabled}
               />
             </Field>
@@ -299,23 +334,38 @@ export function TaxSettingsSection({
             />
           </Field>
 
-          <Field label={t('admin.settings.tax.ratePctLabel')} htmlFor={`${idPrefix}-new-rate`}>
+          <Field
+            label={t('admin.settings.tax.ratePctLabel')}
+            htmlFor={`${idPrefix}-new-rate`}
+            error={rateFieldErrors.rate}
+          >
             <Input
               id={`${idPrefix}-new-rate`}
               value={newTaxRate}
-              onChange={(e) => setNewTaxRate(e.target.value)}
+              invalid={Boolean(rateFieldErrors.rate)}
+              onChange={(e) => {
+                setNewTaxRate(e.target.value)
+                setRateFieldErrors((prev) => (prev.rate ? { ...prev, rate: '' } : prev))
+              }}
             />
           </Field>
 
           <Field
             label={t('admin.settings.tax.effectiveFromLabel')}
             htmlFor={`${idPrefix}-new-effective`}
+            error={rateFieldErrors.effectiveFrom}
           >
             <Input
               id={`${idPrefix}-new-effective`}
               type="date"
               value={newEffectiveFrom}
-              onChange={(e) => setNewEffectiveFrom(e.target.value)}
+              invalid={Boolean(rateFieldErrors.effectiveFrom)}
+              onChange={(e) => {
+                setNewEffectiveFrom(e.target.value)
+                setRateFieldErrors((prev) =>
+                  prev.effectiveFrom ? { ...prev, effectiveFrom: '' } : prev,
+                )
+              }}
             />
           </Field>
         </form>

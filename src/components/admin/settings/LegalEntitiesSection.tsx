@@ -122,7 +122,15 @@ export function LegalEntitiesSection({
       for (const issue of parsed.error.issues) {
         const key = String(issue.path[0] ?? 'form')
         if (!nextErrors[key]) {
-          nextErrors[key] = t(issue.message, { defaultValue: t('admin.settings.failed') })
+          if (key === 'name' && issue.code === 'too_small') {
+            nextErrors[key] = t('validation.fieldRequired', {
+              field: t('admin.settings.legalEntity.nameLabel'),
+            })
+          } else if (key === 'pkpSince') {
+            nextErrors[key] = t('validation.dateIso')
+          } else {
+            nextErrors[key] = t(issue.message, { defaultValue: t('validation.required') })
+          }
         }
       }
       setFieldErrors(nextErrors)

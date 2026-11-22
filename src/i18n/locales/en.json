@@ -23,6 +23,16 @@
     "dash": "-",
     "currencyPrefix": "Rp"
   },
+  "validation": {
+    "required": "Required.",
+    "fieldRequired": "{{field}} is required.",
+    "selectRequired": "Select {{field}} first.",
+    "emailInvalid": "Enter a valid email address.",
+    "timeHhMm": "Time must use HH:MM format (00:00–23:59).",
+    "dateIso": "Date must use YYYY-MM-DD format.",
+    "positiveNumber": "Enter a number greater than 0.",
+    "nonNegativeNumber": "Enter 0 or greater."
+  },
   "auth": {
     "login": {
       "invalid": "Incorrect email or password",

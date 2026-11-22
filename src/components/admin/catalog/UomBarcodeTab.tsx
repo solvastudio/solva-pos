@@ -28,6 +28,7 @@ export function UomBarcodeTab({
   const [factor, setFactor] = useState('12')
   const [barcode, setBarcode] = useState('')
   const [barcodeDrafts, setBarcodeDrafts] = useState<Record<string, string>>({})
+  const [addFieldErrors, setAddFieldErrors] = useState<Record<string, string>>({})
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const uomById = new Map(uoms.map((u) => [u.id, u]))
@@ -54,13 +55,31 @@ export function UomBarcodeTab({
 
   function handleAdd(e: FormEvent) {
     e.preventDefault()
-    if (!selectedSkuId || !addUomId || !factor.trim()) return
+    const nextErrors: Record<string, string> = {}
+    if (!addUomId) {
+      nextErrors.uomId = t('validation.selectRequired', { field: t('admin.catalog.uomLabel') })
+    }
+    const cleanFactor = factor.trim()
+    const factorNum = Number(cleanFactor)
+    if (!cleanFactor) {
+      nextErrors.factor = t('validation.fieldRequired', {
+        field: t('admin.catalog.conversionFactorLabel'),
+      })
+    } else if (!Number.isFinite(factorNum) || factorNum <= 0) {
+      nextErrors.factor = t('validation.positiveNumber')
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setAddFieldErrors(nextErrors)
+      return
+    }
+    setAddFieldErrors({})
+    if (!selectedSkuId) return
     mut.mutate({
       data: {
         action: 'add',
         skuId: selectedSkuId,
         uomId: addUomId,
-        conversionFactor: factor.trim(),
+        conversionFactor: cleanFactor,
         barcode: barcode.trim() || null,
       },
     })
@@ -153,14 +172,22 @@ export function UomBarcodeTab({
       </div>
 
       {canManageTenantWide && availableExtraUoms.length > 0 ? (
-        <form onSubmit={handleAdd} className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
+        <form onSubmit={handleAdd} noValidate className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
           <h4 className="text-h3 font-semibold text-ink">{t('admin.catalog.addUomTitle')}</h4>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label={t('admin.catalog.uomLabel')} htmlFor={`${idPrefix}-uom`}>
+            <Field
+              label={t('admin.catalog.uomLabel')}
+              htmlFor={`${idPrefix}-uom`}
+              error={addFieldErrors.uomId}
+            >
               <Select
                 id={`${idPrefix}-uom`}
                 value={addUomId}
-                onValueChange={setAddUomId}
+                onValueChange={(v) => {
+                  setAddUomId(v)
+                  setAddFieldErrors((prev) => (prev.uomId ? { ...prev, uomId: '' } : prev))
+                }}
+                invalid={Boolean(addFieldErrors.uomId)}
                 placeholder={t('admin.catalog.selectUom')}
                 options={availableExtraUoms.map((u) => ({
                   value: u.id,
@@ -172,11 +199,16 @@ export function UomBarcodeTab({
               label={t('admin.catalog.conversionFactorLabel')}
               htmlFor={`${idPrefix}-factor`}
               hint={t('admin.catalog.conversionFactorHint')}
+              error={addFieldErrors.factor}
             >
               <Input
                 id={`${idPrefix}-factor`}
                 value={factor}
-                onChange={(e) => setFactor(e.target.value)}
+                invalid={Boolean(addFieldErrors.factor)}
+                onChange={(e) => {
+                  setFactor(e.target.value)
+                  setAddFieldErrors((prev) => (prev.factor ? { ...prev, factor: '' } : prev))
+                }}
               />
             </Field>
             <Field label={t('admin.catalog.barcodeLabel')} htmlFor={`${idPrefix}-barcode`}>

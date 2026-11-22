@@ -21,6 +21,7 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
   const [name, setName] = useState('')
   const [allowFraction, setAllowFraction] = useState(false)
   const [editing, setEditing] = useState<UomView | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
 
   const saveMut = useMutation({
@@ -63,7 +64,22 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!code.trim() || !name.trim()) return
+    const nextErrors: Record<string, string> = {}
+    if (!code.trim()) {
+      nextErrors.code = t('validation.fieldRequired', {
+        field: t('admin.catalog.uomCodeLabel'),
+      })
+    }
+    if (!name.trim()) {
+      nextErrors.name = t('validation.fieldRequired', {
+        field: t('admin.catalog.uomNameLabel'),
+      })
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+    setFieldErrors({})
     saveMut.mutate()
   }
 
@@ -71,21 +87,37 @@ export function UomManager({ tenantSlug, uoms, canManage }: UomManagerProps) {
     <section className="flex flex-col gap-4">
       <h3 className="text-h3 font-semibold text-ink">{t('admin.catalog.uomSectionTitle')}</h3>
       {canManage ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label={t('admin.catalog.uomCodeLabel')} htmlFor={`${idPrefix}-code`}>
+            <Field
+              label={t('admin.catalog.uomCodeLabel')}
+              htmlFor={`${idPrefix}-code`}
+              error={fieldErrors.code}
+            >
               <Input
                 id={`${idPrefix}-code`}
                 value={code}
-                onChange={(e) => setCode(e.target.value.toLowerCase())}
+                invalid={Boolean(fieldErrors.code)}
+                onChange={(e) => {
+                  setCode(e.target.value.toLowerCase())
+                  setFieldErrors((prev) => (prev.code ? { ...prev, code: '' } : prev))
+                }}
                 disabled={saveMut.isPending}
               />
             </Field>
-            <Field label={t('admin.catalog.uomNameLabel')} htmlFor={`${idPrefix}-name`}>
+            <Field
+              label={t('admin.catalog.uomNameLabel')}
+              htmlFor={`${idPrefix}-name`}
+              error={fieldErrors.name}
+            >
               <Input
                 id={`${idPrefix}-name`}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                invalid={Boolean(fieldErrors.name)}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => (prev.name ? { ...prev, name: '' } : prev))
+                }}
                 disabled={saveMut.isPending}
               />
             </Field>

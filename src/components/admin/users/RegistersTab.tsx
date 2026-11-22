@@ -72,6 +72,7 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
   const [editActive, setEditActive] = useState(true)
   const [editPaper, setEditPaper] = useState<PaperWidthMm>(80)
   const [editLocale, setEditLocale] = useState<string>(LOCALE_FOLLOW_OUTLET)
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({})
   const [editError, setEditError] = useState<string | null>(null)
 
   const [prefixTarget, setPrefixTarget] = useState<RegisterView | null>(null)
@@ -201,6 +202,7 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
     setEditActive(row.status === 'ACTIVE')
     setEditPaper(row.paperWidthMm)
     setEditLocale(row.defaultLocale ?? LOCALE_FOLLOW_OUTLET)
+    setEditFieldErrors({})
     setEditError(null)
   }
 
@@ -210,18 +212,31 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
     setPrefixError(null)
   }
 
+  function clearCreateFieldError(field: string) {
+    setCreateFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const copy = { ...prev }
+      delete copy[field]
+      return copy
+    })
+  }
+
   function handleCreateSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setCreateError(null)
     const nextErrors: Record<string, string> = {}
     if (!outletId) {
-      nextErrors.outletId = t('admin.users.failed')
+      nextErrors.outletId = t('validation.selectRequired', {
+        field: t('admin.users.register.outletLabel'),
+      })
     }
     if (!/^[A-Z0-9]{1,10}$/.test(code.trim())) {
       nextErrors.code = t('admin.users.register.codeHint')
     }
     if (!name.trim()) {
-      nextErrors.name = t('admin.users.failed')
+      nextErrors.name = t('validation.fieldRequired', {
+        field: t('admin.users.register.nameLabel'),
+      })
     }
     if (registerType === 'CASHIER') {
       const cleanPrefix = invoicePrefix.trim()
@@ -237,6 +252,19 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
     }
     setCreateFieldErrors({})
     createMutation.mutate()
+  }
+
+  function handleEditSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setEditError(null)
+    if (!editName.trim()) {
+      setEditFieldErrors({
+        name: t('validation.fieldRequired', { field: t('admin.users.register.nameLabel') }),
+      })
+      return
+    }
+    setEditFieldErrors({})
+    editMutation.mutate()
   }
 
   function handleChangePrefixSubmit(e: FormEvent<HTMLFormElement>) {
@@ -429,7 +457,10 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
             <Select
               id={createOutletId}
               value={outletId}
-              onValueChange={handleOutletChange}
+              onValueChange={(v) => {
+                handleOutletChange(v)
+                clearCreateFieldError('outletId')
+              }}
               options={outlets.map((o) => ({ value: o.id, label: `${o.code} · ${o.name}` }))}
               placeholder={t('admin.users.register.outletPlaceholder')}
               invalid={Boolean(createFieldErrors.outletId)}
@@ -450,7 +481,10 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
                 value={code}
                 invalid={Boolean(createFieldErrors.code)}
                 className="font-mono uppercase"
-                onChange={(e) => handleCodeChange(e.target.value)}
+                onChange={(e) => {
+                  handleCodeChange(e.target.value)
+                  clearCreateFieldError('code')
+                }}
                 maxLength={10}
               />
             </Field>
@@ -465,7 +499,10 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
                 controlSize="md"
                 value={name}
                 invalid={Boolean(createFieldErrors.name)}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  clearCreateFieldError('name')
+                }}
                 maxLength={80}
               />
             </Field>
@@ -508,6 +545,7 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
                   onChange={(e) => {
                     setPrefixTouched(true)
                     setInvoicePrefix(e.target.value.toUpperCase())
+                    clearCreateFieldError('invoicePrefix')
                   }}
                   maxLength={16}
                 />
@@ -579,13 +617,7 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
         title={t('admin.users.register.editTitle', { code: editing?.code ?? '' })}
         size="md"
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            editMutation.mutate()
-          }}
-          className="flex flex-col gap-4"
-        >
+        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4" noValidate>
           {editError ? (
             <div
               role="alert"
@@ -596,12 +628,20 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
             </div>
           ) : null}
 
-          <Field label={t('admin.users.register.nameLabel')} htmlFor={editNameId}>
+          <Field
+            label={t('admin.users.register.nameLabel')}
+            htmlFor={editNameId}
+            error={editFieldErrors.name}
+          >
             <Input
               id={editNameId}
               controlSize="md"
               value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+              invalid={Boolean(editFieldErrors.name)}
+              onChange={(e) => {
+                setEditName(e.target.value)
+                setEditFieldErrors({})
+              }}
               maxLength={80}
             />
           </Field>
@@ -662,27 +702,22 @@ export function RegistersTab({ tenantSlug }: RegistersTabProps) {
             <span>{t('admin.users.register.prefixNextMonth', { month: nextMonthMmYy })}</span>
           </div>
 
-          {prefixError ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-            >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>{prefixError}</span>
-            </div>
-          ) : null}
-
           <Field
             label={t('admin.users.register.newPrefixLabel')}
             htmlFor={changePrefixId}
             hint={t('admin.users.register.prefixHint')}
+            error={prefixError ?? undefined}
           >
             <Input
               id={changePrefixId}
               controlSize="md"
               value={nextPrefixInput}
+              invalid={Boolean(prefixError)}
               className="font-mono uppercase"
-              onChange={(e) => setNextPrefixInput(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setNextPrefixInput(e.target.value.toUpperCase())
+                setPrefixError(null)
+              }}
               maxLength={16}
             />
           </Field>

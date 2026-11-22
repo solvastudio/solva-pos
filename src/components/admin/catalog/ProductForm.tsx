@@ -84,6 +84,7 @@ export function ProductForm({
   const [draftAttrs, setDraftAttrs] = useState<DraftAttribute[]>([
     { id: 'attr-1', name: '', valuesRaw: '' },
   ])
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
 
@@ -214,22 +215,64 @@ export function ProductForm({
     },
   })
 
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const copy = { ...prev }
+      delete copy[field]
+      return copy
+    })
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !code.trim() || !categoryId || !baseUomId) return
+    setFormError(null)
+    const nextErrors: Record<string, string> = {}
+    if (!name.trim()) {
+      nextErrors.name = t('validation.fieldRequired', { field: t('admin.catalog.nameLabel') })
+    }
+    if (!code.trim()) {
+      nextErrors.code = t('validation.fieldRequired', { field: t('admin.catalog.codeLabel') })
+    }
+    if (!categoryId) {
+      nextErrors.categoryId = t('validation.selectRequired', {
+        field: t('admin.catalog.categoryLabel'),
+      })
+    }
+    if (!baseUomId) {
+      nextErrors.baseUomId = t('validation.selectRequired', {
+        field: t('admin.catalog.baseUomLabel'),
+      })
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+    setFieldErrors({})
     saveMut.mutate()
   }
 
   const infoContent = (
-    <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3"
+    >
       <div className="flex flex-col gap-4 lg:col-span-2">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t('admin.catalog.nameLabel')} htmlFor={`${idPrefix}-name`}>
+          <Field
+            label={t('admin.catalog.nameLabel')}
+            htmlFor={`${idPrefix}-name`}
+            error={fieldErrors.name}
+          >
             <Input
               id={`${idPrefix}-name`}
-              required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              invalid={Boolean(fieldErrors.name)}
+              onChange={(e) => {
+                setName(e.target.value)
+                clearFieldError('name')
+              }}
               disabled={!canManageTenantWide || saveMut.isPending}
             />
           </Field>
@@ -237,33 +280,53 @@ export function ProductForm({
             label={t('admin.catalog.codeLabel')}
             htmlFor={`${idPrefix}-code`}
             hint={t('admin.catalog.codeHint')}
+            error={fieldErrors.code}
           >
             <Input
               id={`${idPrefix}-code`}
-              required
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              invalid={Boolean(fieldErrors.code)}
+              onChange={(e) => {
+                setCode(e.target.value)
+                clearFieldError('code')
+              }}
               disabled={!canManageTenantWide || saveMut.isPending}
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t('admin.catalog.categoryLabel')} htmlFor={`${idPrefix}-category`}>
+          <Field
+            label={t('admin.catalog.categoryLabel')}
+            htmlFor={`${idPrefix}-category`}
+            error={fieldErrors.categoryId}
+          >
             <Select
               id={`${idPrefix}-category`}
               value={categoryId}
-              onValueChange={setCategoryId}
+              onValueChange={(v) => {
+                setCategoryId(v)
+                clearFieldError('categoryId')
+              }}
+              invalid={Boolean(fieldErrors.categoryId)}
               placeholder={t('admin.catalog.selectCategory')}
               options={categoryOptions}
               disabled={!canManageTenantWide || saveMut.isPending}
             />
           </Field>
-          <Field label={t('admin.catalog.baseUomLabel')} htmlFor={`${idPrefix}-base-uom`}>
+          <Field
+            label={t('admin.catalog.baseUomLabel')}
+            htmlFor={`${idPrefix}-base-uom`}
+            error={fieldErrors.baseUomId}
+          >
             <Select
               id={`${idPrefix}-base-uom`}
               value={baseUomId}
-              onValueChange={setBaseUomId}
+              onValueChange={(v) => {
+                setBaseUomId(v)
+                clearFieldError('baseUomId')
+              }}
+              invalid={Boolean(fieldErrors.baseUomId)}
               placeholder={t('admin.catalog.selectUom')}
               options={uoms.map((u) => ({ value: u.id, label: `${u.code} — ${u.name}` }))}
               disabled={!canManageTenantWide || saveMut.isPending}

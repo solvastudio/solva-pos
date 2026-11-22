@@ -95,7 +95,9 @@ export function Dialog({
             ) : null}
           </div>
 
-          <div className="mt-4 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children}</div>
+          <div className="-mx-1 mt-4 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-1 pb-1">
+            {children}
+          </div>
 
           {footer ? (
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

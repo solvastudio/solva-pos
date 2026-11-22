@@ -270,4 +270,26 @@ describe('catalog admin UI components (jsdom + axe)', () => {
       await axe.run(populated.container, { rules: { 'color-contrast': { enabled: false } } }),
     ).toMatchObject({ violations: [] })
   })
+
+  it('ProductForm highlights invalid required fields on submit instead of silently ignoring', async () => {
+    const user = userEvent.setup()
+    wrap(
+      <ProductForm
+        tenantSlug="acme"
+        categories={[]}
+        uoms={[]}
+        canManageTenantWide={true}
+        scopedOutletIds={null}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Save product/i }))
+
+    expect(screen.getByLabelText(/Product name/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText(/Product code/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(/Product name is required/i)).toBeTruthy()
+    expect(screen.getByText(/Product code is required/i)).toBeTruthy()
+    expect(screen.getByText(/Select Category first/i)).toBeTruthy()
+    expect(screen.getByText(/Select Base UOM first/i)).toBeTruthy()
+  })
 })

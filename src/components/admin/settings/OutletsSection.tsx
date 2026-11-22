@@ -169,10 +169,25 @@ export function OutletsSection({ tenantSlug, canCreateOutlet }: OutletsSectionPr
       for (const issue of schemaResult.error.issues) {
         const key = String(issue.path[0] ?? 'form')
         if (!nextErrors[key]) {
-          nextErrors[key] =
-            key === 'code'
-              ? t('admin.settings.outlet.codeInvalid')
-              : t('admin.settings.failed')
+          if (key === 'code') {
+            nextErrors[key] = t('admin.settings.outlet.codeInvalid')
+          } else if (key === 'legalEntityId') {
+            nextErrors[key] = t('validation.selectRequired', {
+              field: t('admin.settings.outlet.legalEntityLabel'),
+            })
+          } else if (key === 'name') {
+            nextErrors[key] = t('validation.fieldRequired', {
+              field: t('admin.settings.outlet.nameLabel'),
+            })
+          } else if (key === 'dayCutoffTime') {
+            nextErrors[key] = t('validation.timeHhMm')
+          } else if (key === 'priceTaxMode') {
+            nextErrors[key] = t('validation.selectRequired', {
+              field: t('admin.settings.outlet.priceTaxModeLabel'),
+            })
+          } else {
+            nextErrors[key] = t('validation.required')
+          }
         }
       }
       setFieldErrors(nextErrors)

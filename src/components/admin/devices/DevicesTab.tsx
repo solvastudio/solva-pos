@@ -166,7 +166,9 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
   function handlePairSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!selectedRegisterId) {
-      setPairError(t('admin.devices.pairFailed'))
+      setPairError(
+        t('validation.selectRequired', { field: t('admin.devices.selectRegisterLabel') }),
+      )
       return
     }
     setPairError(null)
@@ -347,25 +349,23 @@ export function DevicesTab({ tenantSlug }: DevicesTabProps) {
         title={t('admin.devices.pairDialogTitle')}
         size="sm"
       >
-        <form onSubmit={handlePairSubmit} className="flex flex-col gap-4">
-          {pairError ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-            >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>{pairError}</span>
-            </div>
-          ) : null}
-
+        <form onSubmit={handlePairSubmit} className="flex flex-col gap-4" noValidate>
           {pairableRegisters.length === 0 ? (
             <p className="text-body text-ink-soft">{t('admin.devices.noAvailableRegisters')}</p>
           ) : (
-            <Field label={t('admin.devices.selectRegisterLabel')} htmlFor={registerSelectId}>
+            <Field
+              label={t('admin.devices.selectRegisterLabel')}
+              htmlFor={registerSelectId}
+              error={pairError ?? undefined}
+            >
               <Select
                 id={registerSelectId}
                 value={selectedRegisterId}
-                onValueChange={setSelectedRegisterId}
+                onValueChange={(v) => {
+                  setSelectedRegisterId(v)
+                  setPairError(null)
+                }}
+                invalid={Boolean(pairError)}
                 options={pairableRegisters.map((r) => ({
                   value: r.id,
                   label: `${r.outletCode}-${r.code} · ${r.name}`,

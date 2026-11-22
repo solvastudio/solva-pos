@@ -20,6 +20,7 @@ function AdminAccountPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<Record<string, string>>({})
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
@@ -40,14 +41,32 @@ function AdminAccountPage() {
     setPasswordError(null)
     setPasswordSuccess(false)
 
-    if (newPassword.length < 8) {
-      setPasswordError(t('account.password.minLength'))
+    const nextErrors: Record<string, string> = {}
+    if (!currentPassword) {
+      nextErrors.current = t('validation.fieldRequired', {
+        field: t('account.password.current'),
+      })
+    }
+    if (!newPassword) {
+      nextErrors.next = t('validation.fieldRequired', {
+        field: t('account.password.new'),
+      })
+    } else if (newPassword.length < 8) {
+      nextErrors.next = t('account.password.minLength')
+    }
+    if (!repeatPassword) {
+      nextErrors.repeat = t('validation.fieldRequired', {
+        field: t('account.password.repeat'),
+      })
+    } else if (newPassword !== repeatPassword) {
+      nextErrors.repeat = t('account.password.mismatch')
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setPasswordFieldErrors(nextErrors)
       return
     }
-    if (newPassword !== repeatPassword) {
-      setPasswordError(t('account.password.mismatch'))
-      return
-    }
+    setPasswordFieldErrors({})
 
     setSavingPassword(true)
     try {
@@ -156,39 +175,60 @@ function AdminAccountPage() {
             </div>
           ) : null}
 
-          <Field label={t('account.password.current')} htmlFor="account-current-password">
+          <Field
+            label={t('account.password.current')}
+            htmlFor="account-current-password"
+            error={passwordFieldErrors.current}
+          >
             <Input
               id="account-current-password"
               type="password"
               autoComplete="current-password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              invalid={Boolean(passwordFieldErrors.current)}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value)
+                setPasswordFieldErrors((prev) => (prev.current ? { ...prev, current: '' } : prev))
+              }}
               disabled={savingPassword}
-              required
             />
           </Field>
 
-          <Field label={t('account.password.new')} htmlFor="account-new-password">
+          <Field
+            label={t('account.password.new')}
+            htmlFor="account-new-password"
+            error={passwordFieldErrors.next}
+          >
             <Input
               id="account-new-password"
               type="password"
               autoComplete="new-password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              invalid={Boolean(passwordFieldErrors.next)}
+              onChange={(e) => {
+                setNewPassword(e.target.value)
+                setPasswordFieldErrors((prev) => (prev.next ? { ...prev, next: '' } : prev))
+              }}
               disabled={savingPassword}
-              required
             />
           </Field>
 
-          <Field label={t('account.password.repeat')} htmlFor="account-repeat-password">
+          <Field
+            label={t('account.password.repeat')}
+            htmlFor="account-repeat-password"
+            error={passwordFieldErrors.repeat}
+          >
             <Input
               id="account-repeat-password"
               type="password"
               autoComplete="new-password"
               value={repeatPassword}
-              onChange={(e) => setRepeatPassword(e.target.value)}
+              invalid={Boolean(passwordFieldErrors.repeat)}
+              onChange={(e) => {
+                setRepeatPassword(e.target.value)
+                setPasswordFieldErrors((prev) => (prev.repeat ? { ...prev, repeat: '' } : prev))
+              }}
               disabled={savingPassword}
-              required
             />
           </Field>
 

@@ -36,6 +36,7 @@ export function PaymentMethodsTable({
   const [requiresReference, setRequiresReference] = useState(false)
   const [sortOrder, setSortOrder] = useState(10)
   const [isActive, setIsActive] = useState(true)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const activeCashMethod = useMemo(
     () => methods.find((m) => m.kind === 'CASH' && m.isActive) ?? null,
@@ -55,6 +56,7 @@ export function PaymentMethodsTable({
     setRequiresReference(template?.requiresReference ?? false)
     setSortOrder((methods.length + 1) * 10)
     setIsActive(true)
+    setFieldErrors({})
     setDialogOpen(true)
   }
 
@@ -66,6 +68,7 @@ export function PaymentMethodsTable({
     setRequiresReference(row.requiresReference)
     setSortOrder(row.sortOrder)
     setIsActive(row.isActive)
+    setFieldErrors({})
     setDialogOpen(true)
   }
 
@@ -131,7 +134,22 @@ export function PaymentMethodsTable({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!code.trim() || !name.trim()) return
+    const nextErrors: Record<string, string> = {}
+    if (!code.trim()) {
+      nextErrors.code = t('validation.fieldRequired', {
+        field: t('admin.settings.paymentMethods.codeLabel'),
+      })
+    }
+    if (!name.trim()) {
+      nextErrors.name = t('validation.fieldRequired', {
+        field: t('admin.settings.paymentMethods.nameLabel'),
+      })
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+    setFieldErrors({})
     await onSaveMethod({
       ...(editingId ? { id: editingId } : {}),
       code: code.trim().toUpperCase(),
@@ -213,7 +231,6 @@ export function PaymentMethodsTable({
             <Button
               variant="primary"
               loading={isPending}
-              disabled={!code.trim() || !name.trim()}
               onClick={(e) => void handleSubmit(e)}
             >
               {t('admin.settings.paymentMethods.saveButton')}
@@ -221,29 +238,37 @@ export function PaymentMethodsTable({
           </>
         }
       >
-        <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
+        <form onSubmit={(e) => void handleSubmit(e)} noValidate className="flex flex-col gap-4">
           <Field
             label={t('admin.settings.paymentMethods.codeLabel')}
             htmlFor={`${idPrefix}-pm-code`}
+            error={fieldErrors.code}
           >
             <Input
               id={`${idPrefix}-pm-code`}
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              invalid={Boolean(fieldErrors.code)}
+              onChange={(e) => {
+                setCode(e.target.value.toUpperCase())
+                setFieldErrors((prev) => (prev.code ? { ...prev, code: '' } : prev))
+              }}
               disabled={isEditingActiveCash}
-              required
             />
           </Field>
 
           <Field
             label={t('admin.settings.paymentMethods.nameLabel')}
             htmlFor={`${idPrefix}-pm-name`}
+            error={fieldErrors.name}
           >
             <Input
               id={`${idPrefix}-pm-name`}
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+              invalid={Boolean(fieldErrors.name)}
+              onChange={(e) => {
+                setName(e.target.value)
+                setFieldErrors((prev) => (prev.name ? { ...prev, name: '' } : prev))
+              }}
             />
           </Field>
 

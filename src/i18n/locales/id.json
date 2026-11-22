@@ -23,6 +23,16 @@
     "dash": "-",
     "currencyPrefix": "Rp"
   },
+  "validation": {
+    "required": "Wajib diisi.",
+    "fieldRequired": "{{field}} wajib diisi.",
+    "selectRequired": "Pilih {{field}} terlebih dahulu.",
+    "emailInvalid": "Masukkan alamat email yang valid.",
+    "timeHhMm": "Format waktu harus HH:MM (00:00–23:59).",
+    "dateIso": "Format tanggal harus YYYY-MM-DD.",
+    "positiveNumber": "Masukkan angka lebih dari 0.",
+    "nonNegativeNumber": "Masukkan angka 0 atau lebih."
+  },
   "auth": {
     "login": {
       "invalid": "Email atau kata sandi salah",

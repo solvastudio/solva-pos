@@ -20,6 +20,7 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
   const [name, setName] = useState('')
   const [parentId, setParentId] = useState<string>('')
   const [editing, setEditing] = useState<CategoryView | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<CategoryView | null>(null)
 
@@ -69,7 +70,13 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim()) {
+      setNameError(
+        t('validation.fieldRequired', { field: t('admin.catalog.categoryNameLabel') }),
+      )
+      return
+    }
+    setNameError(null)
     saveMut.mutate()
   }
 
@@ -79,17 +86,23 @@ export function CategoryManager({ tenantSlug, categories, canManage }: CategoryM
       {canManage ? (
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
         >
           <Field
             label={t('admin.catalog.categoryNameLabel')}
             htmlFor={`${idPrefix}-name`}
+            error={nameError ?? undefined}
             className="min-w-0"
           >
             <Input
               id={`${idPrefix}-name`}
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              invalid={Boolean(nameError)}
+              onChange={(e) => {
+                setName(e.target.value)
+                setNameError(null)
+              }}
               disabled={saveMut.isPending}
             />
           </Field>
