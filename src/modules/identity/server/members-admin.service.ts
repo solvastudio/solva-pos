@@ -14,7 +14,7 @@ import {
   type IdentityAuthActor,
   type IdentityServiceDeps,
 } from './code-crypto'
-import { countActiveOwnersExcluding } from './member-code.repo'
+import { bumpAppUserVersion, countActiveOwnersExcluding } from './member-code.repo'
 import {
   findActiveMemberTarget,
   listActorRoleCodes,
@@ -220,6 +220,7 @@ export async function changeMemberRoleAndOutlets(
           newId: () => identityIdGen.newId(),
           nowIso,
         })
+        await bumpAppUserVersion(tx, w, parsed.appUserId, nowIso)
         await deriveStaffPinsForUser(tx, w, {
           tenantId: actor.tenantId,
           userId: parsed.appUserId,

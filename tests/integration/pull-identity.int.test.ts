@@ -16,6 +16,7 @@ import {
   getTenantAuthMetadataBySlug,
   listRolesWithPermissions,
   redeemInvite,
+  setPin,
   type IdentityAuthActor,
 } from '~/modules/identity/public'
 import { PERMISSION_CODES } from '~/modules/identity/shared'
@@ -597,5 +598,71 @@ describe('pull identity master feeds integration', () => {
         { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'bad-sz' },
       ),
     ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' } satisfies Partial<AppError>)
+  })
+
+  it('delivers app_user, user_outlet, and staff_pin when a device polls while invite is still PENDING before redeem + setPin', async () => {
+    const slug = uniqueSlug('pull-pending')
+    const fx = await setupMultiOutletTenant(slug)
+    const roles = await listRolesWithPermissions(fx.actor)
+    const cashierRole = roles.find((r) => r.code === 'CASHIER')!
+
+    const p0 = await handlePull(
+      fx.syncDev1,
+      { cursor: null, cycle: null, page_size: 500, attention_ids: [] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'pend-0' },
+    )
+    if ('full_resync_required' in p0) throw new Error('unexpected resync')
+
+    const inv = await createInvite(fx.actor, {
+      email: `yaya-${slug}@example.test`,
+      displayName: 'Yaya',
+      roleId: cashierRole.id,
+      outletIds: [fx.out1.id],
+    })
+
+    // Device syncs while invite is still PENDING (cursor advances past initial user_outlet row)
+    const pPending = await handlePull(
+      fx.syncDev1,
+      { cursor: p0.next_cursor, cycle: null, page_size: 500, attention_ids: [] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'pend-1' },
+    )
+    if ('full_resync_required' in pPending) throw new Error('unexpected resync')
+
+    await redeemInvite({
+      tenantId: fx.tenantId,
+      tenantSlug: slug,
+      authOrgId: fx.actor.authOrgId,
+      email: `yaya-${slug}@example.test`,
+      code: inv.code,
+      password: 'YayaPassword123!',
+    })
+    await setPin(fx.actor, { userId: inv.appUserId, pin: '4829' })
+
+    const pAfter = await handlePull(
+      fx.syncDev1,
+      { cursor: pPending.next_cursor, cycle: null, page_size: 500, attention_ids: [] },
+      { schemaVersion: 1, appVersion: 'v0.1.0', syncProtocol: 1, requestRef: 'pend-2' },
+    )
+    if ('full_resync_required' in pAfter) throw new Error('unexpected resync')
+
+    expect(
+      pAfter.rows.some(
+        (r) => r.entity === 'app_user' && r.op === 'upsert' && r.id === inv.appUserId,
+      ),
+    ).toBe(true)
+    expect(
+      pAfter.rows.some(
+        (r) =>
+          r.entity === 'user_outlet' &&
+          r.op === 'upsert' &&
+          r.row?.user_id === inv.appUserId &&
+          r.row?.outlet_id === fx.out1.id,
+      ),
+    ).toBe(true)
+    expect(
+      pAfter.rows.some(
+        (r) => r.entity === 'staff_pin' && r.op === 'upsert' && r.row?.user_id === inv.appUserId,
+      ),
+    ).toBe(true)
   })
 })

@@ -11,6 +11,7 @@ import {
   type IdentityServiceDeps,
 } from './code-crypto'
 import { DEFAULT_ARGON2ID_PARAMS, deriveVerifier, generateSalt16, staffPinHash } from './kdf'
+import { bumpUserAndOutletsVersion } from './member-code.repo'
 import { listMemberOutletAssignments, type MemberAssignmentDbRow } from './member-directory.repo'
 import {
   findAppUserActiveForPin,
@@ -186,6 +187,7 @@ async function applySetOrResetPin(
     }
 
     await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+      await bumpUserAndOutletsVersion(tx, w, input.userId, nowIso)
       await deriveStaffPinsForUser(tx, w, {
         tenantId: actor.tenantId,
         userId: input.userId,

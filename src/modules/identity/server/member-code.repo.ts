@@ -195,6 +195,51 @@ export async function insertUserOutletRows(
   )
 }
 
+export async function bumpAppUserVersion(
+  tx: TenantTx,
+  writer: MasterWriter,
+  appUserId: string,
+  nowIso: string,
+): Promise<void> {
+  await tx
+    .update(appUser)
+    .set({
+      version: writer.version,
+      updatedAt: nowIso,
+      updatedBy: writer.actorUserId,
+    })
+    .where(
+      and(
+        eq(appUser.tenantId, writer.tenantId),
+        eq(appUser.id, appUserId),
+        isNull(appUser.deletedAt),
+      ),
+    )
+}
+
+export async function bumpUserAndOutletsVersion(
+  tx: TenantTx,
+  writer: MasterWriter,
+  appUserId: string,
+  nowIso: string,
+): Promise<void> {
+  await bumpAppUserVersion(tx, writer, appUserId, nowIso)
+  await tx
+    .update(userOutlet)
+    .set({
+      version: writer.version,
+      updatedAt: nowIso,
+      updatedBy: writer.actorUserId,
+    })
+    .where(
+      and(
+        eq(userOutlet.tenantId, writer.tenantId),
+        eq(userOutlet.userId, appUserId),
+        isNull(userOutlet.deletedAt),
+      ),
+    )
+}
+
 export async function activateAppUserRow(
   tx: TenantTx,
   writer: MasterWriter,
@@ -214,6 +259,22 @@ export async function activateAppUserRow(
       updatedBy: writer.actorUserId,
     })
     .where(and(eq(appUser.tenantId, writer.tenantId), eq(appUser.id, appUserId)))
+
+  // Bump non-deleted outlet assignments so devices that polled while PENDING receive them.
+  await tx
+    .update(userOutlet)
+    .set({
+      version: writer.version,
+      updatedAt: nowIso,
+      updatedBy: writer.actorUserId,
+    })
+    .where(
+      and(
+        eq(userOutlet.tenantId, writer.tenantId),
+        eq(userOutlet.userId, appUserId),
+        isNull(userOutlet.deletedAt),
+      ),
+    )
 }
 
 export async function softDeleteAppUserAndOutlets(

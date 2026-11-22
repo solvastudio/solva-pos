@@ -19,8 +19,10 @@ import {
   type PosStaffSummary,
 } from '~/pos/data/pin.repo'
 import type { StaffPinStateRecord } from '~/pos/db/types'
+import { useSyncState } from '~/pos/hooks/use-sync-state'
 import { applyEpoch, createInitialPinState, isLocked } from '~/pos/session/pin-state'
 import { clearSession, startSession } from '~/pos/session/session'
+import { kickActiveSync } from '~/pos/sync'
 
 const LazySupervisorPinDialog = lazy(() =>
   import('~/components/pos/SupervisorPinDialog').then((m) => ({
@@ -60,6 +62,7 @@ export function LoginRouteScreen({
   const [verifying, setVerifying] = useState(false)
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [minuteTick, setMinuteTick] = useState(0)
+  const { syncState } = useSyncState()
 
   const tenantName =
     bootResult.kind === 'READY' && bootResult.tenant?.name ? bootResult.tenant.name : tenant
@@ -104,7 +107,7 @@ export function LoginRouteScreen({
 
   useEffect(() => {
     void loadLoginState()
-  }, [loadLoginState])
+  }, [loadLoginState, syncState.lastSuccessAt])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -290,6 +293,7 @@ export function LoginRouteScreen({
       tenantName={tenantName}
       tenantSlug={tenant}
       registerName={registerLabel}
+      onSyncNow={() => kickActiveSync('manual')}
       onLocaleChange={handleLocaleChange}
     >
       {leaseDaysLeft !== null ? (
