@@ -259,7 +259,7 @@
       "varianceOver": "Lebih {{amount}}",
       "variancePending": "Belum dihitung",
       "sales": {
-        "title": "Laporan Penjualan (R-01)",
+        "title": "Laporan Penjualan",
         "colPeriod": "Periode",
         "colOutlet": "Outlet",
         "colTxCount": "Transaksi",
@@ -282,7 +282,7 @@
         "emptyTitle": "Tidak ada data penjualan pada rentang ini"
       },
       "shifts": {
-        "title": "Laporan Rekap Shift & Selisih Kas (R-03)",
+        "title": "Laporan Rekap Shift & Selisih Kas",
         "colRegister": "Register",
         "colCashier": "Kasir",
         "colOpenedClosed": "Buka / Tutup",
@@ -303,7 +303,7 @@
         "emptyTitle": "Tidak ada shift pada rentang ini"
       },
       "ops": {
-        "title": "Laporan Operasional (R-04)",
+        "title": "Laporan Operasional",
         "tabsLabel": "Bagian laporan operasional",
         "tabStaleHarga": "Harga Stale ({{count}})",
         "tabNonaktifTarif": "Item Nonaktif / Tarif ({{count}})",

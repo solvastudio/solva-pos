@@ -259,7 +259,7 @@
       "varianceOver": "Over {{amount}}",
       "variancePending": "Not counted",
       "sales": {
-        "title": "Sales Report (R-01)",
+        "title": "Sales Report",
         "colPeriod": "Period",
         "colOutlet": "Outlet",
         "colTxCount": "Transactions",
@@ -282,7 +282,7 @@
         "emptyTitle": "No sales found in this range"
       },
       "shifts": {
-        "title": "Shift Recap & Cash Variance Report (R-03)",
+        "title": "Shift Recap & Cash Variance Report",
         "colRegister": "Register",
         "colCashier": "Cashier",
         "colOpenedClosed": "Opened / Closed",
@@ -303,7 +303,7 @@
         "emptyTitle": "No shifts found in this range"
       },
       "ops": {
-        "title": "Operations Report (R-04)",
+        "title": "Operations Report",
         "tabsLabel": "Operational report sections",
         "tabStaleHarga": "Stale Prices ({{count}})",
         "tabNonaktifTarif": "Inactive Items / Tax Diff ({{count}})",
