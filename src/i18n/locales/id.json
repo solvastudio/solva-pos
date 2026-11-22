@@ -596,9 +596,12 @@
       "emptyTitle": "Tidak ada anggota yang sesuai",
       "emptyDesc": "Coba ubah pencarian atau filter.",
       "actionChangeAccess": "Ubah peran/outlet",
+      "actionChangeAccessShort": "Ubah akses",
       "actionReset": "Terbitkan kode atur ulang",
       "actionSetPin": "Atur PIN terminal",
+      "actionSetPinShort": "Atur PIN",
       "actionResetPin": "Reset PIN terminal & buka kunci",
+      "actionResetPinShort": "Reset PIN",
       "actionRemove": "Keluarkan dari {{tenant}}",
       "actionCancelInvite": "Batalkan undangan",
       "pinStatus": {

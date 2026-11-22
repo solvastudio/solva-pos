@@ -180,7 +180,7 @@ export function DataTable<T>({
           </thead>
           <tbody className="divide-y divide-line-subtle">
             {pagedRows.map((row) => (
-              <tr key={getRowKey(row)} className="hover:bg-surface-hover transition-colors">
+              <tr key={getRowKey(row)} className="group hover:bg-surface-hover transition-colors">
                 {columns.map((col, idx) => {
                   const isNumeric = Boolean(col.numeric || col.align === 'right')
                   return (
@@ -189,7 +189,9 @@ export function DataTable<T>({
                       className={cn(
                         'min-h-control-md px-4 py-2.5 text-body text-ink align-middle',
                         isNumeric && 'text-right tabular-nums whitespace-nowrap',
-                        col.stickyFirst && idx === 0 && 'sticky left-0 bg-surface font-medium',
+                        col.stickyFirst &&
+                          idx === 0 &&
+                          'sticky left-0 bg-surface font-medium transition-colors group-hover:bg-surface-hover',
                       )}
                     >
                       {col.cell(row)}

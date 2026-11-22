@@ -9,6 +9,7 @@ import {
   DataTable,
   Dialog,
   Field,
+  IconButton,
   Input,
   KeyRound,
   Lock,
@@ -16,6 +17,7 @@ import {
   Search,
   Select,
   Switch,
+  Tooltip,
   Trash2,
   Users,
   useToast,
@@ -427,13 +429,20 @@ export function UsersTab({
     {
       id: 'outlets',
       header: t('admin.users.colOutlets'),
-      cell: (row) =>
-        row.assignments.some((a) => a.outletId === null)
+      cell: (row) => {
+        const isAllOutlets = row.assignments.some((a) => a.outletId === null)
+        const outletCodes = row.assignments
+          .map((a) => a.outletCode ?? a.outletName)
+          .filter(Boolean)
+        const label = isAllOutlets
           ? t('admin.users.allOutlets')
-          : row.assignments
-              .map((a) => a.outletCode ?? a.outletName)
-              .filter(Boolean)
-              .join(', ') || t('common.dash'),
+          : outletCodes.join(', ') || t('common.dash')
+        return (
+          <span className={isAllOutlets || outletCodes.length <= 2 ? 'whitespace-nowrap' : undefined}>
+            {label}
+          </span>
+        )
+      },
     },
     {
       id: 'pin',
@@ -442,15 +451,19 @@ export function UsersTab({
         if (row.membershipStatus !== 'ACTIVE') return t('common.dash')
         if (row.pinStatus === 'locked') {
           return (
-            <span className="inline-flex items-center gap-1.5 text-body-sm font-medium text-danger-ink">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-body-sm font-medium text-danger-ink">
               <Lock className="size-3.5 shrink-0" aria-hidden="true" />
               <span>{t('admin.users.pinStatus.locked')}</span>
             </span>
           )
         }
-        return row.pinStatus === 'active'
-          ? t('admin.users.pinStatus.active')
-          : t('admin.users.pinStatus.unset')
+        return (
+          <span className="whitespace-nowrap">
+            {row.pinStatus === 'active'
+              ? t('admin.users.pinStatus.active')
+              : t('admin.users.pinStatus.unset')}
+          </span>
+        )
       },
     },
     {
@@ -459,50 +472,73 @@ export function UsersTab({
       align: 'right',
       hideOnMobileCard: true,
       cell: (row) => (
-        <div className="flex flex-wrap items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
           {row.membershipStatus === 'PENDING' && canInvite ? (
             <Button
               variant="ghost"
               size="md"
+              className="px-3"
               onClick={() => cancelInviteMutation.mutate(row.appUserId)}
             >
               {t('admin.users.actionCancelInvite')}
             </Button>
           ) : (
             <>
-              <Button variant="ghost" size="md" onClick={() => setPinTarget(row)}>
-                {row.pinStatus === 'unset'
-                  ? t('admin.users.actionSetPin')
-                  : t('admin.users.actionResetPin')}
-              </Button>
-              <Button variant="ghost" size="md" onClick={() => openEditAccessDialog(row)}>
-                {t('admin.users.actionChangeAccess')}
-              </Button>
-              {canReset ? (
+              <Tooltip
+                content={
+                  row.pinStatus === 'unset'
+                    ? t('admin.users.actionSetPin')
+                    : t('admin.users.actionResetPin')
+                }
+              >
                 <Button
                   variant="ghost"
                   size="md"
-                  leadingIcon={<KeyRound className="size-4" aria-hidden="true" />}
-                  onClick={() => {
-                    setResetError(null)
-                    setResetTarget(row)
-                  }}
+                  className="px-3"
+                  onClick={() => setPinTarget(row)}
                 >
-                  {t('admin.users.actionReset')}
+                  {row.pinStatus === 'unset'
+                    ? t('admin.users.actionSetPinShort')
+                    : t('admin.users.actionResetPinShort')}
                 </Button>
+              </Tooltip>
+              <Tooltip content={t('admin.users.actionChangeAccess')}>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  className="px-3"
+                  onClick={() => openEditAccessDialog(row)}
+                >
+                  {t('admin.users.actionChangeAccessShort')}
+                </Button>
+              </Tooltip>
+              {canReset ? (
+                <Tooltip content={t('admin.users.actionReset')}>
+                  <IconButton
+                    variant="ghost"
+                    size="md"
+                    label={t('admin.users.actionReset')}
+                    icon={<KeyRound className="size-4" />}
+                    onClick={() => {
+                      setResetError(null)
+                      setResetTarget(row)
+                    }}
+                  />
+                </Tooltip>
               ) : null}
               {canRemove ? (
-                <Button
-                  variant="ghost"
-                  size="md"
-                  leadingIcon={<Trash2 className="size-4" aria-hidden="true" />}
-                  onClick={() => {
-                    setRemoveError(null)
-                    setRemoveTarget(row)
-                  }}
-                >
-                  {t('admin.users.actionRemove', { tenant: tenantName })}
-                </Button>
+                <Tooltip content={t('admin.users.actionRemove', { tenant: tenantName })}>
+                  <IconButton
+                    variant="danger-ghost"
+                    size="md"
+                    label={t('admin.users.actionRemove', { tenant: tenantName })}
+                    icon={<Trash2 className="size-4" />}
+                    onClick={() => {
+                      setRemoveError(null)
+                      setRemoveTarget(row)
+                    }}
+                  />
+                </Tooltip>
               ) : null}
             </>
           )}

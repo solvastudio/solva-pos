@@ -596,9 +596,12 @@
       "emptyTitle": "No matching members",
       "emptyDesc": "Try adjusting your search or filter.",
       "actionChangeAccess": "Edit role & outlets",
+      "actionChangeAccessShort": "Edit access",
       "actionReset": "Issue reset code",
       "actionSetPin": "Set terminal PIN",
+      "actionSetPinShort": "Set PIN",
       "actionResetPin": "Reset terminal PIN & unlock",
+      "actionResetPinShort": "Reset PIN",
       "actionRemove": "Remove from {{tenant}}",
       "actionCancelInvite": "Cancel invitation",
       "pinStatus": {

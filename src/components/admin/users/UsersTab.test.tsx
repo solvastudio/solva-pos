@@ -5,12 +5,17 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '~/components/ui'
 import { changeLocale } from '~/i18n'
+import type { MemberDirectoryView } from '~/modules/identity/shared'
 import { UsersTab } from './UsersTab'
+
+const { membersMock } = vi.hoisted(() => ({
+  membersMock: vi.fn<() => Promise<MemberDirectoryView[]>>(async () => []),
+}))
 
 vi.mock('~/queries/identity.queries', () => ({
   membersQueryOptions: () => ({
     queryKey: ['identity', 'acme', 'members', {}],
-    queryFn: async () => [],
+    queryFn: membersMock,
   }),
   rolesQueryOptions: () => ({
     queryKey: ['identity', 'acme', 'roles'],
@@ -36,7 +41,7 @@ function renderUsersTab() {
         <UsersTab
           tenantSlug="acme"
           tenantName="Acme"
-          permissions={['user.manage', 'user.invite']}
+          permissions={['user.manage', 'user.invite', 'user.reset_password', 'user.remove']}
           actorOutletIds={null}
         />
       </ToastProvider>
@@ -45,6 +50,7 @@ function renderUsersTab() {
 }
 
 beforeEach(async () => {
+  membersMock.mockResolvedValue([])
   await changeLocale('en-US')
 })
 
@@ -71,5 +77,38 @@ describe('UsersTab invite form validation', () => {
     await user.type(emailInput, 'not-an-email')
     await user.click(within(dialog).getByRole('button', { name: /Create invitation code/i }))
     expect(within(dialog).getByText(/Enter a valid email address/i)).toBeTruthy()
+  })
+
+  it('renders single-line compact row actions while preserving accessible button names', async () => {
+    membersMock.mockResolvedValue([
+      {
+        appUserId: 'user-1',
+        displayName: 'Ari',
+        email: 'ari@example.test',
+        membershipStatus: 'ACTIVE',
+        isActive: true,
+        pinStatus: 'unset',
+        assignments: [
+          {
+            outletId: null,
+            outletCode: null,
+            outletName: null,
+            roleId: 'role-1',
+            roleCode: 'CASHIER',
+            roleName: 'Cashier',
+          },
+        ],
+      },
+    ])
+
+    renderUsersTab()
+
+    const row = await screen.findByRole('row', { name: /ari@example\.test/i })
+    const inRow = within(row)
+    expect(inRow.getByText('All outlets').className).toContain('whitespace-nowrap')
+    expect(inRow.getByRole('button', { name: 'Set PIN' })).toBeTruthy()
+    expect(inRow.getByRole('button', { name: 'Edit access' })).toBeTruthy()
+    expect(inRow.getByRole('button', { name: 'Issue reset code' })).toBeTruthy()
+    expect(inRow.getByRole('button', { name: 'Remove from Acme' })).toBeTruthy()
   })
 })
