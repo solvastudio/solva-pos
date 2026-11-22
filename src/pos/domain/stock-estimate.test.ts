@@ -5,7 +5,7 @@ import { estimateStock, isEstimateLow } from './stock-estimate'
 const q = (s: string) => parseQty(s)
 
 describe('pos/domain/stock-estimate (BR-STK-005, FR-POS-011)', () => {
-  it('contoh BR-STK-005: snapshot 20, penjualan lokal belum ACK 6 → estimasi 14', () => {
+  it('BR-STK-005 example: snapshot 20, 6 local sales not yet ACKed → estimate 14', () => {
     const est = estimateStock({
       skuId: 'sku-a',
       snapshotQty: q('20'),
@@ -18,7 +18,7 @@ describe('pos/domain/stock-estimate (BR-STK-005, FR-POS-011)', () => {
     expect(est).toBe('14')
   })
 
-  it('penjualan yang sudah tercermin di snapshot (device_seq ≤ acked) tidak dikurangi lagi', () => {
+  it('sales already reflected in the snapshot (device_seq ≤ acked) are not subtracted again', () => {
     const est = estimateStock({
       skuId: 'sku-a',
       snapshotQty: q('20'),
@@ -32,12 +32,12 @@ describe('pos/domain/stock-estimate (BR-STK-005, FR-POS-011)', () => {
     expect(est).toBe('19')
   })
 
-  it('SKU tanpa snapshot menghasilkan null (tidak ditampilkan)', () => {
+  it('a SKU without a snapshot yields null (not shown)', () => {
     const est = estimateStock({ skuId: 'sku-x', snapshotQty: null, ackedDeviceSeq: 0, localSales: [] })
     expect(est).toBeNull()
   })
 
-  it('penjualan SKU lain tidak mengurangi estimasi', () => {
+  it('sales of other SKUs do not reduce the estimate', () => {
     const est = estimateStock({
       skuId: 'sku-a',
       snapshotQty: q('5'),
@@ -47,7 +47,7 @@ describe('pos/domain/stock-estimate (BR-STK-005, FR-POS-011)', () => {
     expect(est).toBe('5')
   })
 
-  it('isEstimateLow hanya true untuk estimasi ≤ 0 (bukan null)', () => {
+  it('isEstimateLow is true only for estimate ≤ 0 (not null)', () => {
     expect(isEstimateLow(q('0'))).toBe(true)
     expect(isEstimateLow(q('-2'))).toBe(true)
     expect(isEstimateLow(q('0.5'))).toBe(false)

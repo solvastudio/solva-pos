@@ -81,7 +81,7 @@ describe('kernel/rounding (V-01, V-02, V-03)', () => {
 })
 
 describe('kernel/proRate (BR-HPP-003, angka V-12..V-16)', () => {
-  it('menghitung R(value×num/den) half-up dengan pembulatan tunggal', () => {
+  it('computes R(value×num/den) half-up with a single rounding', () => {
     expect(proRate(toMoney(800000), parseQty('30'), parseQty('100'))).toBe(240000)
     expect(proRate(toMoney(985000), parseQty('7'), parseQty('120'))).toBe(57458)
     expect(proRate(toMoney(985000), parseQty('10'), parseQty('120'))).toBe(82083)
@@ -92,7 +92,7 @@ describe('kernel/proRate (BR-HPP-003, angka V-12..V-16)', () => {
     expect(proRate(toMoney(0), parseQty('5'), parseQty('7'))).toBe(0)
   })
 
-  it('simetris untuk nilai negatif: R(-x) = -R(x)', () => {
+  it('symmetric for negative values: R(-x) = -R(x)', () => {
     expect(proRate(toMoney(-985000), parseQty('7'), parseQty('120'))).toBe(-57458)
   })
 

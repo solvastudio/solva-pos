@@ -22,12 +22,12 @@ const idGen = createIdGenerator({
 
 const META: PullRequestMeta = { schemaVersion: 1, appVersion: 'v0.3.0', syncProtocol: 1, requestRef: 'snap' }
 
-describe('snapshot stok ke POS lewat pull (BR-STK-005, FR-INV-003)', () => {
+describe('stock snapshot to the POS through pull (BR-STK-005, FR-INV-003)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('blok stock hanya pada halaman terakhir; etag sama → unchanged; movement baru mengubah etag dan qty', async () => {
+  it('stock block only on the last page; same etag → unchanged; a new movement changes the etag and qty', async () => {
     resetEnvForTests()
     resetCompositionForTests()
     composeServer()

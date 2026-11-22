@@ -23,7 +23,7 @@ function bal(qty: string, value: number, refValue?: number, refQty?: string): St
   }
 }
 
-describe('inventory/costing V-12 (tabel BR-HPP-003 berurutan)', () => {
+describe('inventory/costing V-12 (BR-HPP-003 table in sequence)', () => {
   it('GR 100@8000, jual 30 → HPP 240000; GR 50=425000; jual 7 → 57458; jual 113 → 927542 (habis)', () => {
     const r1 = applyIn(emptyBalance(), q('100'), m(800000), 'DECLARED')
     expect(r1.next.qty).toBe('100')
@@ -56,7 +56,7 @@ describe('inventory/costing V-12 (tabel BR-HPP-003 berurutan)', () => {
 })
 
 describe('inventory/costing V-13 (HPP telat, BR-HPP-004)', () => {
-  it('saldo 70/560000 → GR 50=425000 → 120/985000 → jual 10 → HPP 82083 → 110/902917', () => {
+  it('balance 70/560000 → GR 50=425000 → 120/985000 → sell 10 → COGS 82083 → 110/902917', () => {
     const b = bal('70', 560000)
     const g = applyIn(b, q('50'), m(425000), 'DECLARED')
     const s = applyOut(g.next, q('10'))
@@ -66,8 +66,8 @@ describe('inventory/costing V-13 (HPP telat, BR-HPP-004)', () => {
   })
 })
 
-describe('inventory/costing V-14 (stok minus, BR-HPP-005)', () => {
-  it('saldo 3/24000 jual 5 → HPP 40000, saldo −2/−16000 MIXED negatif; GR 20@9000 → 18/164000', () => {
+describe('inventory/costing V-14 (negative stock, BR-HPP-005)', () => {
+  it('balance 3/24000 sell 5 → COGS 40000, balance −2/−16000 MIXED negative; GR 20@9000 → 18/164000', () => {
     const b = applyIn(emptyBalance(), q('3'), m(24000), 'DECLARED').next
     const s = applyOut(b, q('5'))
     expect(-s.valueDelta).toBe(40000)
@@ -85,7 +85,7 @@ describe('inventory/costing V-14 (stok minus, BR-HPP-005)', () => {
 })
 
 describe('inventory/costing V-15 (bagian costing transfer)', () => {
-  it('kirim 40 dari 120/985000 → 80/656667; terima 38 di tujuan → 48/401916 (basis TRANSFER)', () => {
+  it('send 40 from 120/985000 → 80/656667; receive 38 at destination → 48/401916 (TRANSFER basis)', () => {
     const a = applyOut(bal('120', 985000), q('40'))
     expect(-a.valueDelta).toBe(328333)
     expect(a.next.qty).toBe('80')
@@ -99,7 +99,7 @@ describe('inventory/costing V-15 (bagian costing transfer)', () => {
 })
 
 describe('inventory/costing V-16 (penyesuaian opname, BR-STK-030/032)', () => {
-  it('delta −3 dan +5 pada 80/656667; saldo −2/−16000 fisik 0 → +16000; fisik 5 → 5/40000', () => {
+  it('delta −3 and +5 on 80/656667; balance −2/−16000 physical 0 → +16000; physical 5 → 5/40000', () => {
     const minus = applyAdjustment(bal('80', 656667), q('-3'))
     expect(-minus.valueDelta).toBe(24625)
     expect(minus.next.qty).toBe('77')
@@ -122,15 +122,15 @@ describe('inventory/costing V-16 (penyesuaian opname, BR-STK-030/032)', () => {
   })
 })
 
-describe('inventory/costing retur (BR-HPP-007) dan tepi', () => {
-  it('retur 1 pada 113/927542 dengan snapshot 8208 → 114/935750 (basis SNAPSHOT)', () => {
+describe('inventory/costing return (BR-HPP-007) and edge cases', () => {
+  it('return 1 on 113/927542 with snapshot 8208 → 114/935750 (SNAPSHOT basis)', () => {
     const r = applyIn(bal('113', 927542), q('1'), m(8208), 'SNAPSHOT')
     expect(r.next.qty).toBe('114')
     expect(r.next.inventoryValue).toBe(935750)
     expect(r.costBasis).toBe('SNAPSHOT')
   })
 
-  it('keluar dari saldo 0 tanpa referensi: HPP 0, saldo negatif, noReference', () => {
+  it('outflow from balance 0 without a reference: COGS 0, negative balance, noReference', () => {
     const r = applyOut(emptyBalance(), q('1'))
     expect(r.valueDelta).toBe(0)
     expect(r.next.qty).toBe('-1')
@@ -139,19 +139,19 @@ describe('inventory/costing retur (BR-HPP-007) dan tepi', () => {
     expect(r.isNegativeResult).toBe(true)
   })
 
-  it('qtyOut harus > 0 dan penyebut nol ditolak', () => {
+  it('qtyOut must be > 0 and a zero denominator is rejected', () => {
     expect(() => applyOut(bal('10', 1000), q('0'))).toThrow(QtyError)
     expect(() => applyInAtReference(emptyBalance(), q('0'))).toThrow(QtyError)
   })
 
-  it('applyInAtReference memakai biaya referensi pada saldo negatif', () => {
+  it('applyInAtReference uses the reference cost on a negative balance', () => {
     const r = applyInAtReference(bal('-2', -16000, 24000, '3'), q('2'))
     expect(r.next.qty).toBe('0')
     expect(r.next.inventoryValue).toBe(0)
     expect(r.valueDelta).toBe(16000)
   })
 
-  it('skala kuantitas 4 desimal tetap utuh', () => {
+  it('4-decimal quantity scale is preserved', () => {
     const r = applyIn(emptyBalance(), q('0.3333'), m(1000), 'DECLARED')
     expect(r.next.qty).toBe('0.3333')
     const s = applyOut(r.next, q('0.1111'))

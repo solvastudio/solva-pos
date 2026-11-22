@@ -236,7 +236,7 @@ describe('pos/printing/receipt-builder', () => {
     expect(rendered).toBe(golden)
   })
 
-  it('F3-K06: struk memakai locale snapshot outlet (en-US) dan format angka per locale; tanpa locale cadangan UI', () => {
+  it('F3-K06: receipt uses the outlet snapshot locale (en-US) and per-locale number format; no UI fallback locale', () => {
     const sample = createContoh1Sample()
     const idDoc = buildReceipt({
       kind: 'RECEIPT',

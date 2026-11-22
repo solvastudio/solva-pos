@@ -3,12 +3,12 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { closePools, withTenant } from '~/server/db'
 import { setupInventoryTenant } from './helpers/inventory'
 
-describe('inventory RLS lintas tenant (AD-07, SCHEMA §5.5)', () => {
+describe('inventory RLS across tenants (AD-07, SCHEMA §5.5)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('tenant B tidak melihat dan tidak bisa menulis saldo tenant A', async () => {
+  it('tenant B cannot see or write the balances of tenant A', async () => {
     const a = await setupInventoryTenant('rls-a')
     const b = await setupInventoryTenant('rls-b')
     await withTenant(a.tenantId, (tx) =>
@@ -28,7 +28,7 @@ describe('inventory RLS lintas tenant (AD-07, SCHEMA §5.5)', () => {
     ).rejects.toThrow()
   })
 
-  it('FK komposit menolak sku dari tenant lain pada saldo', async () => {
+  it('composite FK rejects a SKU from another tenant on a balance', async () => {
     const a = await setupInventoryTenant('rls-fk-a')
     const b = await setupInventoryTenant('rls-fk-b')
     await expect(

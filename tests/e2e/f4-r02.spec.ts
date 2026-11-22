@@ -11,8 +11,8 @@ function jakartaToday(): string {
   return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
 }
 
-test.describe('F4-K04 laporan R-02 sesuai ledger', () => {
-  test('F4-K04 GR 120 pcs @985.000 tampil di R-02 (saldo 120 / 985.000); Σ value_delta ledger = nilai saldo', async ({ page }) => {
+test.describe('F4-K04 R-02 report matches the ledger', () => {
+  test('F4-K04 GR 120 pcs @985.000 shown in R-02 (balance 120 / 985.000); Σ ledger value_delta = balance value', async ({ page }) => {
     test.setTimeout(120_000)
     const t = await createF3Tenant('f4r02')
     await enableOutletTracking(t.ownerActor, t.outletId)

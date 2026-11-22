@@ -20,18 +20,18 @@ async function tenantWithOutlets(prefix: string): Promise<InventoryTenant> {
   return t
 }
 
-describe('nomor dokumen inventori {JENIS}-{OUTLET}-{MMYY}-{URUT4} (BR-STK-020)', () => {
+describe('inventory document number {KIND}-{OUTLET}-{MMYY}-{SEQ4} (BR-STK-020)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('urutan naik per outlet dan bulan: GR-OUT01-1126-0001, 0002', async () => {
+  it('sequence increases per outlet and month: GR-OUT01-1126-0001, 0002', async () => {
     const t = await tenantWithOutlets('doc-seq')
     expect(await postOneGr(t, t.outletA, '2026-11-20')).toBe('GR-OUT01-1126-0001')
     expect(await postOneGr(t, t.outletA, '2026-11-21')).toBe('GR-OUT01-1126-0002')
   })
 
-  it('jenis dokumen memiliki urutan sendiri: TRF-OUT01-1126-0001 tetap 0001 meski GR sudah 0002', async () => {
+  it('each document kind has its own sequence: TRF-OUT01-1126-0001 stays 0001 even after GR reached 0002', async () => {
     const t = await tenantWithOutlets('doc-kind')
     await postOneGr(t, t.outletA, '2026-11-20')
     await postOneGr(t, t.outletA, '2026-11-20')
@@ -45,19 +45,19 @@ describe('nomor dokumen inventori {JENIS}-{OUTLET}-{MMYY}-{URUT4} (BR-STK-020)',
     expect(sent.docNo).toBe('TRF-OUT01-1126-0001')
   })
 
-  it('outlet berbeda memulai urutan dari 0001', async () => {
+  it('a different outlet starts its sequence at 0001', async () => {
     const t = await tenantWithOutlets('doc-outlet')
     await postOneGr(t, t.outletA, '2026-11-20')
     expect(await postOneGr(t, t.outletB, '2026-11-20')).toBe('GR-OUT02-1126-0001')
   })
 
-  it('bulan berbeda memulai urutan dari 0001 (MMYY dari business_date)', async () => {
+  it('a different month starts its sequence at 0001 (MMYY from business_date)', async () => {
     const t = await tenantWithOutlets('doc-month')
     await postOneGr(t, t.outletA, '2026-11-20')
     expect(await postOneGr(t, t.outletA, '2026-12-05')).toBe('GR-OUT01-1226-0001')
   })
 
-  it('posting paralel menghasilkan nomor unik dan berurutan tanpa duplikat', async () => {
+  it('parallel postings produce unique, consecutive numbers with no duplicates', async () => {
     const t = await tenantWithOutlets('doc-parallel')
     const drafts: string[] = []
     for (let i = 0; i < 5; i++) {

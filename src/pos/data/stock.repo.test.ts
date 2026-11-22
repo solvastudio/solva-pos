@@ -14,8 +14,8 @@ afterEach(async () => {
   await Dexie.delete(tenantDbName(T))
 })
 
-describe('pos/data/stock.repo (Fase 53)', () => {
-  it('applyStockSnapshot mengganti penuh stock_snapshot dan menyimpan metadata', async () => {
+describe('pos/data/stock.repo', () => {
+  it('applyStockSnapshot fully replaces stock_snapshot and stores the metadata', async () => {
     const db = await openTenantDb(T)
     await db.stock_snapshot.put({ sku_id: 'stale-sku', qty_on_hand: '99' })
 
@@ -41,7 +41,7 @@ describe('pos/data/stock.repo (Fase 53)', () => {
     })
   })
 
-  it('getEstimatesBulk mengurangi penjualan lokal yang belum ACK dari snapshot', async () => {
+  it('getEstimatesBulk subtracts local sales not yet ACKed from the snapshot', async () => {
     const db = await openTenantDb(T)
     await applyStockSnapshot(db, {
       etag: '0123456789abcdef',

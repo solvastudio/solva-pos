@@ -17,7 +17,7 @@ import { createThreeOutletE2eTenant } from '../../scripts/bench/seed-catalog'
 import { pairDeviceViaUi } from './helpers/device'
 import { createPairingCodeDirect, readTenantSyncState } from './helpers/server'
 
-test.describe('F2-K05 outlet availability Bab 7.2.4 examples & atomic cycle apply', () => {
+test.describe('F2-K05 outlet availability section 7.2.4 examples & atomic cycle apply', () => {
   test('F2-K05 enforces Contoh 1, V-27 (6/3/6 -> 8/5/8 -> 1 -> 0), and atomic multi-page cycle apply (EC-050)', async ({
     browser,
   }) => {

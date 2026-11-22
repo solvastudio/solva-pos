@@ -57,7 +57,7 @@ describe('inventory ledger concurrency (AD-22, BR-STK-001)', () => {
     await closePools()
   })
 
-  it('20 penjualan paralel pada SKU yang sama: bal_seq 1..n tanpa celah dan konservasi nilai', async () => {
+  it('20 parallel sales on the same SKU: bal_seq 1..n with no gaps and value conserved', async () => {
     const t = await setupInventoryTenant('conc-20')
     await applyOnce(t, [gr(t, t.skuA, '100', 800000)])
 
@@ -80,7 +80,7 @@ describe('inventory ledger concurrency (AD-22, BR-STK-001)', () => {
     expect(Number(final.bal.inventory_value)).toBe(800000 + sum)
   })
 
-  it('dua transaksi dengan urutan SKU berlawanan tidak deadlock (kunci diurut)', async () => {
+  it('two transactions with opposite SKU order do not deadlock (keys ordered)', async () => {
     const t = await setupInventoryTenant('conc-dl')
     await applyOnce(t, [gr(t, t.skuA, '10', 100000, 1), gr(t, t.skuB, '10', 100000, 2)])
 
@@ -91,7 +91,7 @@ describe('inventory ledger concurrency (AD-22, BR-STK-001)', () => {
     expect(b.applied.length).toBe(2)
   })
 
-  it('lock_timeout 5 dtk: transaksi lain yang menahan baris saldo membuat penerapan gagal dengan lock_not_available', async () => {
+  it('lock_timeout 5 s: another transaction holding the balance row makes the apply fail with lock_not_available', async () => {
     const t = await setupInventoryTenant('conc-lock')
     await applyOnce(t, [gr(t, t.skuA, '10', 100000)])
 

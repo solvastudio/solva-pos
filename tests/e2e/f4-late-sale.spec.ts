@@ -20,8 +20,8 @@ function jakartaToday(): string {
   return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
 }
 
-test.describe('F4-K02 penjualan offline yang tiba telat', () => {
-  test('F4-K02 device offline menjual 10 pcs; admin memposting GR di server; saat online cost_snapshot = 82.083 dan saldo 110/902.917', async ({
+test.describe('F4-K02 late-arriving offline sale', () => {
+  test('F4-K02 device offline sells 10 pcs; admin posts GR on the server; when online cost_snapshot = 82.083 and balance 110/902.917', async ({
     browser,
   }) => {
     test.setTimeout(240_000)

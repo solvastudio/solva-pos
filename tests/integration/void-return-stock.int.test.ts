@@ -53,12 +53,12 @@ async function movementTypes(t: InventoryTenant, skuId: string): Promise<string[
   })
 }
 
-describe('void & retur stok (BR-HPP-007, BR-STK-007)', () => {
+describe('void & return stock (BR-HPP-007, BR-STK-007)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('void penjualan 7 pcs: SALE_VOID +HPP asal, saldo kembali ke keadaan sebelum penjualan; void ulang idempoten', async () => {
+  it('void sale of 7 pcs: SALE_VOID +original COGS, balance back to the pre-sale state; repeated void is idempotent', async () => {
     const t = await setupInventoryTenant('vr-void')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '10', 100000)
@@ -108,7 +108,7 @@ describe('void & retur stok (BR-HPP-007, BR-STK-007)', () => {
     expect((await movementTypes(t, t.skuA)).length).toBe(3)
   })
 
-  it('void setelah retur sebagian: hanya sisa yang belum diretur dibalik', async () => {
+  it('void after a partial return: only the not-yet-returned remainder is reversed', async () => {
     const t = await setupInventoryTenant('vr-part')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '10', 100000)
@@ -179,7 +179,7 @@ describe('void & retur stok (BR-HPP-007, BR-STK-007)', () => {
     expect(await balance(t, t.skuA)).toEqual({ qty: '10', value: 100000 })
   })
 
-  it('retur: KEMBALI_STOK 1 dari 7 → +8208 (rumus BR-HPP-007 dengan kernel); BUANG tanpa movement; retur akhir mengambil sisa 3.334', async () => {
+  it('return: KEMBALI_STOK 1 of 7 → +8208 (BR-HPP-007 formula with the kernel); BUANG without movement; the final return takes the remaining 3,334', async () => {
     const t = await setupInventoryTenant('vr-ret')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '113', 927542)
@@ -254,7 +254,7 @@ describe('void & retur stok (BR-HPP-007, BR-STK-007)', () => {
     expect(await balance(t, t.skuA)).toEqual({ qty: '107', value: 878292 })
   })
 
-  it('retur kumulatif tidak melebihi HPP asal: 3 pcs @ HPP 10000 → 3333 / 3333 / 3334', async () => {
+  it('cumulative returns never exceed the original COGS: 3 pcs @ COGS 10000 → 3333 / 3333 / 3334', async () => {
     const t = await setupInventoryTenant('vr-rem')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '3', 10000)

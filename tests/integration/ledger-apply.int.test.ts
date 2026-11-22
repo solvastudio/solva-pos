@@ -62,7 +62,7 @@ describe('inventory ledger apply (BR-STK-001, BR-HPP-003..005, V-12..V-14)', () 
     await closePools()
   })
 
-  it('V-12: urutan GR/jual/GR/jual/habis menghasilkan ledger tepat dan saldo 0/0 (bal_seq 1..5 tanpa celah)', async () => {
+  it('V-12: sequence GR/sale/GR/sale/depleted gives an exact ledger and balance 0/0 (bal_seq 1..5, no gaps)', async () => {
     const t = await setupInventoryTenant('ledg-v12')
     const r = await apply(t, [
       intent(t, { kind: 'IN', qty: parseQty('100'), valueIn: toMoney(800000), movementType: 'GR_IN', sourceType: 'GR_LINE', order: 1 }),
@@ -101,7 +101,7 @@ describe('inventory ledger apply (BR-STK-001, BR-HPP-003..005, V-12..V-14)', () 
     expect(new Date(stamps.processed_at).getTime()).toBeGreaterThan(new Date(stamps.occurred_at).getTime())
   })
 
-  it('V-14: stok minus MIXED (HPP 40000, saldo −2/−16000) lalu GR 20@9000 → 18/164000; flag negatif terdeteksi', async () => {
+  it('V-14: negative stock MIXED (COGS 40000, balance −2/−16000) then GR 20@9000 → 18/164000; negative flag detected', async () => {
     const t = await setupInventoryTenant('ledg-v14')
     await apply(t, [intent(t, { kind: 'IN', qty: parseQty('3'), valueIn: toMoney(24000), movementType: 'GR_IN', sourceType: 'GR_LINE', order: 1 })])
     const r = await apply(t, [intent(t, { kind: 'OUT', qty: parseQty('5'), movementType: 'SALE', sourceType: 'SALE_LINE', order: 1 })])
@@ -115,7 +115,7 @@ describe('inventory ledger apply (BR-STK-001, BR-HPP-003..005, V-12..V-14)', () 
     expect(rows[rows.length - 1]!.value_after).toBe('164000')
   })
 
-  it('idempotensi: intent yang sama dikirim ulang tidak menambah baris dan tidak mengubah saldo', async () => {
+  it('idempotency: the same intent sent again adds no rows and changes no balance', async () => {
     const t = await setupInventoryTenant('ledg-idem')
     const gr = intent(t, { kind: 'IN', qty: parseQty('10'), valueIn: toMoney(10000), movementType: 'GR_IN', sourceType: 'GR_LINE', order: 1 })
     const sale = intent(t, { kind: 'OUT', qty: parseQty('4'), movementType: 'SALE', sourceType: 'SALE_LINE', order: 2 })
@@ -128,7 +128,7 @@ describe('inventory ledger apply (BR-STK-001, BR-HPP-003..005, V-12..V-14)', () 
     expect(rows[1]!.qty_after).toBe('6')
   })
 
-  it('beberapa SKU dalam satu panggilan: urutan kunci (outlet, sku) tetap dan saldo masing-masing benar', async () => {
+  it('several SKUs in one call: (outlet, sku) key order holds and each balance is correct', async () => {
     const t = await setupInventoryTenant('ledg-multi')
     const r = await apply(t, [
       intent(t, { kind: 'IN', qty: parseQty('5'), valueIn: toMoney(50000), movementType: 'GR_IN', sourceType: 'GR_LINE', order: 1, skuId: t.skuB }),
@@ -141,7 +141,7 @@ describe('inventory ledger apply (BR-STK-001, BR-HPP-003..005, V-12..V-14)', () 
     expect(b[b.length - 1]!.value_after).toBe('40000')
   })
 
-  it('intent duplikat dalam satu panggilan ditolak', async () => {
+  it('duplicate intents in one call are rejected', async () => {
     const t = await setupInventoryTenant('ledg-dup')
     const sid = idGen.newId()
     const a = intent(t, { kind: 'IN', qty: parseQty('1'), valueIn: toMoney(1000), movementType: 'GR_IN', sourceType: 'GR_LINE', sourceId: sid, order: 1 })

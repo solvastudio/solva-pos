@@ -42,7 +42,7 @@ function runStep(label, args, extraEnv = {}) {
   process.stdout.write(`\n[gate:f3] === ${label} ===\n`)
   const code = runNpm(args, extraEnv)
   if (code !== 0) {
-    process.stderr.write(`[gate:f3] GAGAL pada langkah: ${label} (exit ${code})\n`)
+    process.stderr.write(`[gate:f3] FAILED at step: ${label} (exit ${code})\n`)
     process.exit(code)
   }
 }
@@ -105,9 +105,9 @@ function dockerReady() {
 }
 
 function statusOf(items, partial = false) {
-  if (items.length === 0) return 'TIDAK ADA'
-  if (!items.every((i) => i.ok)) return 'GAGAL'
-  return partial ? 'PARSIAL' : 'LULUS'
+  if (items.length === 0) return 'MISSING'
+  if (!items.every((i) => i.ok)) return 'FAIL'
+  return partial ? 'PARTIAL' : 'PASS'
 }
 
 function main() {
@@ -116,8 +116,8 @@ function main() {
 
   runStep('Typecheck', ['run', 'typecheck'])
   runStep('Lint & Architecture Boundaries', ['run', 'lint'])
-  runStep('Unit Tests (termasuk F3-K06, F3-K09)', ['run', 'test:unit', '--', '--reporter=default', '--reporter=json', `--outputFile.json=${unitJson}`])
-  runStep('Database Suite: acceptance F3-K* + properti (FC_NUM_RUNS=200)', [
+  runStep('Unit Tests (including F3-K06, F3-K09)', ['run', 'test:unit', '--', '--reporter=default', '--reporter=json', `--outputFile.json=${unitJson}`])
+  runStep('Database Suite: acceptance F3-K* + properties (FC_NUM_RUNS=200)', [
     'run',
     'test:db',
     '--',
@@ -130,12 +130,12 @@ function main() {
   if (dockerReady()) {
     runStep('Nginx Rate-Limit Check', ['run', 'test:nginx'])
   } else {
-    process.stdout.write('\n[gate:f3] PERINGATAN: Docker tidak tersedia; Nginx Rate-Limit Check dilewati di mesin ini (wajib di CI).\n')
+    process.stdout.write('\n[gate:f3] WARNING: Docker is not available; the Nginx Rate-Limit Check is skipped on this machine (required in CI).\n')
   }
   runStep('Production Build (non-E2E)', ['run', 'build'])
   runStep('Bundle Guard', ['run', 'guard:bundle'])
   runStep('E2E Production Build (VITE_E2E=1)', ['run', 'e2e:build'])
-  runStep('Regresi F2 (gate:f2 ringkas)', ['run', 'gate:f2'])
+  runStep('F2 regression (gate:f2 summary)', ['run', 'gate:f2'])
 
   process.env.PLAYWRIGHT_JSON_OUTPUT_NAME = e2eJson
   runStep('Playwright F3-K* (E2E)', ['run', 'test:e2e', '--', '--grep', 'F3-K', '--reporter=list,json'], {
@@ -151,38 +151,38 @@ function main() {
   const missingVectors = checkVectorCoverage()
 
   const rows = [
-    { id: 'K01', desc: 'Skenario penuh offline (login PIN → shift → jual → cetak → retur → tutup shift)', status: statusOf(byK(e2e, 'K01')), note: 'E2E saja; cetak memakai adapter virtual' },
-    { id: 'K02', desc: 'Vektor V-04..V-11, V-18, V-21, V-30 (calc + verifySale)', status: missingVectors.length ? 'GAGAL' : statusOf(byK(db, 'K02')), note: missingVectors.length ? `vektor tanpa tes: ${missingVectors.join(', ')}` : 'sumber: acceptance + tes unit per vektor' },
-    { id: 'K03', desc: 'Properti idempotensi, konvergensi, nomor tanpa celah', status: statusOf(inFile(db, '.prop.test.ts')), note: 'FC_NUM_RUNS=200' },
-    { id: 'K04', desc: 'Cetak: checkout tetap selesai saat cetak gagal; cetak ulang berhasil', status: statusOf(byK(e2e, 'K04'), true), note: 'MANUAL: NFR-PERF-002 di perangkat nyata (docs/spikes/F3-bukti-perangkat.md)' },
-    { id: 'K05', desc: 'Gap & pemulihan register (BR-INV-008)', status: statusOf(byK(db, 'K05')), note: 'acceptance + register-recovery.int.test.ts' },
-    { id: 'K06', desc: 'Locale struk per outlet; angka per locale', status: statusOf(byK(unit, 'K06')), note: 'tes unit receipt-builder' },
-    { id: 'K07', desc: 'Item tidak tersedia: flag ITEM_TIDAK_TERSEDIA pada penjualan offline', status: statusOf(byK(db, 'K07'), true), note: 'sisi server; UI sembunyi-item di tes F2' },
-    { id: 'K08', desc: 'Log sync: commandId pada perintah gagal', status: statusOf(byK(db, 'K08'), true), note: 'attention_item; log device E2E belum otomatis' },
-    { id: 'K09', desc: 'Kunci layar 10 menit; timer berhenti saat pembayaran/dialog', status: statusOf(byK(unit, 'K09'), true), note: 'tes unit controller; E2E page.clock belum ada' },
-    { id: 'K10', desc: 'Evaluasi rilis (REQUIRED/SOFT/SERVER_BEHIND)', status: statusOf(byK(db, 'K10'), true), note: 'SW update di momen aman belum otomatis' },
-    { id: 'K11', desc: 'Pemulihan error: boundary per area, banner cetak gagal', status: statusOf(inFile(unit, 'ErrorBoundaryArea.test.tsx').concat(byK(e2e, 'K04')), true), note: 'Reset aplikasi & retry harga (V-37) belum otomatis' },
-    { id: 'K12', desc: 'Rate limit sync/device (429, attempts tidak naik)', status: statusOf(inFile(unit, 'pusher.test.ts').concat(inFile(db, 'push-http.int.test.ts')), true), note: 'full resync 429 & report.busy belum otomatis' },
+    { id: 'K01', desc: 'Full offline scenario (PIN login → shift → sell → print → return → close shift)', status: statusOf(byK(e2e, 'K01')), note: 'E2E only; printing uses the virtual adapter' },
+    { id: 'K02', desc: 'Vektor V-04..V-11, V-18, V-21, V-30 (calc + verifySale)', status: missingVectors.length ? 'FAIL' : statusOf(byK(db, 'K02')), note: missingVectors.length ? `vectors without tests: ${missingVectors.join(', ')}` : 'source: acceptance + unit tests per vector' },
+    { id: 'K03', desc: 'Idempotency, convergence, and gapless-number properties', status: statusOf(inFile(db, '.prop.test.ts')), note: 'FC_NUM_RUNS=200' },
+    { id: 'K04', desc: 'Printing: checkout still completes when printing fails; reprint succeeds', status: statusOf(byK(e2e, 'K04'), true), note: 'MANUAL: NFR-PERF-002 on real devices (docs/spikes/F3-bukti-perangkat.md)' },
+    { id: 'K05', desc: 'Gap & register recovery (BR-INV-008)', status: statusOf(byK(db, 'K05')), note: 'acceptance + register-recovery.int.test.ts' },
+    { id: 'K06', desc: 'Receipt locale per outlet; numbers per locale', status: statusOf(byK(unit, 'K06')), note: 'unit test receipt-builder' },
+    { id: 'K07', desc: 'Unavailable item: ITEM_TIDAK_TERSEDIA flag on offline sales', status: statusOf(byK(db, 'K07'), true), note: 'server side; UI item hiding is covered by the F2 tests' },
+    { id: 'K08', desc: 'Sync log: commandId on failed commands', status: statusOf(byK(db, 'K08'), true), note: 'attention_item; device E2E log not yet automated' },
+    { id: 'K09', desc: '10-minute screen lock; timer stops during payment/dialog', status: statusOf(byK(unit, 'K09'), true), note: 'unit tests of the controller; no E2E page.clock yet' },
+    { id: 'K10', desc: 'Evaluasi rilis (REQUIRED/SOFT/SERVER_BEHIND)', status: statusOf(byK(db, 'K10'), true), note: 'SW update at a safe moment is not yet automated' },
+    { id: 'K11', desc: 'Error recovery: per-area boundary, print-failed banner', status: statusOf(inFile(unit, 'ErrorBoundaryArea.test.tsx').concat(byK(e2e, 'K04')), true), note: 'App reset & price retry (V-37) not yet automated' },
+    { id: 'K12', desc: 'Sync/device rate limit (429, attempts do not increase)', status: statusOf(inFile(unit, 'pusher.test.ts').concat(inFile(db, 'push-http.int.test.ts')), true), note: 'full resync 429 & report.busy not yet automated' },
   ]
 
   process.stdout.write('\n============================================================\n')
-  process.stdout.write('[gate:f3] RINGKASAN F3 (K01 - K12)\n')
+  process.stdout.write('[gate:f3] SUMMARY F3 (K01 - K12)\n')
   process.stdout.write('============================================================\n')
   for (const r of rows) {
-    process.stdout.write(`  ${r.status.padEnd(9)} ${r.id}  ${r.desc}\n      catatan: ${r.note}\n`)
+    process.stdout.write(`  ${r.status.padEnd(9)} ${r.id}  ${r.desc}\n      note: ${r.note}\n`)
   }
   process.stdout.write('============================================================\n')
 
-  const failed = rows.filter((r) => r.status === 'GAGAL' || r.status === 'TIDAK ADA')
+  const failed = rows.filter((r) => r.status === 'FAIL' || r.status === 'MISSING')
   if (failed.length > 0) {
-    process.stderr.write(`[gate:f3] GAGAL: ${failed.map((r) => r.id).join(', ')}\n`)
+    process.stderr.write(`[gate:f3] FAIL: ${failed.map((r) => r.id).join(', ')}\n`)
     process.exit(1)
   }
   if (!existsSync(join(root, 'docs/spikes/F3-bukti-perangkat.md'))) {
-    process.stderr.write('[gate:f3] GAGAL: templat docs/spikes/F3-bukti-perangkat.md tidak ada\n')
+    process.stderr.write('[gate:f3] FAIL: template docs/spikes/F3-bukti-perangkat.md is missing\n')
     process.exit(1)
   }
-  process.stdout.write('[gate:f3] Selesai. Bagian perangkat (K04, matriks printer) tetap MANUAL.\n')
+  process.stdout.write('[gate:f3] Done. Device items (K04, printer matrix) remain MANUAL.\n')
 }
 
 main()

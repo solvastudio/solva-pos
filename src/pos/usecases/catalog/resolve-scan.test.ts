@@ -110,7 +110,7 @@ describe('pos/usecases/catalog/resolve-scan', () => {
     }
   })
 
-  it('reproduces Bab 7.2.4 Contoh 1 & V-27 against Dexie fake-indexeddb', async () => {
+  it('reproduces section 7.2.4 Example 1 & V-27 against Dexie fake-indexeddb', async () => {
     const db = await openTenantDb(TENANT)
     await stagePullRows(db, [
       {

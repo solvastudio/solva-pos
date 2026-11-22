@@ -80,12 +80,12 @@ async function countLines(t: InventoryTenant, docId: string) {
   })
 }
 
-describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
+describe('stocktake (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('V-16 (delta −3 dan +5 dari 80/656.667): 77/632.042 dan 85/697.709', async () => {
+  it('V-16 (delta −3 and +5 from 80/656.667): 77/632.042 and 85/697.709', async () => {
     const t1 = await setupInventoryTenant('opn-minus')
     await enableOutletTracking(t1.actor, t1.outletA)
     await seed(t1, t1.skuA, '80', 656667)
@@ -108,7 +108,7 @@ describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
     expect(await bal(t2, t2.skuA)).toEqual({ qty: '85', value: 697709 })
   })
 
-  it('V-16 (fisik 0 dari saldo −2/−16.000 → nilai 0, movement +16.000; fisik 5 → 5/40.000)', async () => {
+  it('V-16 (physical 0 from balance −2/−16.000 → value 0, movement +16.000; physical 5 → 5/40.000)', async () => {
     const tenant = await setupInventoryTenant('opn-neg')
     await enableOutletTracking(tenant.actor, tenant.outletA)
     await seed(tenant, tenant.skuA, '3', 24000)
@@ -133,7 +133,7 @@ describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
     expect(await bal(t2, t2.skuA)).toEqual({ qty: '5', value: 40000 })
   })
 
-  it('BR-STK-031: snapshot 80, hitung 77, penjualan 5 setelah snapshot → saldo posting 75 → 72 (penjualan tidak hilang)', async () => {
+  it('BR-STK-031: snapshot 80, count 77, sale of 5 after the snapshot → posting balance 75 → 72 (sale not lost)', async () => {
     const t = await setupInventoryTenant('opn-br31')
     await enableOutletTracking(t.actor, t.outletA)
     await seed(t, t.skuA, '80', 656667)
@@ -146,7 +146,7 @@ describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
     expect(await bal(t, t.skuA)).toEqual({ qty: '72', value: 591000 })
   })
 
-  it('draft dapat dibatalkan; posting setelah batal ditolak; hitungan belum lengkap ditolak', async () => {
+  it('a draft can be canceled; posting after cancel is rejected; incomplete counts are rejected', async () => {
     const t = await setupInventoryTenant('opn-cancel')
     await enableOutletTracking(t.actor, t.outletA)
     await seed(t, t.skuA, '10', 10000)
@@ -156,7 +156,7 @@ describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
     await expect(postStocktake(t.actor, s.id)).rejects.toThrow(/sudah diposting|dibatalkan/)
   })
 
-  it('opname tanpa aktivasi stok ditolak', async () => {
+  it('stocktake without stock activation is rejected', async () => {
     const t = await setupInventoryTenant('opn-noact')
     await expect(
       createStocktake(t.actor, { outletId: t.outletA, businessDate: '2026-11-20', scope: 'SELECTED', skuIds: [t.skuA] }),
@@ -164,8 +164,8 @@ describe('stock opname (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
   })
 })
 
-describe('aktivasi pelacakan stok (BR-STK-004)', () => {
-  it('enableOutletTracking idempoten dan menaikkan versi master', async () => {
+describe('stock tracking activation (BR-STK-004)', () => {
+  it('enableOutletTracking is idempotent and bumps the master version', async () => {
     const t = await setupInventoryTenant('act')
     const first = await enableOutletTracking(t.actor, t.outletA)
     const second = await enableOutletTracking(t.actor, t.outletA)

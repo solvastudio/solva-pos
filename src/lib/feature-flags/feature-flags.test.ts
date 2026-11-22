@@ -14,7 +14,7 @@ describe('feature-flags resolution', () => {
     description: 'Open default flag',
   }
 
-  it('starts with an empty registry in Fase 24', () => {
+  it('starts with an empty registry', () => {
     expect(Object.keys(FEATURE_FLAGS)).toEqual([])
   })
 

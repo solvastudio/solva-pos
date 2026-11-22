@@ -40,7 +40,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     await closePools()
   })
 
-  it('V-12 (GR bagian tabel): GR 100 pcs @8000 lalu GR 50 @425000 menghasilkan saldo 150/1.225.000; nomor GR-OUT01-1126-0001 dan -0002', async () => {
+  it('V-12 (GR table section): GR 100 pcs @8000 then GR 50 @425000 gives balance 150/1,225,000; numbers GR-OUT01-1126-0001 and -0002', async () => {
     const t = await setupInventoryTenant('gr-v12')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     const g1 = await postOne(t, [{ skuId: t.skuA, uomId: t.pcsUomId, qty: '100', lineValue: 800000 }])
@@ -50,7 +50,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     expect(await balance(t, t.skuA)).toEqual({ qty: '150', value: 1225000 })
   })
 
-  it('BR-STK-020: 5 dus @96.000 (faktor 12) → qty dasar 60 pcs, nilai 480.000', async () => {
+  it('BR-STK-020: 5 cases @96,000 (factor 12) → base qty 60 pcs, value 480,000', async () => {
     const t = await setupInventoryTenant('gr-dus')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     const dusId = await addSkuUom(t.tenantId, t.skuA, 'dus', 12)
@@ -59,7 +59,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     expect(await balance(t, t.skuA)).toEqual({ qty: '60', value: 480000 })
   })
 
-  it('posting idempoten: posting ulang GR yang sama tidak menambah stok', async () => {
+  it('posting is idempotent: reposting the same GR does not add stock', async () => {
     const t = await setupInventoryTenant('gr-idem')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     const draft = await saveGrDraft(t.actor, {
@@ -74,7 +74,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     expect(await balance(t, t.skuA)).toEqual({ qty: '10', value: 100000 })
   })
 
-  it('GR ditolak sebelum aktivasi stok outlet', async () => {
+  it('GR rejected before outlet stock activation', async () => {
     const t = await setupInventoryTenant('gr-noact')
     const draft = await saveGrDraft(t.actor, {
       outletId: t.outletA,
@@ -84,7 +84,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     await expect(postGr(t.actor, draft.id)).rejects.toThrow(/trackingNotEnabled/)
   })
 
-  it('reversal: GR 60 pcs/480.000 dibalik persis (saldo kembali 0); reversal ganda ditolak', async () => {
+  it('reversal: GR 60 pcs/480,000 reversed exactly (balance back to 0); double reversal rejected', async () => {
     const t = await setupInventoryTenant('gr-rev')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     const dusId = await addSkuUom(t.tenantId, t.skuA, 'dus', 12)
@@ -95,7 +95,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     await expect(reverseGr(t.actor, g.id, 'lagi')).rejects.toThrow(/sudah dikoreksi/)
   })
 
-  it('reversal setelah sebagian terjual: saldo negatif dan flag STOK_MINUS, tidak ditolak', async () => {
+  it('reversal after partial sale: negative balance and STOK_MINUS flag, not rejected', async () => {
     const t = await setupInventoryTenant('gr-rev-neg')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     const g = await postOne(t, [{ skuId: t.skuA, uomId: t.pcsUomId, qty: '10', lineValue: 100000 }])

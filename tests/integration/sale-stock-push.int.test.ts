@@ -237,12 +237,12 @@ function saleCommand(f: PushFixture, saleId: string, deviceSeq: number, qty: str
   }
 }
 
-describe('FinalizeSale & VoidSale melalui pipeline sinkronisasi (ACK cost_total, SALE_VOID)', () => {
+describe('FinalizeSale & VoidSale through the sync pipeline (ACK cost_total, SALE_VOID)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('ACK memuat cost_total dan cost_snapshot per baris; VoidSale membuat SALE_VOID', async () => {
+  it('ACK carries cost_total and cost_snapshot per line; VoidSale creates SALE_VOID', async () => {
     resetEnvForTests()
     __clearTenantCacheForTests()
     __clearDeviceAuthCacheForTests()
@@ -295,7 +295,7 @@ describe('FinalizeSale & VoidSale melalui pipeline sinkronisasi (ACK cost_total,
     expect(types).toEqual(['GR_IN', 'SALE', 'SALE_VOID'])
   }, 60_000)
 
-  it('lock_timeout saat kunci saldo ditahan: perintah dibalas RETRY (bukan ATTENTION) dan tidak menulis penjualan', async () => {
+  it('lock_timeout while a balance lock is held: command answered RETRY (not ATTENTION) and no sale written', async () => {
     resetEnvForTests()
     __clearTenantCacheForTests()
     __clearDeviceAuthCacheForTests()

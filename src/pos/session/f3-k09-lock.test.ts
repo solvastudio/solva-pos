@@ -5,12 +5,12 @@ import { createIdleLockController, IDLE_LOCK_TIMEOUT_MS } from './idle-lock'
  * F3-K09: auto-lock after 10 minutes of inactivity. The cart stays intact (the controller only triggers the lock),
  * the timer stops while a payment or supervisor PIN dialog is open, and activity resets the count.
  */
-describe('F3-K09 kunci layar otomatis 10 menit', () => {
+describe('F3-K09 screen auto-lock after 10 minutes', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('mengunci setelah 10 menit idle; berhenti saat pembayaran/dialog supervisor; reset oleh aktivitas', () => {
+  it('locks after 10 idle minutes; stops during payment or supervisor dialog; reset by activity', () => {
     vi.useFakeTimers()
     let perfMs = 0
     let paused = false

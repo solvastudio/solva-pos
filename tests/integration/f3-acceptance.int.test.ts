@@ -100,7 +100,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     await closePools()
   })
 
-  it('F3-K02: seluruh vektor sales-calc (V-04..V-09, V-30) konsisten pada calc dan verifySale server', () => {
+  it('F3-K02: all sales-calc vectors (V-04..V-09, V-30) are consistent in calc and server verifySale', () => {
     for (const vector of SALES_CALC_VECTORS) {
       const cashRoundingUnit = vector.settlement?.cashRoundingUnit ?? 100
 
@@ -156,7 +156,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     }
   })
 
-  it('F3-K05: recovery registrasi mencatat gap RECOVERY_DECLARED dan anotasi manajer mengubah status ke EXPLAINED', async () => {
+  it('F3-K05: register recovery records a RECOVERY_DECLARED gap and a manager annotation changes the status to EXPLAINED', async () => {
     const slug = uniqueSlug('f3-k05')
     const { actor, outlet } = await setupOwnerOutlet(slug, 'PT K05')
     const reg = await createRegister(actor, {
@@ -207,7 +207,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     expect(afterAnnotate.some((g) => g.id === gap!.id && g.reasonCode === 'LOST_DEVICE')).toBe(true)
   })
 
-  it('F3-K07: penjualan offline pada item yang kemudian UNAVAILABLE diterima dan ditandai ITEM_TIDAK_TERSEDIA', async () => {
+  it('F3-K07: an offline sale of an item that later became UNAVAILABLE is accepted and flagged ITEM_TIDAK_TERSEDIA', async () => {
     const slug = uniqueSlug('f3-k07')
     const { created, actor, le, outlet } = await setupOwnerOutlet(slug, 'PT K07')
     const reg = await createRegister(actor, {
@@ -429,7 +429,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     })
   })
 
-  it('F3-K08: perintah gagal tercatat di attention_item dengan commandId yang dapat ditelusuri', async () => {
+  it('F3-K08: a failed command is recorded in attention_item with a traceable commandId', async () => {
     const slug = uniqueSlug('f3-k08')
     const { created, actor, outlet } = await setupOwnerOutlet(slug, 'PT K08')
     const reg = await createRegister(actor, {
@@ -480,7 +480,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     })
   })
 
-  it('F3-K10: evaluasi rilis membedakan pembaruan lunak, wajib, dan server tertinggal', () => {
+  it('F3-K10: release evaluation distinguishes soft update, required update, and server behind', () => {
     const base = {
       latest: 'v0.3.1',
       min_supported_app_version: 'v0.2.0',

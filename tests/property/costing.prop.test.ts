@@ -56,7 +56,7 @@ function run(ops: readonly Op[]): { trail: StockBalance[]; deltas: Money[]; init
 }
 
 describe('inventory/costing properti (fast-check)', () => {
-  it('(1) qty = 0 ⇒ nilai = 0 setelah deretan acak masuk/keluar/penyesuaian', () => {
+  it('(1) qty = 0 ⇒ value = 0 after a random run of in/out/adjustments', () => {
     fc.assert(
       fc.property(fc.array(opArb, { minLength: 1, maxLength: 40 }), (ops) => {
         const { trail } = run(ops)
@@ -68,7 +68,7 @@ describe('inventory/costing properti (fast-check)', () => {
     )
   })
 
-  it('(2) konservasi nilai: nilai akhir = nilai awal + Σ valueDelta', () => {
+  it('(2) value conservation: final value = opening value + Σ valueDelta', () => {
     fc.assert(
       fc.property(fc.array(opArb, { minLength: 1, maxLength: 40 }), (ops) => {
         const { trail, deltas, initial } = run(ops)
@@ -79,7 +79,7 @@ describe('inventory/costing properti (fast-check)', () => {
     )
   })
 
-  it('(3) konservasi kuantitas persis (desimal skala 4 tanpa drift)', () => {
+  it('(3) exact quantity conservation (scale-4 decimals without drift)', () => {
     fc.assert(
       fc.property(fc.array(opArb, { minLength: 1, maxLength: 40 }), (ops) => {
         let expected: Qty = parseQty('0')
@@ -95,7 +95,7 @@ describe('inventory/costing properti (fast-check)', () => {
     )
   })
 
-  it('(4) keluar penuh dari saldo positif selalu menghasilkan nilai 0', () => {
+  it('(4) a full outflow from a positive balance always yields value 0', () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 5000 }),
@@ -120,7 +120,7 @@ describe('inventory/costing properti (fast-check)', () => {
     )
   })
 
-  it('(6) biaya referensi hanya berubah bila saldo baru > 0', () => {
+  it('(6) the reference cost changes only when the new balance is > 0', () => {
     fc.assert(
       fc.property(fc.array(opArb, { minLength: 1, maxLength: 40 }), (ops) => {
         const { trail } = run(ops)

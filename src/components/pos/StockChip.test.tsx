@@ -14,7 +14,7 @@ describe('StockChip (FR-POS-011, DESIGN §5.2 #11)', () => {
     cleanup()
   })
 
-  it('tampil untuk estimasi ≤ 0 sebagai status non-blokir dengan ikon dan teks', async () => {
+  it('shown for estimate ≤ 0 as a non-blocking status with icon and text', async () => {
     const { container } = render(<StockChip estimate={parseQty('-2')} />)
     const status = screen.getByRole('status')
     expect(status.textContent).toContain('Stok estimasi ≤ 0')
@@ -22,7 +22,7 @@ describe('StockChip (FR-POS-011, DESIGN §5.2 #11)', () => {
     expect(results.violations).toEqual([])
   })
 
-  it('tidak tampil bila estimasi positif atau tidak diketahui', () => {
+  it('not shown when the estimate is positive or unknown', () => {
     const { container, rerender } = render(<StockChip estimate={parseQty('3')} />)
     expect(container.textContent).toBe('')
     rerender(<StockChip estimate={null} />)

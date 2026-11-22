@@ -84,7 +84,7 @@ describe('sale stock integration (BR-STK-002..004, BR-HPP-004/005, V-13, V-14, V
     await closePools()
   })
 
-  it('V-13 end-to-end: saldo 70/560000, GR 15:00, jual 10 (occurred 14:00, processed 16:00) → cost 82083 dan saldo 110/902917', async () => {
+  it('V-13 end-to-end: balance 70/560000, GR 15:00, sell 10 (occurred 14:00, processed 16:00) → cost 82083 and balance 110/902917', async () => {
     const t = await setupInventoryTenant('ss-v13')
     await enableOutletInventory(t.tenantId, t.outletA, ENABLED_AT)
     await receive(t, t.skuA, '70', 560000, '2026-11-20T09:00:00.000Z')
@@ -96,7 +96,7 @@ describe('sale stock integration (BR-STK-002..004, BR-HPP-004/005, V-13, V-14, V
     expect(await balance(t, t.skuA)).toEqual({ qty: '110', value: 902917 })
   })
 
-  it('V-14 end-to-end: saldo 3/24000 jual 5 → HPP 40000, saldo −2/−16000, flag negatif; replay tidak menggandakan; GR 20@9000 → 18/164000', async () => {
+  it('V-14 end-to-end: balance 3/24000 sell 5 → COGS 40000, balance −2/−16000, negative flag; replay does not duplicate; GR 20@9000 → 18/164000', async () => {
     const t = await setupInventoryTenant('ss-v14')
     await enableOutletInventory(t.tenantId, t.outletA, ENABLED_AT)
     await receive(t, t.skuA, '3', 24000)
@@ -126,7 +126,7 @@ describe('sale stock integration (BR-STK-002..004, BR-HPP-004/005, V-13, V-14, V
     expect(await balance(t, t.skuA)).toEqual({ qty: '18', value: 164000 })
   })
 
-  it('V-28 (stok): saldo 1/40000, jual 2 (occurred 14:00, diterima 15:05) → cost 80000, saldo −1/−40000 MIXED negatif', async () => {
+  it('V-28 (stock): balance 1/40000, sell 2 (occurred 14:00, received 15:05) → cost 80000, balance −1/−40000 MIXED negative', async () => {
     const t = await setupInventoryTenant('ss-v28')
     await enableOutletInventory(t.tenantId, t.outletA, ENABLED_AT)
     await receive(t, t.skuA, '1', 40000)
@@ -143,7 +143,7 @@ describe('sale stock integration (BR-STK-002..004, BR-HPP-004/005, V-13, V-14, V
     expect(basis).toBe('MIXED')
   })
 
-  it('aktivasi (BR-STK-004): outlet belum aktif atau penjualan diproses sebelum aktivasi → tanpa movement dan cost NULL', async () => {
+  it('activation (BR-STK-004): outlet not yet active or sale processed before activation → no movement and NULL cost', async () => {
     const t = await setupInventoryTenant('ss-act')
     await receive(t, t.skuA, '5', 5000)
     const before = await sell(t, t.skuA, '1', '2026-11-20T16:00:00.000Z')
@@ -160,7 +160,7 @@ describe('sale stock integration (BR-STK-002..004, BR-HPP-004/005, V-13, V-14, V
     await disableOutletInventory(t.tenantId, t.outletA)
   })
 
-  it('track_stock=false dan produk MENU_FNB dilewati (tanpa movement)', async () => {
+  it('track_stock=false and MENU_FNB products are skipped (no movement)', async () => {
     const t = await setupInventoryTenant('ss-flags')
     await enableOutletInventory(t.tenantId, t.outletA, ENABLED_AT)
     await receive(t, t.skuA, '5', 5000)

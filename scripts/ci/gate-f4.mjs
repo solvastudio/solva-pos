@@ -42,7 +42,7 @@ function runStep(label, args, extraEnv = {}) {
   process.stdout.write(`\n[gate:f4] === ${label} ===\n`)
   const code = runNpm(args, extraEnv)
   if (code !== 0) {
-    process.stderr.write(`[gate:f4] GAGAL pada langkah: ${label} (exit ${code})\n`)
+    process.stderr.write(`[gate:f4] FAILED at step: ${label} (exit ${code})\n`)
     process.exit(code)
   }
 }
@@ -101,9 +101,9 @@ function checkVectorCoverage() {
 }
 
 function statusOf(items) {
-  if (items.length === 0) return 'TIDAK ADA'
-  if (!items.every((i) => i.ok)) return 'GAGAL'
-  return 'LULUS'
+  if (items.length === 0) return 'MISSING'
+  if (!items.every((i) => i.ok)) return 'FAIL'
+  return 'PASS'
 }
 
 function main() {
@@ -112,14 +112,14 @@ function main() {
 
   const missingVectors = checkVectorCoverage()
   if (missingVectors.length > 0) {
-    process.stderr.write(`[gate:f4] GAGAL: vektor tanpa tes: ${missingVectors.join(', ')}\n`)
+    process.stderr.write(`[gate:f4] FAIL: vectors without tests: ${missingVectors.join(', ')}\n`)
     process.exit(1)
   }
 
   runStep('Typecheck', ['run', 'typecheck'])
   runStep('Lint & Architecture Boundaries', ['run', 'lint'])
-  runStep('Unit Tests (termasuk V-12..V-14 costing)', ['run', 'test:unit', '--', '--reporter=default', '--reporter=json', `--outputFile.json=${unitJson}`])
-  runStep('Database Suite (V-15, V-16, R-02, dokumen, konkurensi)', [
+  runStep('Unit Tests (including V-12..V-14 costing)', ['run', 'test:unit', '--', '--reporter=default', '--reporter=json', `--outputFile.json=${unitJson}`])
+  runStep('Database Suite (V-15, V-16, R-02, documents, concurrency)', [
     'run',
     'test:db',
     '--',
@@ -131,7 +131,7 @@ function main() {
   runStep('Bundle Guard', ['run', 'guard:bundle'])
   runStep('E2E Production Build (VITE_E2E=1)', ['run', 'e2e:build'])
 
-  runStep('Playwright F4-* (E2E, termasuk estimasi stok F4-EST)', ['run', 'test:e2e', '--', '--grep', 'F4-', '--reporter=list,json'], {
+  runStep('Playwright F4-* (E2E, including the F4-EST stock estimate)', ['run', 'test:e2e', '--', '--grep', 'F4-', '--reporter=list,json'], {
     PLAYWRIGHT_JSON_OUTPUT_NAME: e2eJson,
   })
 
@@ -146,44 +146,44 @@ function main() {
   const rows = [
     {
       id: 'K01',
-      desc: 'Contoh BR-HPP-003 reproduksi persis; V-12..V-16 (BR-HPP-004/005, BR-TRF, BR-STK-032)',
+      desc: 'BR-HPP-003 example reproduced exactly; V-12..V-16 (BR-HPP-004/005, BR-TRF, BR-STK-032)',
       status: statusOf([...byVector(unit, /V-1[2-4]/), ...byVector(db, /V-1[56]/)]),
       note: 'costing.test.ts (V-12..14), transfer.int.test.ts (V-15), stocktake.int.test.ts (V-16)',
     },
     {
       id: 'K02',
-      desc: 'Penjualan offline yang tiba telat memakai biaya saat server memproses (82.083, bukan 80.000)',
+      desc: 'Late-arriving offline sales use the cost when the server processes them (82.083, not 80.000)',
       status: statusOf(byK(e2e, 'K02')),
       note: 'E2E f4-late-sale.spec.ts',
     },
     {
       id: 'K03',
-      desc: 'Penjualan paralel pada SKU yang sama tidak merusak saldo (row lock, konservasi nilai)',
+      desc: 'Parallel sales on the same SKU do not corrupt the balance (row lock, value conservation)',
       status: statusOf(inFile(db, 'sale-stock-concurrency')),
-      note: 'sale-stock-concurrency.int.test.ts (Fase 53); E2E ringan 2 device belum ada',
+      note: 'sale-stock-concurrency.int.test.ts; light 2-device E2E not yet automated',
     },
     {
       id: 'K04',
-      desc: 'Laporan stok sesuai ledger; stok minus dan in-transit tampil',
+      desc: 'Stock report matches the ledger; negative stock and in-transit are shown',
       status: statusOf([...inFile(db, 'report-r02'), ...byK(e2e, 'K04')]),
-      note: 'report-r02.int.test.ts + E2E f4-r02.spec.ts (rekonsiliasi Σ value_delta = saldo)',
+      note: 'report-r02.int.test.ts + E2E f4-r02.spec.ts (reconciliation Σ value_delta = balance)',
     },
   ]
 
   process.stdout.write('\n============================================================\n')
-  process.stdout.write('[gate:f4] RINGKASAN F4 (K01 - K04)\n')
+  process.stdout.write('[gate:f4] SUMMARY F4 (K01 - K04)\n')
   process.stdout.write('============================================================\n')
   for (const r of rows) {
-    process.stdout.write(`  ${r.status.padEnd(9)} ${r.id}  ${r.desc}\n      catatan: ${r.note}\n`)
+    process.stdout.write(`  ${r.status.padEnd(9)} ${r.id}  ${r.desc}\n      note: ${r.note}\n`)
   }
   process.stdout.write('============================================================\n')
 
-  const failed = rows.filter((r) => r.status !== 'LULUS')
+  const failed = rows.filter((r) => r.status !== 'PASS')
   if (failed.length > 0) {
-    process.stderr.write(`[gate:f4] GAGAL: ${failed.map((r) => `${r.id}=${r.status}`).join(', ')}\n`)
+    process.stderr.write(`[gate:f4] FAIL: ${failed.map((r) => `${r.id}=${r.status}`).join(', ')}\n`)
     process.exit(1)
   }
-  process.stdout.write('[gate:f4] Selesai. F4 memenuhi kriteria gerbang.\n')
+  process.stdout.write('[gate:f4] Done. F4 meets the gate criteria.\n')
 }
 
 main()

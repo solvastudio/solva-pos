@@ -19,7 +19,7 @@ describe('inventory grants & immutability (AD-13, SCHEMA §5.5)', () => {
     await closePools()
   })
 
-  it('stock_movement tidak bisa di-UPDATE atau di-DELETE oleh solva_app (hak + trigger)', async () => {
+  it('solva_app cannot UPDATE or DELETE stock_movement (privilege + trigger)', async () => {
     const t = await setupInventoryTenant('grant-mov')
     await withTenant(t.tenantId, (tx) =>
       applyMovements(tx, { tenantId: t.tenantId, processedAt: new Date().toISOString() }, [
@@ -46,7 +46,7 @@ describe('inventory grants & immutability (AD-13, SCHEMA §5.5)', () => {
     ).rejects.toThrow()
   })
 
-  it('goods_receipt: kolom kunci (doc_no) tidak bisa diubah oleh solva_app setelah dibuat', async () => {
+  it('goods_receipt: key column (doc_no) cannot be changed by solva_app after creation', async () => {
     const t = await setupInventoryTenant('grant-gr')
     await withTenant(t.tenantId, (tx) =>
       tx.execute(sql`

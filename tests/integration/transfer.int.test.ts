@@ -52,12 +52,12 @@ async function v15Setup(prefix: string) {
   return t
 }
 
-describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', () => {
+describe('inter-outlet transfer (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('V-15: kirim 40 dari A (value_sent 328.333; A 80/656.667; in-transit 40/328.333); terima 38 di B (value_received 311.916; B 48/401.916; selisih 2 pcs / 16.417 ter-flag)', async () => {
+  it('V-15: send 40 from A (value_sent 328.333; A 80/656.667; in-transit 40/328.333); receive 38 at B (value_received 311.916; B 48/401.916; difference 2 pcs / 16.417 flagged)', async () => {
     const t = await v15Setup('tr-v15')
     const draft = await saveTransferDraft(t.actor, {
       fromOutletId: t.outletA,
@@ -96,7 +96,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     expect(Number(flags[0]!.diff_amount)).toBe(16417)
   })
 
-  it('terima dua kali ditolak; penerimaan melebihi kirim ditolak', async () => {
+  it('receiving twice is rejected; receipt above the sent quantity is rejected', async () => {
     const t = await v15Setup('tr-twice')
     const draft = await saveTransferDraft(t.actor, {
       fromOutletId: t.outletA,
@@ -118,7 +118,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     ).rejects.toThrow(/sudah diterima|belum dikirim/)
   })
 
-  it('penerimaan nol untuk semua baris wajib alasan penutupan', async () => {
+  it('a zero receipt for all lines requires a close reason', async () => {
     const t = await v15Setup('tr-close')
     const draft = await saveTransferDraft(t.actor, {
       fromOutletId: t.outletA,
@@ -142,7 +142,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     expect(await bal(t, t.outletB, t.skuA)).toEqual({ qty: '10', value: 90000 })
   })
 
-  it('kirim dari saldo kurang: tidak ditolak, saldo negatif dan flag STOK_MINUS', async () => {
+  it('sending from low stock: not rejected, negative balance and STOK_MINUS flag', async () => {
     const t = await setupInventoryTenant('tr-neg')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await enableOutletInventory(t.tenantId, t.outletB, '2026-11-01T00:00:00.000Z')
@@ -162,7 +162,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     expect(flags).toBeGreaterThanOrEqual(1)
   })
 
-  it('batal hanya dari DRAFT; setelah kirim tidak dapat dibatalkan', async () => {
+  it('cancel only from DRAFT; cannot be canceled after sending', async () => {
     const t = await v15Setup('tr-cancel')
     const draft = await saveTransferDraft(t.actor, {
       fromOutletId: t.outletA,
@@ -174,7 +174,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     await expect(sendTransfer(t.actor, draft.id)).rejects.toThrow(/dikirim atau dibatalkan/)
   })
 
-  it('tujuan sama dengan asal ditolak', async () => {
+  it('destination equal to source is rejected', async () => {
     const t = await setupInventoryTenant('tr-same')
     await expect(
       saveTransferDraft(t.actor, {
@@ -186,7 +186,7 @@ describe('transfer antar outlet (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     ).rejects.toThrow(/berbeda/)
   })
 
-  it('applyMovements tetap dapat dipanggil langsung (kontrol): V-15 tidak bergantung pada jalur draft', async () => {
+  it('applyMovements can still be called directly (control): V-15 does not depend on the draft path', async () => {
     const t = await setupInventoryTenant('tr-control')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await withTenant(t.tenantId, (tx) =>

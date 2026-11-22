@@ -18,7 +18,7 @@ describe('inventory schema constraints (SCHEMA §4.3.2–4.3.3, §5.4)', () => {
     await closePools()
   })
 
-  it('stock_balance: qty 0 harus bernilai 0; qty negatif diizinkan (DB-02)', async () => {
+  it('stock_balance: qty 0 must have value 0; negative qty is allowed (DB-02)', async () => {
     const t = await setupInventoryTenant('schema-bal')
     await expect(
       withTenant(t.tenantId, (tx) =>
@@ -30,7 +30,7 @@ describe('inventory schema constraints (SCHEMA §4.3.2–4.3.3, §5.4)', () => {
     )
   })
 
-  it('stock_movement: tanda qty_delta dan value_delta harus konsisten (CHK sign)', async () => {
+  it('stock_movement: qty_delta and value_delta signs must be consistent (CHK sign)', async () => {
     const t = await setupInventoryTenant('schema-mov')
     await expect(
       withTenant(t.tenantId, (tx) =>

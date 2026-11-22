@@ -13,8 +13,8 @@ import { F3_CASHIER_NAME, F3_CASHIER_PIN, F3_PRODUCTS, createF3Tenant, pairingCo
 
 test.use({ locale: 'id-ID' })
 
-test.describe('F3-K04 cetak tidak menggagalkan checkout', () => {
-  test('F3-K04 jalur cetak gagal: penjualan tetap tersimpan, banner muncul, Cetak ulang berhasil setelah jalur diperbaiki', async ({
+test.describe('F3-K04 printing does not fail checkout', () => {
+  test('F3-K04 print path fails: sale stays saved, banner appears, reprint succeeds after the path is fixed', async ({
     browser,
   }) => {
     test.setTimeout(180_000)

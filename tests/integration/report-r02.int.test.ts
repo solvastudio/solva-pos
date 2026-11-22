@@ -23,12 +23,12 @@ async function v15Setup(prefix: string) {
   return t
 }
 
-describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
+describe('R-02 stock & inventory value report (FR-RPT-003, K04)', () => {
   afterAll(async () => {
     await closePools()
   })
 
-  it('contoh PRD R-02: A 80/656.667 (rata-rata 8.208,34); B 10/90.000 dengan in-transit 40/328.333 sebelum diterima', async () => {
+  it('PRD R-02 example: A 80/656,667 (average 8,208.34); B 10/90,000 with in-transit 40/328,333 before receipt', async () => {
     const t = await v15Setup('r02-v15')
     const draft = await saveTransferDraft(t.actor, {
       fromOutletId: t.outletA,
@@ -65,7 +65,7 @@ describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
     expect(rowBAfter.valueInTransit).toBe(0)
   })
 
-  it('filter stok minus dan in-transit; stok minus tampil bertanda', async () => {
+  it('negative-stock and in-transit filters; negative stock is shown flagged', async () => {
     const t = await setupInventoryTenant('r02-neg')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await enableOutletInventory(t.tenantId, t.outletB, '2026-11-01T00:00:00.000Z')
@@ -90,7 +90,7 @@ describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
     expect(transit.rows[0]!.valueInTransit).toBe(80000)
   })
 
-  it('K04 rekonsiliasi: Σ value_delta ledger = inventory_value saldo untuk setiap (outlet, SKU)', async () => {
+  it('K04 reconciliation: Σ ledger value_delta = balance inventory_value for each (outlet, SKU)', async () => {
     const t = await v15Setup('r02-recon')
     await gr(t, t.outletA, t.skuB, '4', 4000)
     const rows = await withTenant(t.tenantId, async (tx) => {
@@ -108,7 +108,7 @@ describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
     for (const r of rows) expect(Number(r.mv)).toBe(Number(r.bal))
   })
 
-  it('ketersediaan default AVAILABLE dan filter UNAVAILABLE kosong bila tidak ada item tidak tersedia', async () => {
+  it('default availability is AVAILABLE and the UNAVAILABLE filter is empty when no item is unavailable', async () => {
     const t = await v15Setup('r02-avail')
     const report = await reportR02(t.actor, { availability: 'UNAVAILABLE' })
     expect(report.rows).toHaveLength(0)
@@ -118,8 +118,8 @@ describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
 })
 
 // Control: applyMovements called directly still produces the balance that R-02 reads (no documents).
-describe('R-02 membaca saldo dari ledger langsung', () => {
-  it('movement langsung terlihat di laporan', async () => {
+describe('R-02 reads the balance directly from the ledger', () => {
+  it('a direct movement shows up in the report', async () => {
     const t = await setupInventoryTenant('r02-direct')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await withTenant(t.tenantId, (tx) =>

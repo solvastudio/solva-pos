@@ -28,8 +28,8 @@ import {
 
 test.use({ locale: 'id-ID' })
 
-test.describe('F3-K01 skenario penuh offline', () => {
-  test('F3-K01 login PIN, buka shift, 3 penjualan (tunai, QRIS, campuran), cetak, tutup shift offline; data tiba saat online', async ({
+test.describe('F3-K01 full offline scenario', () => {
+  test('F3-K01 PIN login, open shift, 3 sales (cash, QRIS, mixed), print, close shift offline; data arrives when online', async ({
     browser,
   }) => {
     test.setTimeout(240_000)

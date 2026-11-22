@@ -20,8 +20,8 @@ function jakartaToday(): string {
   return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
 }
 
-test.describe('F4 estimasi stok di POS (FR-POS-011, BR-STK-005)', () => {
-  test('F4-EST snapshot 20, jual 6 offline ⇒ estimasi 14; ≤ 0 ⇒ chip, tombol bayar tetap aktif', async ({ browser }) => {
+test.describe('F4 POS stock estimate (FR-POS-011, BR-STK-005)', () => {
+  test('F4-EST snapshot 20, sell 6 offline ⇒ estimate 14; ≤ 0 ⇒ chip, pay button stays enabled', async ({ browser }) => {
     test.setTimeout(300_000)
     const t = await createF3Tenant('f4est')
     await enableOutletTracking(t.ownerActor, t.outletId)

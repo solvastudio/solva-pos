@@ -60,7 +60,7 @@ describe('sale stock concurrency (AD-22, BR-STK-001)', () => {
     await closePools()
   })
 
-  it('20 FinalizeSale paralel pada satu SKU: bal_seq 1..n tanpa celah dan Σ HPP + saldo akhir = nilai awal', async () => {
+  it('20 parallel FinalizeSale on one SKU: bal_seq 1..n with no gaps and Σ COGS + final balance = opening value', async () => {
     const t = await setupInventoryTenant('sc-20')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '100', 800000)
@@ -80,7 +80,7 @@ describe('sale stock concurrency (AD-22, BR-STK-001)', () => {
     expect(Number(final.inventory_value) + hpp).toBe(800000)
   })
 
-  it('dua FinalizeSale dengan urutan SKU berlawanan tidak deadlock', async () => {
+  it('two FinalizeSale calls with opposite SKU order do not deadlock', async () => {
     const t = await setupInventoryTenant('sc-dl')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '10', 100000)
@@ -93,7 +93,7 @@ describe('sale stock concurrency (AD-22, BR-STK-001)', () => {
     expect(rb.costTotal).toBe(20000)
   })
 
-  it('lock_timeout 5 dtk: penjualan yang menunggu kunci saldo gagal dengan 55P03 tanpa menulis movement', async () => {
+  it('lock_timeout 5 s: a sale waiting for a balance lock fails with 55P03 without writing a movement', async () => {
     const t = await setupInventoryTenant('sc-lock')
     await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
     await receive(t, t.skuA, '10', 100000)

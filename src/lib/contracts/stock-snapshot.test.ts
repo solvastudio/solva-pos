@@ -3,8 +3,8 @@ import { PullResponse, StockSnapshotBlockSchema } from './pull'
 
 const SKU = '01a2004a-82dd-7747-8221-d2d7ed7f7049'
 
-describe('kontrak snapshot stok (Fase 54, BR-STK-005)', () => {
-  it('menerima kuantitas desimal kanonik (bilangan bulat dan hingga 4 desimal)', () => {
+describe('stock snapshot contract (BR-STK-005)', () => {
+  it('accepts canonical decimal quantities (integers and up to 4 decimals)', () => {
     const block = {
       etag: 'e6b72107c0a65be1',
       as_of_server_time: '2026-11-21T22:46:54.833Z',
@@ -18,7 +18,7 @@ describe('kontrak snapshot stok (Fase 54, BR-STK-005)', () => {
     expect(StockSnapshotBlockSchema.safeParse(block).success).toBe(true)
   })
 
-  it('menolak kuantitas yang bukan angka', () => {
+  it('rejects non-numeric quantities', () => {
     const block = {
       etag: 'e6b72107c0a65be1',
       as_of_server_time: '2026-11-21T22:46:54.833Z',
@@ -28,7 +28,7 @@ describe('kontrak snapshot stok (Fase 54, BR-STK-005)', () => {
     expect(StockSnapshotBlockSchema.safeParse(block).success).toBe(false)
   })
 
-  it('respons pull halaman terakhir dengan blok stok tetap lolos parse (regresi)', () => {
+  it('last-page pull response with a stock block still parses (regression)', () => {
     const res = PullResponse.parse({
       server_time: '2026-11-21T22:46:54.833Z',
       upper: 1,
