@@ -86,7 +86,7 @@ export const voidSaleCommandHandler: CommandHandler<VoidSalePayloadV1, TenantTx>
       voidCommandId: ctx.commandId,
     })
 
-    // Stok (Fase 53): balikkan porsi yang belum diretur dengan SALE_VOID pada biaya snapshot (BR-HPP-007).
+    // Stock: reverse the portion not yet returned with SALE_VOID at the snapshot cost (BR-HPP-007).
     const stockCtx = await loadSaleStockContext(tx, tenantId, existing.id)
     if (stockCtx) {
       await getSaleStockPort().applyVoid(tx, {

@@ -61,6 +61,8 @@ TanStack Start + React + TypeScript + TanStack Query · Tailwind v4 (tanpa shadc
 ## Konvensi kerja
 
 - Dokumen ditulis dalam **bahasa Indonesia**.
+- **Komentar kode tidak boleh berbahasa Indonesia.** Tulis komentar dalam bahasa Inggris (JSDoc, komentar inline, komentar di tes dan skrip).
+- **Jangan merujuk file plan** (`plans/…`) di kode, tes, komentar, pesan commit, maupun dokumen. File plan dihapus setelah semua fase selesai diimplementasikan, sehingga rujukan ke sana menjadi tautan mati. Rujuk dokumen sumber kebenaran (PRD, SCHEMA, ARCHITECTURE, DESIGN) dengan ID-nya.
 - **Conventional Commits**; **SemVer** `vMAJOR.MINOR.PATCH` dengan **git tag sebagai sumber kebenaran** versi (ARCHITECTURE §9.6.1).
 - Commit/push **hanya bila user meminta**.
 - Gerbang tes di GitHub Actions; **rilis/deploy manual** dari komputer user (ARCHITECTURE §9.5, OQ-A21).

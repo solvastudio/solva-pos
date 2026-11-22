@@ -5,8 +5,8 @@ import type { TenantTx } from '~/server/db'
 import { readAckedDeviceSeq } from './stock-snapshot.repo'
 
 /**
- * Pembaca saldo stok outlet, disediakan modul inventori lewat composition root (port, BR-ARC-004).
- * Tanpa pembaca terdaftar, blok `stock` tidak pernah dikirim.
+ * Outlet stock balance reader, provided by the inventory module through the composition root (port, BR-ARC-004).
+ * Without a registered reader, the `stock` block is never sent.
  */
 export interface OutletStockReader {
   read(
@@ -27,8 +27,8 @@ export function __clearOutletStockReaderForTests(): void {
 }
 
 /**
- * Etag = hash deterministik dari (outlet, max(last_movement_at), jumlah saldo, acked_device_seq) — tanpa kolom baru.
- * Berubah bila ada movement atau perintah device yang baru di-ACK (AD-27 / PRD BR-STK-005).
+ * Etag = deterministic hash of (outlet, max(last_movement_at), balance count, acked_device_seq); no new columns.
+ * Changes when a movement or a newly ACKed device command occurs (AD-27 / PRD BR-STK-005).
  */
 export function stockEtag(parts: { outletId: string; lastMovementAt: string | null; count: number; ackedDeviceSeq: number }): string {
   return createHash('sha256')
@@ -38,8 +38,8 @@ export function stockEtag(parts: { outletId: string; lastMovementAt: string | nu
 }
 
 /**
- * Membangun blok snapshot stok untuk satu outlet device dalam satu snapshot DB (read-only).
- * `null` bila pembaca belum terdaftar.
+ * Builds the stock snapshot block for one device outlet within one DB snapshot (read-only).
+ * `null` when no reader is registered yet.
  */
 export async function buildStockSnapshot(
   tx: TenantTx,

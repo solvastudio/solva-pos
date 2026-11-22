@@ -29,7 +29,7 @@ import {
 import { requirePermission } from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware } from '../middleware'
 
-/** Perintah tulis dokumen inventori (SCR-A06). Semua validasi bisnis ada di layanan, bukan di sini. */
+/** Write commands for inventory documents (SCR-A06). All business validation lives in the services, not here. */
 
 export const saveGrDraftFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => grDraftSchema.parse(raw))

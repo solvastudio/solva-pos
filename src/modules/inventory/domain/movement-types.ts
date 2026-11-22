@@ -1,6 +1,6 @@
 /**
- * Konstanta enum inventori (SCHEMA §4.3.2–4.3.7, Lampiran A). Dipakai skema (CHECK) dan domain.
- * Nilai harus sama persis dengan CHECK di migrasi; tes skema memeriksa kesesuaian.
+ * Inventory enum constants (SCHEMA §4.3.2–4.3.7, Appendix A). Used by the schema (CHECK) and the domain.
+ * The values must match the migration CHECK constraints exactly; schema tests verify this.
  */
 
 export const MOVEMENT_TYPES = [
@@ -34,7 +34,7 @@ export const TRANSFER_STATUSES = ['DRAFT', 'SENT', 'RECEIVED', 'CANCELED'] as co
 export const STOCKTAKE_STATUSES = ['DRAFT', 'POSTED', 'CANCELED'] as const
 export const STOCKTAKE_SCOPES = ['ALL', 'SELECTED'] as const
 
-/** Daftar nilai untuk klausa CHECK `IN (...)`. */
+/** Value list for the CHECK `IN (...)` clause. */
 export function sqlInList(values: readonly string[]): string {
   return values.map((v) => `'${v}'`).join(', ')
 }

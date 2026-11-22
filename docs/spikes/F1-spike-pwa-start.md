@@ -53,7 +53,7 @@ Semua verifikasi Q1–Q8 dijalankan lewat `node spike\verify-all.mjs` (Playwrigh
 
 ## 4. Opsi yang Layak (A/B/C) dengan data dan trade-off
 
-Definisi Opsi A/B/C di bawah diselaraskan dengan ARCHITECTURE §2.3 dan `plans/02` (catatan pemetaan: isi "skrip post-build" yang sempat disebut Opsi B pada draf awal kini berada di **Opsi C**, sedangkan **Opsi B** merujuk ke `NetworkFirst` tanpa shell statis).
+Definisi Opsi A/B/C di bawah diselaraskan dengan ARCHITECTURE §2.3 (catatan pemetaan: isi "skrip post-build" yang sempat disebut Opsi B pada draf awal kini berada di **Opsi C**, sedangkan **Opsi B** merujuk ke `NetworkFirst` tanpa shell statis).
 
 | Opsi | Arsitektur | Data / Pengukuran | Kelebihan | Kekurangan / Trade-off |
 |---|---|---|---|---|

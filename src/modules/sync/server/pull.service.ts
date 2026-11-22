@@ -166,7 +166,7 @@ export async function handlePull(
           async (source) => [source.entity, await source.count(tx, { upper: page.upper, scope })] as const,
         ),
       )
-      // Snapshot stok (Fase 53) dibaca dalam snapshot DB yang sama dengan manifest.
+      // Stock snapshot, read in the same DB snapshot as the manifest.
       const stock = await buildStockSnapshot(tx, {
         tenantId: device.tenantId,
         outletId: device.outletId,

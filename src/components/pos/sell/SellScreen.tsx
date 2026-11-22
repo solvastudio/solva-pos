@@ -233,7 +233,7 @@ export function SellScreen({ tenant, bootResult }: SellScreenProps) {
                 skus: entry.skus,
                 baseUom,
                 price,
-                // Estimasi = snapshot server − penjualan lokal belum ACK (Fase 53, BR-STK-005).
+                // Estimate = server snapshot − local sales not yet ACKed (BR-STK-005).
                 stockQty: estimates.get(defaultSku.id) ?? null,
               }
             })

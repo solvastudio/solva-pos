@@ -206,7 +206,7 @@ export interface SaleLineStockInfo {
   readonly costSnapshot: number | null
 }
 
-/** Info stok baris penjualan asal untuk retur (SKU, qty base, cost_snapshot). */
+/** Stock info of the original sale line for a return (SKU, base qty, cost_snapshot). */
 export async function loadSaleLineStockInfo(
   tx: TenantTx,
   tenantId: string,
@@ -238,7 +238,7 @@ export async function loadSaleLineStockInfo(
   return out
 }
 
-/** Menulis `credit_note_line.cost_returned` (set-based). NULL untuk disposisi tanpa HPP kembali. */
+/** Writes `credit_note_line.cost_returned` (set-based). NULL for dispositions that return no COGS. */
 export async function persistCreditNoteCosts(
   tx: TenantTx,
   tenantId: string,

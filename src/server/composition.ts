@@ -85,7 +85,7 @@ export function composeServer(): void {
   registerOutletCreatedHook((tx, w, outlet) =>
     createDefaultAvailabilityForOutlet(tx, w, outlet.id),
   )
-  // Adaptor stok (Fase 53): sales hanya mengenal port; implementasi dari inventory.
+  // Stock adapter: sales only knows the port; the implementation comes from inventory.
   registerSaleStockPort({
     applySale: (tx, input) => applySaleStock(tx, input),
     applyVoid: async (tx, input) => {
@@ -93,7 +93,7 @@ export function composeServer(): void {
     },
     applyReturn: (tx, input) => applyReturnStock(tx, input),
   })
-  // Pembaca snapshot stok untuk pull (Fase 53).
+  // Stock snapshot reader for pull.
   registerOutletStockReader({
     read: (tx, tenantId, outletId) => readOutletStockForSnapshot(tx, tenantId, outletId),
   })

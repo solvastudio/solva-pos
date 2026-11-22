@@ -1,6 +1,6 @@
 /**
- * Antarmuka publik modul inventori (ARCHITECTURE §8.4). Modul lain hanya mengimpor dari sini.
- * Fase 52: penerap ledger dan mesin costing. Dokumen admin dan integrasi penjualan menyusul (Fase 53–54).
+ * Public interface of the inventory module (ARCHITECTURE §8.4). Other modules import only from here.
+ * Ledger applier and costing engine. Admin documents and sales integration are exported here too.
  */
 export { applyMovements, type AppliedMovement, type ApplyContext, type ApplyResult, type MovementIntent } from './server/ledger.service'
 export {

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/$tenant/admin/_authed/stock/')({
 
 type Scope = 'ALL' | 'NEGATIVE' | 'IN_TRANSIT'
 
-/** R-02 — Stok & Nilai Persediaan (PRD §12 R-02). Angka dari layanan; halaman ini hanya menampilkan. */
+/** R-02 — Stock & Inventory Value (PRD §12 R-02). Figures come from the service; this page only displays them. */
 function AdminStockPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.language === 'en-US' ? 'en-US' : 'id-ID'

@@ -8,8 +8,8 @@ import { withTenant } from '~/server/db'
 import { auditInventoryEvent } from './audit'
 
 /**
- * Mengaktifkan pelacakan stok outlet (BR-STK-004). Tidak dapat dinonaktifkan kembali di MVP.
- * Diterapkan lewat `writeMaster` (outlet = master kelas M) sehingga device menerima perubahan.
+ * Enables outlet stock tracking (BR-STK-004). Cannot be disabled again in the MVP.
+ * Applied through `writeMaster` (outlet = class M master) so devices receive the change.
  */
 export async function enableOutletTracking(actor: IdentityAuthActor, outletId: string): Promise<{ enabledAt: string }> {
   if (!isUuid(outletId)) throw new AppError('VALIDATION_FAILED', 'Outlet tidak valid')
@@ -23,7 +23,7 @@ export async function enableOutletTracking(actor: IdentityAuthActor, outletId: s
     const row = cur.rows[0]
     if (!row) throw new AppError('VALIDATION_FAILED', 'Outlet tidak ditemukan')
     if (row.inventory_enabled_at) {
-      // Format teks Postgres bukan ISO; kembalikan ISO UTC agar konsisten dengan panggilan pertama.
+      // Postgres text format is not ISO; return ISO UTC so it matches the first call.
       return { enabledAt: new Date(row.inventory_enabled_at).toISOString() }
     }
     const enabledAt = new Date().toISOString()

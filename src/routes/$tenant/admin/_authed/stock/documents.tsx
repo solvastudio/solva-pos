@@ -11,7 +11,7 @@ export const Route = createFileRoute('/$tenant/admin/_authed/stock/documents')({
   component: AdminStockDocumentsPage,
 })
 
-/** SCR-A06 tab dokumen: penerimaan barang, transfer, opname, dan pemasok. */
+/** SCR-A06 documents tab: goods receipt, transfers, stocktake, and suppliers. */
 function AdminStockDocumentsPage() {
   return <StockDocumentsPanel />
 }

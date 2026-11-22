@@ -30,7 +30,7 @@ export type MasterStoreName = (typeof MASTER_STORE_NAMES)[number]
 /**
  * Exact Dexie v1 store definitions from docs/SCHEMA.md §6.3 plus `pull_stage`
  * (docs/ARCHITECTURE.md §4.3.2). Total: 48 stores.
- * Never mutate STORES_V1 after Fase 27; any future index change MUST add `version(2)`.
+ * Never mutate STORES_V1 once released; any future index change MUST add `version(2)`.
  */
 export const STORES_V1 = {
   meta: 'key',

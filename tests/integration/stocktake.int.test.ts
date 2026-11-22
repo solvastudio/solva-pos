@@ -54,7 +54,7 @@ async function seed(t: InventoryTenant, skuId: string, qty: string, value: numbe
   )
 }
 
-/** Penjualan harus diproses SETELAH `inventory_enabled_at` (diset dengan jam nyata oleh aktivasi). */
+/** Sales must be processed AFTER `inventory_enabled_at` (set with the real clock by activation). */
 async function sell(t: InventoryTenant, skuId: string, qty: string) {
   const nowIso = new Date().toISOString()
   await withTenant(t.tenantId, (tx) =>

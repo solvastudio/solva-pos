@@ -10,7 +10,7 @@ const QUICK_CASH_STEPS = [5_000, 10_000, 50_000, 100_000]
 
 /**
  * Suggests exact payment + up to 3 clean higher denominations (multiples of 5k / 10k / 50k / 100k)
- * per Fase 45 CMP-31 (`Uang pas` + 3 nearest ceilings above `remaining`).
+ * per CMP-31 (`Uang pas` button, i.e. exact amount, + 3 nearest ceilings above `remaining`).
  */
 export function suggestCashAmounts(remaining: Money): Money[] {
   if (!Number.isSafeInteger(remaining) || remaining <= 0) {

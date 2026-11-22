@@ -76,7 +76,7 @@ describe('inventory ledger concurrency (AD-22, BR-STK-001)', () => {
 
     expect(final.seq).toEqual(Array.from({ length: 21 }, (_, i) => i + 1))
     expect(normalizeQty(final.bal.qty as Qty)).toBe('80')
-    // Konservasi: nilai awal + Σ HPP = nilai akhir.
+    // Conservation: opening value + Σ COGS = closing value.
     expect(Number(final.bal.inventory_value)).toBe(800000 + sum)
   })
 
@@ -103,14 +103,14 @@ describe('inventory ledger concurrency (AD-22, BR-STK-001)', () => {
       await tx.execute(sql`SELECT 1 FROM stock_balance WHERE tenant_id = ${t.tenantId} AND sku_id = ${t.skuA} FOR UPDATE`)
       await held
     })
-    // Beri waktu holder mengambil kunci.
+    // Give the holder time to take the lock.
     await new Promise((r) => setTimeout(r, 200))
 
     const started = Date.now()
     const waiter = applyOnce(t, [sale(t, t.skuA, '1')]).then(
       () => ({ ok: true as const }),
       (err: unknown) => {
-        // Drizzle membungkus galat driver di `cause`; kode SQLSTATE ada di salah satunya.
+        // Drizzle wraps driver errors in `cause`; the SQLSTATE code is in one of them.
         const e = err as { code?: string; cause?: { code?: string } }
         return { ok: false as const, code: e.code ?? e.cause?.code }
       },

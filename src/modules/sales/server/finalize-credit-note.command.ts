@@ -151,7 +151,7 @@ export const finalizeCreditNoteCommandHandler: CommandHandler<
     const saleLineIds = payload.lines.map((l) => l.sale_line_id)
     const lockedLines = await lockSaleLinesOrderedForUpdate(tx, tenantId, saleLineIds)
     const priorReturns = await sumPriorCreditNoteReturns(tx, tenantId, saleLineIds)
-    // Total HPP & qty KEMBALI_STOK sebelum retur ini (dibaca sebelum baris retur ini ditulis).
+    // Total COGS and KEMBALI_STOK qty before this return (read before this return's lines are written).
     const priorStockReturns = await loadReturnedTotals(tx, tenantId, saleLineIds)
     const saleStockInfo = await loadSaleLineStockInfo(tx, tenantId, saleLineIds)
 
@@ -219,7 +219,7 @@ export const finalizeCreditNoteCommandHandler: CommandHandler<
       cnConflictIdx: seriesOutcome.conflictIdx,
     })
 
-    // 4b. Stok retur (Fase 53): KEMBALI_STOK membuat RETURN_IN dan cost_returned (BR-HPP-007).
+    // 4b. Return stock: KEMBALI_STOK creates RETURN_IN and cost_returned (BR-HPP-007).
     const stockReturn = await getSaleStockPort().applyReturn(tx, {
       tenantId,
       outletId: ctx.device.outletId,

@@ -31,12 +31,12 @@ test.describe('F3-K04 cetak tidak menggagalkan checkout', () => {
       .toBe(3)
     await openShiftUi(page, 100_000)
 
-    // WebUSB tidak tersedia di headless: cetak akan gagal.
+    // WebUSB is not available in headless mode: printing will fail.
     await selectPrinterAdapter(page, 'WebUSB')
     await scanBarcode(page, F3_PRODUCTS.kopi.barcode)
     await payAndFinish(page, [{ method: 'CASH', amount: 20_500 }])
 
-    // Checkout selesai dan banner gagal cetak tampil; transaksi tetap tersimpan lokal.
+    // Checkout completes and the print-failed banner shows; the transaction stays saved locally.
     await expect(page.getByText('Struk gagal dicetak', { exact: false })).toBeVisible({ timeout: 30_000 })
     await expect
       .poll(async () => (await readPrintJobs(page)).some((j) => j.kind === 'RECEIPT' && j.status === 'FAILED'), {
@@ -46,7 +46,7 @@ test.describe('F3-K04 cetak tidak menggagalkan checkout', () => {
     const outbox = await readOutbox(page)
     expect(outbox.some((r) => r.type === 'FinalizeSale')).toBe(true)
 
-    // Jalur diperbaiki ke cetak virtual, lalu cetak ulang job gagal dari daftar Pengaturan Perangkat.
+    // Path fixed to virtual printing, then retry the failed job from the Device Settings list.
     await selectPrinterAdapter(page, 'Virtual (Uji)', { retryFailed: true })
     await expect
       .poll(async () => (await readPrintJobs(page)).some((j) => j.kind === 'REPRINT' && j.status === 'DONE'), {

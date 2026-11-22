@@ -30,9 +30,9 @@ export function percentOf(base: Money, percent: string): Money {
 /**
  * Largest Remainder allocation (BR-MNY-006):
  * `total >= 0`, all `weights[i] >= 0` safe integers, `sum(weights) > 0`.
- * Fractional ties are broken in favor of the smaller `tieRank` (BR-MNY-006 langkah 4: nomor baris/bill
- * anak yang lebih kecil). Bila `tieRank` tidak diberikan, urutan indeks array dipakai. Hasil tidak boleh
- * bergantung pada urutan penyajian baris bila pemanggil memberi `tieRank` yang unik.
+ * Fractional ties are broken in favor of the smaller `tieRank` (BR-MNY-006 step 4: line or child-bill number).
+ * If `tieRank` is not given, array index order is used. The result must not depend
+ * on the order lines are presented when the caller passes a unique `tieRank`.
  */
 export function allocateLR(total: Money, weights: readonly number[], tieRank?: readonly number[]): Money[] {
   if (!Number.isSafeInteger(total) || total < 0) {
@@ -130,8 +130,8 @@ export function ratioRound(base: Money, numerator: string, denominator: string):
 }
 
 /**
- * `R(value × num / den)` half-up simetris (BR-MNY-003): perkalian lalu pembagian dalam Decimal presisi
- * penuh, pembulatan hanya sekali di akhir. `den` wajib > 0 (QtyError NOT_POSITIVE).
+ * `R(value × num / den)` symmetric half-up (BR-MNY-003): multiply, then divide in full-precision Decimal,
+ * rounding only once at the end. `den` must be > 0 (QtyError NOT_POSITIVE).
  */
 export function proRate(value: Money, num: Qty, den: Qty): Money {
   if (typeof value !== 'number' || !Number.isSafeInteger(value)) {

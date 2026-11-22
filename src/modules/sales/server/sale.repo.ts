@@ -221,8 +221,8 @@ export async function getShiftCashSalesAndRefundTotals(
 }
 
 /**
- * Menulis HPP hasil server: `sale.cost_total` dan `sale_line.cost_snapshot` (set-based, Fase 53).
- * Baris tanpa biaya (tidak dilacak) dibiarkan NULL.
+ * Writes the server-computed COGS: `sale.cost_total` and `sale_line.cost_snapshot` (set-based).
+ * Lines without a cost (not tracked) are left NULL.
  */
 export async function persistSaleCosts(
   tx: TenantTx,
@@ -263,7 +263,7 @@ export interface SaleStockLineRow {
   readonly returnedCost: number
 }
 
-/** Konteks stok sebuah penjualan: outlet, tanggal bisnis, dan baris beserta total retur KEMBALI_STOK-nya. */
+/** Stock context of a sale: outlet, business date, and its lines with their KEMBALI_STOK return totals. */
 export async function loadSaleStockContext(
   tx: TenantTx,
   tenantId: string,
@@ -310,7 +310,7 @@ export async function loadSaleStockContext(
   }
 }
 
-/** Total retur KEMBALI_STOK per baris penjualan (dipakai retur untuk `returned_before`). */
+/** KEMBALI_STOK return totals per sale line (used by returns for `returned_before`). */
 export async function loadReturnedTotals(
   tx: TenantTx,
   tenantId: string,

@@ -24,8 +24,8 @@ import { writeMaster } from '../../../src/modules/sync/public'
 import { withTenant } from '../../../src/server/db'
 
 /**
- * Seed khusus uji F3 (K01-K12). Seluruh data dibuat lewat layanan server (bukan UI).
- * PIN uji hanya ada di berkas ini dan tidak pernah dicetak ke log.
+ * Seed for the F3 tests (K01-K12). All data is created through server services (not the UI).
+ * The test PINs exist only in this file and are never printed to the log.
  */
 
 const idGen = createIdGenerator({
@@ -37,7 +37,7 @@ const idGen = createIdGenerator({
   },
 })
 
-/** Tanggal lokal Asia/Jakarta (UTC+7) hari ini, format YYYY-MM-DD. */
+/** Today's local date in Asia/Jakarta (UTC+7), format YYYY-MM-DD. */
 function jakartaToday(): string {
   return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
 }
@@ -70,8 +70,8 @@ export interface F3Tenant {
 }
 
 /**
- * Membuat tenant F3: owner, PT PKP non-aktif, OUT01 (PPN 11% eksklusif, pembulatan 100),
- * register POS01 & POS02, staf Dewi (kasir) dan Sari (supervisor), metode bayar QRIS, katalog 3 produk.
+ * Creates the F3 tenant: owner, inactive PKP company, OUT01 (11% exclusive VAT, rounding to 100),
+ * registers POS01 & POS02, staff Dewi (cashier) and Sari (supervisor), QRIS payment method, and a catalog of 3 products.
  */
 export async function createF3Tenant(prefix: string): Promise<F3Tenant> {
   const slug = `${prefix}-${idGen.newId().slice(-8)}`.toLowerCase()
@@ -205,7 +205,7 @@ export async function createF3Tenant(prefix: string): Promise<F3Tenant> {
   }
 }
 
-/** Membuat kode pairing untuk satu register (diterbitkan oleh owner). */
+/** Creates a pairing code for one register (issued by the owner). */
 export async function pairingCodeFor(t: F3Tenant, registerId: string): Promise<string> {
   const res = await createPairingCode(t.ownerActor, registerId)
   return res.code

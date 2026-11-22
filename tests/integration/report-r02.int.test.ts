@@ -117,7 +117,7 @@ describe('laporan R-02 stok & nilai persediaan (FR-RPT-003, K04)', () => {
   })
 })
 
-// Kontrol: applyMovements langsung tetap menghasilkan saldo yang dibaca R-02 (tanpa dokumen).
+// Control: applyMovements called directly still produces the balance that R-02 reads (no documents).
 describe('R-02 membaca saldo dari ledger langsung', () => {
   it('movement langsung terlihat di laporan', async () => {
     const t = await setupInventoryTenant('r02-direct')

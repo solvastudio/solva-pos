@@ -1,4 +1,4 @@
-/** Bentuk baris daftar dokumen stok (sesuai keluaran layanan inventori, dipakai di sisi klien). */
+/** Row shapes for stock document lists (match the inventory service output, used on the client). */
 
 export interface GrRow {
   readonly id: string

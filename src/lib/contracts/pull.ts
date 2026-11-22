@@ -68,7 +68,7 @@ export const PullRequest = z
     page_size: z.number().int().min(1).max(500).default(500),
     attention_ids: z.array(z.uuid()).max(100).default([]),
     report: DeviceReportSchema.optional(),
-    /** Etag snapshot stok yang terakhir diterima klien (Fase 53); `null`/absen = belum ada. */
+    /** Etag of the last stock snapshot the client received; `null`/absent = none yet. */
     stock_etag: z.string().regex(/^[0-9a-f]{16}$/).nullable().optional(),
   })
   .strict()
@@ -94,7 +94,7 @@ export const PullResyncRequiredResponse = z.object({
   reason: z.enum(['CURSOR_BELOW_FLOOR', 'SCHEMA_INCOMPATIBLE']),
 })
 
-/** Snapshot stok outlet (kelas P; BR-STK-005). Dikirim hanya pada halaman terakhir dan bila etag berubah. */
+/** Outlet stock snapshot (class P; BR-STK-005). Sent only on the last page and when the etag changes. */
 export const StockSnapshotBlockSchema = z.object({
   etag: z.string().regex(/^[0-9a-f]{16}$/),
   as_of_server_time: z.iso.datetime(),

@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { withTenant } from '~/server/db'
 
-/** Pilihan SKU aktif untuk form dokumen stok (GR, transfer, opname). UOM = base UOM produk. */
+/** Active SKU options for stock document forms (GR, transfer, stocktake). UOM = the product's base UOM. */
 
 export interface SkuOption {
   readonly skuId: string

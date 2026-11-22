@@ -34,7 +34,7 @@ export interface FeedTableSpec<T extends PgTable> {
    * - Small tables whose scope can move rows OUT of scope (e.g. `app_user`, `user_outlet`,
    *   `register_invoice_prefix`) keep `selectKeys` scoped by tenant only so scope departures still
    *   enter `hydrate` and emit `op: 'delete'` via `inScope`.
-   * - Large tables (e.g. outlet-scoped entities or catalog in Fase 33) filter outlet in `selectKeys`.
+   * - Large tables (e.g. outlet-scoped entities or catalog) filter outlet in `selectKeys`.
    */
   selectScopeWhere?: (scope: FeedScope) => SQL | undefined
   /**

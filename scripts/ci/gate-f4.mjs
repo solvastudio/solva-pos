@@ -4,18 +4,18 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
 /**
- * Gerbang F4 (K01–K04). Status tiap K dihitung dari hasil tes nyata (JSON reporter),
- * bukan diketik tangan. Berhenti pada langkah pertama yang gagal.
+ * F4 gate (K01–K04). The status of each K is computed from real test results (JSON reporter),
+ * not typed by hand. Stops at the first failing step.
  */
 
 const root = resolve(import.meta.dirname, '../..')
-// Laporan JSON disimpan di luar folder yang dibersihkan oleh setup E2E (tests/e2e/.logs).
+// JSON reports are stored outside the folder that the E2E setup cleans (tests/e2e/.logs).
 const reportDir = join(tmpdir(), 'solva-gate-f4')
 const unitJson = join(reportDir, 'unit.json')
 const dbJson = join(reportDir, 'db.json')
 const e2eJson = join(reportDir, 'e2e.json')
 
-/** Vektor uji F4 (PRD Lampiran D) yang harus muncul di tes sumber. */
+/** F4 test-vector IDs (PRD Appendix D) that must appear in the source tests. */
 const F4_VECTOR_IDS = ['V-12', 'V-13', 'V-14', 'V-15', 'V-16']
 
 function runNpm(args, extraEnv = {}) {
@@ -47,7 +47,7 @@ function runStep(label, args, extraEnv = {}) {
   }
 }
 
-/** Mengumpulkan {file, title, ok} dari laporan JSON Vitest. */
+/** Collects {file, title, ok} from the Vitest JSON report. */
 function readVitestJson(path) {
   if (!existsSync(path)) return []
   const data = JSON.parse(readFileSync(path, 'utf8'))
@@ -60,7 +60,7 @@ function readVitestJson(path) {
   return out
 }
 
-/** Mengumpulkan {title, ok} dari laporan JSON Playwright (suite bersarang). */
+/** Collects {title, ok} from the Playwright JSON report (nested suites). */
 function readPlaywrightJson(path) {
   if (!existsSync(path)) return []
   const data = JSON.parse(readFileSync(path, 'utf8'))
@@ -88,7 +88,7 @@ function listFiles(dir, out = []) {
   return out
 }
 
-/** Memastikan setiap ID vektor F4 muncul di setidaknya satu berkas tes (sisi sumber). */
+/** Ensures every F4 vector ID appears in at least one test file (source side). */
 function checkVectorCoverage() {
   const files = [...listFiles(join(root, 'src')), ...listFiles(join(root, 'tests'))]
   const missing = []

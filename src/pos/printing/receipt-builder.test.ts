@@ -266,7 +266,7 @@ describe('pos/printing/receipt-builder', () => {
     expect(idTxt).toContain('112.500')
     expect(enTxt).toContain('112,500')
     expect(enTxt).not.toContain('112.500')
-    // Bahasa struk mengikuti snapshot, bukan bahasa UI kasir.
+    // The receipt language follows the snapshot, not the cashier UI language.
     expect(enTxt).not.toBe(idTxt)
   })
 

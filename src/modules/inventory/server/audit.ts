@@ -13,7 +13,7 @@ const auditIdGen = createIdGenerator({
   },
 })
 
-/** Audit peristiwa dokumen inventori (GR/transfer/opname). Dipanggil terakhir dalam transaksi. */
+/** Audits an inventory document event (GR, transfer, stocktake). Called last within the transaction. */
 export async function auditInventoryEvent(
   tx: TenantTx,
   input: {

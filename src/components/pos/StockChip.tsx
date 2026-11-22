@@ -4,8 +4,8 @@ import { isEstimateLow } from '~/pos/domain/stock-estimate'
 import type { Qty } from '~/lib/kernel'
 
 /**
- * Chip peringatan stok estimasi ≤ 0 (FR-POS-011, DESIGN §5.2 #11). Non-blokir: tidak menonaktifkan
- * tombol apa pun dan tidak membuka dialog. Ikon + teks (bukan warna saja); diumumkan ke pembaca layar.
+ * Warning chip for estimated stock ≤ 0 (FR-POS-011, DESIGN §5.2 #11). Non-blocking: it disables
+ * no button and opens no dialog. Icon + text (not color alone); announced to screen readers.
  */
 export function StockChip({ estimate, className }: { estimate: Qty | null; className?: string }) {
   const { t } = useTranslation()

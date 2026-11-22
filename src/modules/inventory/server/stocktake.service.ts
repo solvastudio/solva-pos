@@ -40,7 +40,7 @@ async function lockStocktake(tx: TenantTx, tenantId: string, id: string): Promis
   return { id: r.id, outletId: r.outlet_id, status: r.status, docNo: r.doc_no, businessDate: r.business_date }
 }
 
-/** Saldo kini per SKU (untuk preview dampak nilai). */
+/** Current balance per SKU (for the value-impact preview). */
 async function currentBalances(tx: TenantTx, tenantId: string, outletId: string, skuIds: readonly string[]): Promise<Map<string, StockBalance>> {
   const out = new Map<string, StockBalance>()
   if (skuIds.length === 0) return out
@@ -76,7 +76,7 @@ export interface StocktakeCreateInput {
   readonly skuIds?: readonly string[]
 }
 
-/** Membuat dokumen opname dengan snapshot saldo saat ini (BR-STK-030/031). Tanpa mengunci saldo. */
+/** Creates a stocktake document with the current balance snapshot (BR-STK-030/031). Does not lock balances. */
 export async function createStocktake(actor: IdentityAuthActor, input: StocktakeCreateInput): Promise<{ id: string; docNo: string; lineCount: number }> {
   requireActorPermission(actor, 'inventory.manage', { outletId: input.outletId })
   if (input.scope === 'SELECTED' && (!input.skuIds || input.skuIds.length === 0)) {
@@ -166,7 +166,7 @@ async function loadStocktakeLines(tx: TenantTx, tenantId: string, id: string): P
   }))
 }
 
-/** Preview dampak nilai sebelum posting (dialog konfirmasi). Memakai saldo kini; tidak menulis apa pun. */
+/** Value-impact preview before posting (confirmation dialog). Uses the current balance; writes nothing. */
 export async function previewStocktake(actor: IdentityAuthActor, id: string): Promise<{ lineCount: number; totalDeltaValue: number }> {
   return withTenant(actor.tenantId, async (tx) => {
     const res = await tx.execute<{ outlet_id: string; status: string }>(sql`
@@ -189,8 +189,8 @@ export async function previewStocktake(actor: IdentityAuthActor, id: string): Pr
 }
 
 /**
- * Posting opname (BR-STK-030..032): untuk tiap baris `delta = hitungan − snapshot` diterapkan sebagai
- * ADJUST terhadap saldo SAAT POSTING (penjualan setelah snapshot tidak hilang, BR-STK-031).
+ * Posts a stocktake (BR-STK-030..032): for each line, `delta = counted − snapshot` is applied as
+ * ADJUST against the balance AT POSTING TIME (sales after the snapshot are not lost, BR-STK-031).
  */
 export async function postStocktake(actor: IdentityAuthActor, id: string): Promise<{ docNo: string; totalDeltaValue: number; applied: number }> {
   return withTenant(actor.tenantId, async (tx) => {

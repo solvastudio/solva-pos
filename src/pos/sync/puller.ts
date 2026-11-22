@@ -114,7 +114,7 @@ export async function runIncrementalPull(
   let lastServerTimeMs: number | undefined
   let stagedRowCount = 0
 
-  // Etag snapshot stok terakhir (Fase 53); server hanya mengirim blok `stock` bila berubah.
+  // Etag of the last stock snapshot; the server only sends the `stock` block when it changes.
   const stockEtag = (await getMeta(opts.db, 'stock_snapshot_meta'))?.etag ?? null
 
   while (true) {
@@ -215,7 +215,7 @@ export async function runIncrementalPull(
         immediate: opts.immediateApply,
       })
 
-      // Snapshot stok: galat tidak boleh menggagalkan siklus pull (dicatat saja).
+      // Stock snapshot: an error must not fail the pull cycle (logged only).
       if (parsed.stock && parsed.stock !== 'unchanged') {
         await applyStockSnapshot(opts.db, parsed.stock).catch(() =>
           logDevice(opts.db, {

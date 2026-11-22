@@ -3,7 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
 import { stockBalance, stockMovement } from './schema'
 
-/** Kunci baris saldo yang dikunci: (outlet_id, sku_id) terurut ASC (AD-22). */
+/** Lock keys for balance rows: (outlet_id, sku_id) in ascending order (AD-22). */
 export interface BalanceKey {
   readonly outletId: string
   readonly skuId: string
@@ -42,12 +42,12 @@ export interface MovementInsert {
   readonly createdBy: string | null
 }
 
-/** Batas tunggu kunci baris saldo (5 dtk); pemanggil memetakan `lock_not_available` ke RETRY (Fase 53). */
+/** Lock wait limit for balance rows (5 s); callers map `lock_not_available` to RETRY. */
 export async function setLedgerLockTimeout(tx: TenantTx): Promise<void> {
   await tx.execute(sql`SET LOCAL lock_timeout = '5s'`)
 }
 
-/** Membuat baris saldo yang belum ada (malas). Set-based, aman dari perlombaan (ON CONFLICT DO NOTHING). */
+/** Creates balance rows that do not exist yet (lazily). Set-based and race-safe (ON CONFLICT DO NOTHING). */
 export async function ensureBalanceRows(tx: TenantTx, tenantId: string, keys: readonly BalanceKey[]): Promise<void> {
   if (keys.length === 0) return
   await tx
@@ -68,8 +68,8 @@ export async function ensureBalanceRows(tx: TenantTx, tenantId: string, keys: re
 }
 
 /**
- * Mengunci baris saldo `FOR UPDATE` dalam urutan (outlet_id, sku_id) ASC (AD-22).
- * Urutan ini mencegah deadlock antar transaksi yang menyentuh SKU yang sama.
+ * Locks balance rows with `FOR UPDATE` in (outlet_id, sku_id) ASC order (AD-22).
+ * This order prevents deadlocks between transactions that touch the same SKUs.
  */
 export async function lockBalancesOrdered(tx: TenantTx, tenantId: string, keys: readonly BalanceKey[]): Promise<BalanceRow[]> {
   if (keys.length === 0) return []
@@ -103,7 +103,7 @@ export async function lockBalancesOrdered(tx: TenantTx, tenantId: string, keys: 
   }))
 }
 
-/** Movement yang sudah ada untuk kunci idempotensi (tenant, source_type, source_id, sku_id, movement_type). */
+/** Existing movements for an idempotency key (tenant, source_type, source_id, sku_id, movement_type). */
 export async function findExistingMovements(
   tx: TenantTx,
   tenantId: string,
@@ -142,7 +142,7 @@ export async function findExistingMovements(
   return out
 }
 
-/** Insert set-based untuk seluruh movement baru dalam satu panggilan. */
+/** Set-based insert of all new movements in a single call. */
 export async function insertMovements(tx: TenantTx, rows: readonly MovementInsert[]): Promise<void> {
   if (rows.length === 0) return
   await tx.insert(stockMovement).values(
@@ -171,7 +171,7 @@ export async function insertMovements(tx: TenantTx, rows: readonly MovementInser
   )
 }
 
-/** Satu UPDATE per kunci saldo setelah seluruh intent kunci tersebut diterapkan. */
+/** One UPDATE per balance key, after all intents for that key have been applied. */
 export async function updateBalance(
   tx: TenantTx,
   tenantId: string,

@@ -596,7 +596,7 @@ export async function applyCommandUpdatesInDb(
   return applied
 }
 
-/** Seluruh baris `outbox_command` (khusus hook E2E/diagnostik; tidak dipakai alur kasir). */
+/** All `outbox_command` rows (E2E/diagnostic hook only; not used by the cashier flow). */
 export async function listAllOutboxRows(db: SolvaDb): Promise<OutboxCommandRow[]> {
   return db.outbox_command.toArray()
 }

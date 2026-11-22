@@ -3,7 +3,7 @@ import { postGr, saveGrDraft, saveTransferDraft, sendTransfer } from '~/modules/
 import { closePools } from '~/server/db'
 import { enableOutletInventory, setupInventoryTenant, type InventoryTenant } from './helpers/inventory'
 
-/** Posting GR satu baris (nilai 1.000) dan mengembalikan nomor dokumen final. */
+/** Posts one GR line (value 1,000) and returns the final document number. */
 async function postOneGr(t: InventoryTenant, outletId: string, businessDate: string): Promise<string> {
   const d = await saveGrDraft(t.actor, {
     outletId,

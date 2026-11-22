@@ -31,15 +31,15 @@ import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import type { GrRow, StocktakeRow, SupplierView, TransferRow } from './stock-doc-types'
 
 /**
- * SCR-A06 — dokumen stok: penerimaan barang (GR), transfer antar outlet, opname, dan pemasok.
- * Setiap aksi memanggil layanan server; validasi dan angka sepenuhnya di server.
+ * SCR-A06 — stock documents: goods receipt (GR), inter-outlet transfers, stocktake, and suppliers.
+ * Every action calls a server service; validation and figures live entirely on the server.
  */
 
 function todayIso(): string {
   return new Date().toLocaleDateString('en-CA')
 }
 
-/** Uang untuk input: hanya digit, dikonversi ke bilangan bulat rupiah. */
+/** Money input: digits only, converted to an integer rupiah amount. */
 function parseMoneyInput(raw: string): number | null {
   const digits = raw.replace(/[^\d]/g, '')
   if (digits.length === 0) return null
@@ -82,7 +82,7 @@ function useSkuOptions() {
   return query.data ?? []
 }
 
-/* ─────────────────────────── Penerimaan barang ─────────────────────────── */
+/* ─────────────────────────── Goods receipt ─────────────────────────── */
 
 interface GrDraftLine {
   skuId: string
@@ -289,7 +289,7 @@ function ReceiptsTab() {
   )
 }
 
-/* ─────────────────────────── Transfer antar outlet ─────────────────────────── */
+/* ─────────────────────────── Inter-outlet transfer ─────────────────────────── */
 
 function TransfersTab() {
   const { t } = useTranslation()
@@ -472,7 +472,7 @@ function ReceiveTransferDialog({ transferId, onClose }: { transferId: string; on
   )
 }
 
-/* ─────────────────────────── Opname ─────────────────────────── */
+/* ─────────────────────────── Stocktake ─────────────────────────── */
 
 function StocktakesTab() {
   const { t } = useTranslation()
@@ -664,7 +664,7 @@ function CountDialog({ stocktakeId, onClose }: { stocktakeId: string; onClose: (
   )
 }
 
-/* ─────────────────────────── Pemasok ─────────────────────────── */
+/* ─────────────────────────── Suppliers ─────────────────────────── */
 
 function SuppliersTab() {
   const { t } = useTranslation()

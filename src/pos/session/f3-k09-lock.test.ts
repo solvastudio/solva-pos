@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createIdleLockController, IDLE_LOCK_TIMEOUT_MS } from './idle-lock'
 
 /**
- * F3-K09: kunci layar otomatis 10 menit. Keranjang tetap utuh (controller hanya memicu kunci),
- * timer berhenti saat pembayaran atau dialog PIN supervisor terbuka, dan aktivitas mereset hitungan.
+ * F3-K09: auto-lock after 10 minutes of inactivity. The cart stays intact (the controller only triggers the lock),
+ * the timer stops while a payment or supervisor PIN dialog is open, and activity resets the count.
  */
 describe('F3-K09 kunci layar otomatis 10 menit', () => {
   afterEach(() => {
@@ -25,24 +25,24 @@ describe('F3-K09 kunci layar otomatis 10 menit', () => {
       onLock,
     })
 
-    // 9 menit idle: belum terkunci.
+    // 9 minutes idle: not locked yet.
     perfMs += 9 * 60_000
     ctrl.tick()
     expect(onLock).not.toHaveBeenCalled()
 
-    // Dialog bayar/PIN supervisor terbuka selama 30 menit: hitungan tidak berkurang.
+    // Payment or supervisor PIN dialog open for 30 minutes: the count does not decrease.
     paused = true
     perfMs += 30 * 60_000
     ctrl.tick()
     expect(onLock).not.toHaveBeenCalled()
     expect(ctrl.remainingMs()).toBe(60_000)
 
-    // Dialog ditutup, lalu ada aktivitas: hitungan kembali penuh.
+    // Dialog closed, then activity: the count is fully reset.
     paused = false
     ctrl.markActivity()
     expect(ctrl.remainingMs()).toBe(IDLE_LOCK_TIMEOUT_MS)
 
-    // 10 menit idle sejak aktivitas terakhir: terkunci sekali.
+    // 10 minutes idle since the last activity: locked once.
     perfMs += IDLE_LOCK_TIMEOUT_MS
     ctrl.tick()
     ctrl.tick()

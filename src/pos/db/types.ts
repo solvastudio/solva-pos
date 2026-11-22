@@ -30,7 +30,7 @@ export const META_SCHEMAS = {
     server_time_at_measure: z.number().optional(),
   }),
   last_success_sync_at: z.string().min(1).nullable(),
-  /** Metadata snapshot stok terakhir (Fase 53): etag untuk permintaan berikutnya dan acuan estimasi. */
+  /** Last stock snapshot metadata: etag for the next request and the estimate reference. */
   stock_snapshot_meta: z
     .object({
       etag: z.string().regex(/^[0-9a-f]{16}$/),
@@ -90,7 +90,7 @@ export const META_SCHEMAS = {
   }),
   printer: z
     .object({
-      // Legacy shape compatibility (existing meta tests) + Fase 47 local printer config
+      // Legacy shape compatibility (existing meta tests) + local printer config
       mode: z.enum(['browser', 'escpos']).optional(),
       printer_id: z.string().optional(),
       width_mm: z.union([z.literal(58), z.literal(80)]).optional(),

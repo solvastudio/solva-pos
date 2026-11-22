@@ -4,18 +4,18 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
 /**
- * Gerbang F3 (K01–K12). Status tiap K dihitung dari hasil tes nyata (JSON reporter),
- * bukan diketik tangan. Berhenti pada langkah pertama yang gagal.
+ * F3 gate (K01–K12). The status of each K is computed from real test results (JSON reporter),
+ * not typed by hand. Stops at the first failing step.
  */
 
 const root = resolve(import.meta.dirname, '../..')
-// Laporan JSON disimpan di luar folder yang dibersihkan oleh setup E2E (tests/e2e/.logs).
+// JSON reports are stored outside the folder that the E2E setup cleans (tests/e2e/.logs).
 const reportDir = join(tmpdir(), 'solva-gate-f3')
 const unitJson = join(reportDir, 'unit.json')
 const dbJson = join(reportDir, 'db.json')
 const e2eJson = join(reportDir, 'e2e.json')
 
-/** Daftar ID vektor uji F3 (PRD Lampiran D) yang harus muncul di tes sumber. */
+/** F3 test-vector IDs (PRD Appendix D) that must appear in the source tests. */
 const F3_VECTOR_IDS = ['V-04', 'V-05', 'V-06', 'V-07', 'V-08', 'V-09', 'V-10', 'V-11', 'V-18', 'V-21', 'V-30']
 
 function runNpm(args, extraEnv = {}) {
@@ -47,7 +47,7 @@ function runStep(label, args, extraEnv = {}) {
   }
 }
 
-/** Mengumpulkan {title, ok} dari laporan JSON Vitest. */
+/** Collects {title, ok} from the Vitest JSON report. */
 function readVitestJson(path) {
   if (!existsSync(path)) return []
   const data = JSON.parse(readFileSync(path, 'utf8'))
@@ -60,7 +60,7 @@ function readVitestJson(path) {
   return out
 }
 
-/** Mengumpulkan {title, ok} dari laporan JSON Playwright (suite bersarang). */
+/** Collects {title, ok} from the Playwright JSON report (nested suites). */
 function readPlaywrightJson(path) {
   if (!existsSync(path)) return []
   const data = JSON.parse(readFileSync(path, 'utf8'))
@@ -88,7 +88,7 @@ function listFiles(dir, out = []) {
   return out
 }
 
-/** Memastikan setiap ID vektor F3 muncul di setidaknya satu berkas tes (sisi sumber). */
+/** Ensures every F3 vector ID appears in at least one test file (source side). */
 function checkVectorCoverage() {
   const files = [...listFiles(join(root, 'src')), ...listFiles(join(root, 'tests'))]
   const missing = []
@@ -125,8 +125,8 @@ function main() {
     '--reporter=json',
     `--outputFile.json=${dbJson}`,
   ], { FC_NUM_RUNS: '200' })
-  // Pemeriksaan Nginx membutuhkan Docker. Di mesin tanpa Docker dilewati dengan peringatan (sama dengan gate:f1);
-  // CI wajib menjalankannya.
+  // The Nginx check needs Docker. On machines without Docker it is skipped with a warning (same as gate:f1);
+  // CI must run it.
   if (dockerReady()) {
     runStep('Nginx Rate-Limit Check', ['run', 'test:nginx'])
   } else {

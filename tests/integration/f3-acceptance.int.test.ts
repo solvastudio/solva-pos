@@ -43,8 +43,8 @@ const idGen = createIdGenerator({
 const RECOVERY_NOW = '2026-11-20T12:00:00.000Z'
 
 /**
- * Membuat tenant + owner + outlet + legal entity + register (sama seperti pola tes F3 lain).
- * Mengembalikan actor OWNER dan identitas penjualan.
+ * Creates a tenant + owner + outlet + legal entity + register (same pattern as the other F3 tests).
+ * Returns the OWNER actor and the sale identities.
  */
 async function setupOwnerOutlet(slug: string, legalName: string) {
   const testOp = { platformUserId: idGen.newId(), email: `${slug}@example.test` }
@@ -104,7 +104,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     for (const vector of SALES_CALC_VECTORS) {
       const cashRoundingUnit = vector.settlement?.cashRoundingUnit ?? 100
 
-      // Figur bill (calcSale) harus persis sesuai nilai kanonik vektor.
+      // The bill figures (calcSale) must match the canonical vector values exactly.
       const calc = calcSale(vector.input)
       for (const key of [
         'grossTotal',
@@ -123,7 +123,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
 
       if (!vector.settlement) continue
 
-      // Pembayaran, pembulatan tunai, dan verifikasi angka (verifySale dipakai server).
+      // Payment, cash rounding, and figure verification (used by the server verifySale).
       const payments = vector.settlement.payments
       const { calc: settledCalc, settlement } = calcAndSettle(vector.input, payments, cashRoundingUnit)
       expect(settlement.rounding, `${vector.id} rounding`).toBe(vector.settlement.expected.rounding)
@@ -166,13 +166,13 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       registerType: 'CASHIER',
       invoicePrefix: 'OUT01-POS01',
     })
-    // Recovery memerlukan perangkat lama yang pernah terdaftar pada register ini.
+    // Recovery requires an old device that was once registered on this register.
     const pairing = await createPairingCode(actor, reg.id)
     await enrollDevice({ slug, code: pairing.code, device_name: 'POS-K05' }, '10.50.0.9', {
       minDelayMs: 0,
     })
 
-    // Manajer menyatakan register terakhir mencapai nomor 127 (BR-INV-008).
+    // The manager declares the last register reached number 127 (BR-INV-008).
     const recoveryRes = await recoverRegister(
       actor,
       {
@@ -255,7 +255,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
           [created.tenantId, v, pId],
         )
       ).rows[0]!.id
-      // Metode bayar CASH sudah di-seed saat tenant dibuat; pakai yang ada (uq tenant+code).
+      // The CASH payment method is seeded when the tenant is created; reuse it (uq tenant+code).
       const cashMethodId = (
         await c.query<{ id: string }>(
           `SELECT id FROM payment_method WHERE tenant_id = $1 AND code = 'CASH' AND deleted_at IS NULL LIMIT 1`,
@@ -263,7 +263,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
         )
       ).rows[0]!.id
 
-      // Item ditandai UNAVAILABLE pada versi lebih baru (09:00 UTC).
+      // Item marked UNAVAILABLE in a newer version (09:00 UTC).
       await c.query(
         `INSERT INTO item_outlet_availability (tenant_id, version, product_id, sku_id, outlet_id, status, changed_at)
          VALUES ($1, $2, $3, $4, $5, 'UNAVAILABLE', '2026-11-20T09:00:00.000Z')`,
@@ -273,7 +273,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       return { prodKopi: { pId, sId, code: 'SKU1', name: 'Kopi' }, pcsId, cashMethodId }
     })
 
-    // Buka shift.
+    // Open the shift.
     const shiftId = idGen.newId()
     await processPush(
       syncDevice,
@@ -305,7 +305,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       { schemaVersion: 1, appVersion: 'v0.3.0', syncProtocol: 1, requestRef: 'sh-k07' },
     )
 
-    // Penjualan offline pukul 10:00 UTC dengan cursor katalog lama (1 < 10): harus DITERIMA dan ditandai.
+    // Offline sale at 10:00 UTC with an old catalog cursor (1 < 10): must be ACCEPTED and flagged.
     const saleId = idGen.newId()
     const saleCmd: PushCommandEnvelope = {
       id: saleId,
@@ -423,7 +423,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       )
       expect(flags.rows.some((r) => r.flag_code === 'ITEM_TIDAK_TERSEDIA')).toBe(true)
 
-      // Figur penjualan tidak berubah oleh flag, dan rantai audit tetap utuh.
+      // The sale figures do not change because of the flag, and the audit chain stays intact.
       const chain = await verifyAuditChain(tx)
       expect(chain.ok).toBe(true)
     })
@@ -452,7 +452,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       registerType: 'CASHIER',
     }
 
-    // Perintah tidak valid secara skema -> ATTENTION (BR-SYN, AP-02).
+    // Command invalid against the schema -> ATTENTION (BR-SYN, AP-02).
     const failedCmdId = idGen.newId()
     const invalidCmd: PushCommandEnvelope = {
       id: failedCmdId,
@@ -491,7 +491,7 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
     }
     const now = Date.parse('2026-11-20T12:00:00.000Z')
 
-    // Klien di bawah versi minimum -> REQUIRED (pembaruan keras hanya saat shift tertutup, BR-VER-012b).
+    // Client below the minimum version -> REQUIRED (hard update only when the shift is closed, BR-VER-012b).
     expect(
       evaluateRelease(
         { ...base, min_supported_app_version: 'v0.3.0' },
@@ -500,13 +500,13 @@ describe('F3 Server Acceptance Suite (12 Criteria mapping)', () => {
       ),
     ).toBe('REQUIRED')
 
-    // Klien tertinggal dari latest tetapi masih di atas minimum -> SOFT.
+    // Client behind latest but still above the minimum -> SOFT.
     expect(evaluateRelease(base, { appVersion: 'v0.3.0', schemaVersion: 1 }, now)).toBe('SOFT')
 
-    // Klien sudah terbaru -> UP_TO_DATE.
+    // Client up to date -> UP_TO_DATE.
     expect(evaluateRelease(base, { appVersion: 'v0.3.1', schemaVersion: 1 }, now)).toBe('UP_TO_DATE')
 
-    // Skema klien lebih baru dari yang dipahami server -> SERVER_BEHIND (outbox ditahan).
+    // Client schema newer than the server understands -> SERVER_BEHIND (outbox held).
     expect(evaluateRelease(base, { appVersion: 'v0.3.1', schemaVersion: 2 }, now)).toBe('SERVER_BEHIND')
   })
 })

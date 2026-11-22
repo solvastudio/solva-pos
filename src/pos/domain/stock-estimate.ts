@@ -1,9 +1,9 @@
 import { cmpQty, parseQty, subQty, type Qty } from '~/lib/kernel'
 
 /**
- * Estimasi stok lokal (BR-STK-005, FR-POS-011). Murni: tanpa I/O, tanpa waktu.
- * estimate = snapshot.qty − Σ qty_base penjualan lokal dengan device_seq > acked_device_seq.
- * Retur lokal tidak menambah estimasi (informasional); estimasi tidak pernah menulis `stock_snapshot`.
+ * Local stock estimate (BR-STK-005, FR-POS-011). Pure: no I/O, no clock.
+ * estimate = snapshot.qty − Σ qty_base of local sales with device_seq > acked_device_seq.
+ * Local returns do not increase the estimate (informational only); the estimate never writes `stock_snapshot`.
  */
 
 export interface LocalStockSale {
@@ -12,7 +12,7 @@ export interface LocalStockSale {
   readonly deviceSeq: number
 }
 
-/** `null` bila SKU tidak ada di snapshot — tidak ditampilkan (BR-STK-005). */
+/** `null` when the SKU is not in the snapshot; not displayed (BR-STK-005). */
 export function estimateStock(input: {
   readonly skuId: string
   readonly snapshotQty: Qty | null
@@ -29,7 +29,7 @@ export function estimateStock(input: {
   return estimate
 }
 
-/** Chip peringatan bila estimasi ≤ 0 (tidak memblokir apa pun). */
+/** Warning chip when the estimate is ≤ 0 (blocks nothing). */
 export function isEstimateLow(estimate: Qty | null): boolean {
   return estimate !== null && cmpQty(estimate, parseQty('0')) <= 0
 }

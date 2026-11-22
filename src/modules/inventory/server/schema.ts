@@ -15,11 +15,11 @@ import {
 import { stdDColumns, stdLColumns, stdSColumns } from './std-columns'
 
 /**
- * Skema inventori F4 (SCHEMA §4.3.2–4.3.7). FK lintas modul & komposit tenant ditambahkan di migrasi kustom
- * (pola Fase 30/40); kolom `tenant_id` dan RLS dipasang di migrasi kustom juga.
+ * F4 inventory schema (SCHEMA §4.3.2–4.3.7). Cross-module FKs and tenant composite keys are added in custom migrations
+ * (same pattern as earlier migrations); the `tenant_id` columns and RLS are also set up in custom migrations.
  */
 
-/** Saldo per (outlet, SKU): kelas P, dibaca device lewat snapshot terpisah. Tanpa CHECK qty ≥ 0 (DB-02). */
+/** Balance per (outlet, SKU): class P, read by devices through a separate snapshot. No CHECK qty ≥ 0 (DB-02). */
 export const stockBalance = pgTable(
   'stock_balance',
   {
@@ -45,7 +45,7 @@ export const stockBalance = pgTable(
   ],
 )
 
-/** Kartu stok / ledger (kelas L, append-only; UPDATE/DELETE dicabut dan ditolak trigger). */
+/** Stock card / ledger (class L, append-only; UPDATE and DELETE revoked and rejected by trigger). */
 export const stockMovement = pgTable(
   'stock_movement',
   {
@@ -82,7 +82,7 @@ export const stockMovement = pgTable(
   ],
 )
 
-/** Pemasok referensi sederhana (kelas S, server-saja). */
+/** Simple reference supplier (class S, server-only). */
 export const supplier = pgTable(
   'supplier',
   {
@@ -99,7 +99,7 @@ export const supplier = pgTable(
   ],
 )
 
-/** Dokumen penerimaan barang (kelas D). `REVERSAL` membuat movement berlawanan (BR-STK-022). */
+/** Goods receipt document (class D). `REVERSAL` creates opposite movements (BR-STK-022). */
 export const goodsReceipt = pgTable(
   'goods_receipt',
   {
@@ -152,7 +152,7 @@ export const goodsReceiptLine = pgTable(
   ],
 )
 
-/** Transfer antar outlet dua langkah (kelas D). `outlet_id` = outlet asal (STD-D). */
+/** Two-step inter-outlet transfer (class D). `outlet_id` = source outlet (STD-D). */
 export const transfer = pgTable(
   'transfer',
   {
@@ -207,7 +207,7 @@ export const transferLine = pgTable(
   ],
 )
 
-/** Dokumen stock opname (kelas D). Snapshot saldo diambil saat dokumen dibuat (BR-STK-030/031). */
+/** Stocktake document (class D). The balance snapshot is taken when the document is created (BR-STK-030/031). */
 export const stocktake = pgTable(
   'stocktake',
   {
@@ -240,7 +240,7 @@ export const stocktakeLine = pgTable(
   ],
 )
 
-/** Pengikat tabel dipakai migrasi kustom (ekspor agar tes skema dapat memeriksa daftar tabel). */
+/** Table binder used by custom migrations (exported so schema tests can check the table list). */
 export const INVENTORY_TABLE_NAMES = [
   'stock_balance',
   'stock_movement',

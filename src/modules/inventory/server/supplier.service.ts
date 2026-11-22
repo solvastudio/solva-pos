@@ -7,8 +7,8 @@ import { withTenant } from '~/server/db'
 import { supplier as supplierTable } from './schema'
 
 /**
- * Pemasok (CRUD sederhana). `name ≤ 120` unik tanpa memperhatikan huruf besar-kecil di antara baris aktif;
- * `contact ≤ 200`. Hapus = soft-delete: GR lama tetap menunjuk baris ini (FK tetap valid).
+ * Suppliers (simple CRUD). `name ≤ 120`, unique regardless of case among active rows;
+ * `contact ≤ 200`. Delete = soft-delete: old GRs still point to this row, so the FK stays valid.
  */
 
 const idGen = createIdGenerator({
@@ -67,7 +67,7 @@ export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInpu
   const data = normalize(input)
   if (input.id !== undefined && !isUuid(input.id)) throw new AppError('VALIDATION_FAILED', 'Pemasok tidak valid')
   return withTenant(actor.tenantId, async (tx) => {
-    // Unik lower(name) di antara baris aktif (sejalan dengan indeks parsial uq_supplier__tenant_name).
+    // Unique lower(name) among active rows (matches the partial index uq_supplier__tenant_name).
     const dup = await tx.execute<{ id: string }>(sql`
       SELECT id FROM supplier
       WHERE tenant_id = ${actor.tenantId}::uuid AND deleted_at IS NULL

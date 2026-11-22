@@ -1,8 +1,8 @@
 import { expect, type Page } from '@playwright/test'
 
 /**
- * Pembantu UI kasir F3 (login PIN, shift, scan, bayar, tutup shift).
- * Semua selector memakai teks/label kunci i18n id-ID agar sama dengan yang dilihat kasir.
+ * UI helpers for the F3 cashier flow (PIN login, shift, scan, pay, close shift).
+ * All selectors use the id-ID i18n text and labels so they match what the cashier sees.
  */
 
 export interface PaymentEntry {
@@ -26,7 +26,7 @@ export async function openShiftUi(page: Page, openingCash: number): Promise<void
   await page.waitForURL(/\/pos\/(sell|shift)/, { timeout: 20_000 })
 }
 
-/** Memindai barcode dengan pola pemindai keyboard-wedge (ketikan cepat lalu Enter). */
+/** Scans a barcode with a keyboard-wedge scanner pattern (fast typing, then Enter). */
 export async function scanBarcode(page: Page, barcode: string): Promise<void> {
   const search = page.getByLabel('Cari produk atau pindai barcode')
   await search.click()
@@ -34,7 +34,7 @@ export async function scanBarcode(page: Page, barcode: string): Promise<void> {
   await page.keyboard.press('Enter')
 }
 
-/** Mengisi kolom uang (MoneyInput terformat): kosongkan lalu ketik digit. */
+/** Fills a money field (formatted MoneyInput): clear it, then type the digits. */
 async function fillMoney(page: Page, label: string, amount: number): Promise<void> {
   const input = page.getByLabel(label)
   await input.click()
@@ -56,7 +56,7 @@ async function enterPaymentEntries(page: Page, entries: readonly PaymentEntry[])
   }
 }
 
-/** Dari layar jual: buka pembayaran, isi metode, selesaikan. Mengembalikan nomor invoice dari layar selesai. */
+/** From the sell screen: open payment, fill in the methods, finish. Returns the invoice number from the finished screen. */
 export async function payAndFinish(page: Page, entries: readonly PaymentEntry[]): Promise<string> {
   await page.getByRole('button', { name: /^Bayar/ }).click({ timeout: 15_000 })
   await expect(page).toHaveURL(/\/pos\/pay/, { timeout: 10_000 })
@@ -75,7 +75,7 @@ export async function startNewSale(page: Page): Promise<void> {
   await page.waitForURL(/\/pos\/sell/, { timeout: 10_000 })
 }
 
-/** Navigasi dalam aplikasi (tanpa reload agar sesi PIN di memori tetap ada). */
+/** In-app navigation (no reload, so the in-memory PIN session survives). */
 export async function navPos(page: Page, label: 'Jual' | 'Riwayat' | 'Shift' | 'Lain'): Promise<void> {
   await page.getByRole('navigation', { name: 'Navigasi Kasir' }).first().getByRole('link', { name: label, exact: true }).click({ timeout: 15_000 })
 }
@@ -100,7 +100,7 @@ interface OutboxRowLite {
   depends_on?: string[]
 }
 
-/** Membaca seluruh baris outbox dari hook E2E (tanpa payload). */
+/** Reads all outbox rows from the E2E hook (without payload). */
 export async function readOutbox(page: Page): Promise<OutboxRowLite[]> {
   return page.evaluate(async () => {
     const handle = (window as unknown as { __solva?: { getOutbox: () => Promise<unknown[]> } }).__solva
@@ -119,7 +119,7 @@ export async function readOutbox(page: Page): Promise<OutboxRowLite[]> {
   })
 }
 
-/** Menunggu sampai seluruh outbox ACKED (online). Galat menyertakan status tiap baris. */
+/** Waits until the whole outbox is ACKED (online). The error includes each row's status. */
 export async function waitOutboxAllAcked(page: Page, timeoutMs = 60_000): Promise<number> {
   const deadline = Date.now() + timeoutMs
   let rows: OutboxRowLite[] = []
@@ -142,12 +142,12 @@ export async function readPrintJobs(page: Page): Promise<Array<{ status: string;
   })
 }
 
-/** Memilih adapter cetak virtual (uji) agar tidak memanggil window.print() di headless. */
+/** Selects the virtual (test) print adapter so window.print() is not called in headless mode. */
 export async function selectVirtualPrinter(page: Page): Promise<void> {
   await selectPrinterAdapter(page, 'Virtual (Uji)')
 }
 
-/** Memilih jalur cetak berdasarkan label opsi (mis. 'WebUSB') lalu kembali ke Jual. */
+/** Selects a print path by option label (e.g. 'WebUSB'), then returns to Sell. */
 export async function selectPrinterAdapter(
   page: Page,
   optionLabel: string,
@@ -159,7 +159,7 @@ export async function selectPrinterAdapter(
   await page.getByRole('option', { name: optionLabel, exact: true }).click({ timeout: 10_000 })
   await expect(page.locator('#printer-adapter-select')).toHaveText(optionLabel, { timeout: 10_000 })
   if (opts?.retryFailed) {
-    // Tunggu konfigurasi tersimpan sebelum mencoba ulang job gagal.
+    // Wait until the configuration is saved before retrying the failed job.
     await page.waitForTimeout(1500)
     await page.getByRole('button', { name: 'Cetak ulang', exact: true }).first().click({ timeout: 15_000 })
     return
@@ -167,7 +167,7 @@ export async function selectPrinterAdapter(
   await navPos(page, 'Jual')
 }
 
-/** Menyetujui aksi di dialog PIN Supervisor: pastikan penyetuju, isi alasan (wajib) dan PIN, konfirmasi. */
+/** Approves an action in the supervisor PIN dialog: confirm the approver, fill in the reason (required) and PIN, then confirm. */
 export async function approveWithSupervisor(
   page: Page,
   approverName: string,

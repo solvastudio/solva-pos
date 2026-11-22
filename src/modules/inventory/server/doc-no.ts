@@ -5,9 +5,9 @@ import { AppError } from '~/server/error-classify'
 import type { TenantTx } from '~/server/db'
 
 /**
- * Nomor dokumen inventori `{JENIS}-{KODE_OUTLET}-{MMYY}-{URUT4}` (BR-STK-020, SCHEMA §2.2 STD-D).
- * URUT dihitung `MAX+1` per (tenant, outlet, jenis, MMYY) di bawah advisory lock transaksi, sehingga dua
- * posting paralel menerima nomor berbeda. Tidak wajib tanpa celah. Di atas 9999 melebar menjadi 5 digit.
+ * Inventory document number `{KIND}-{OUTLET_CODE}-{MMYY}-{SEQ4}` (BR-STK-020, SCHEMA §2.2 STD-D).
+ * SEQ is `MAX+1` per (tenant, outlet, kind, MMYY), computed under a transaction advisory lock so that two
+ * parallel postings receive different numbers. Gaps are allowed. Above 9999 the sequence widens to 5 digits.
  */
 
 export type DocKind = 'GR' | 'TRF' | 'OPN'

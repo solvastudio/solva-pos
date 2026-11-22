@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
 
-/** Baris mentah R-02 dari `v_stock_valuation` yang sudah diperkaya nama dan ketersediaan efektif. */
+/** Raw R-02 rows from `v_stock_valuation`, enriched with names and effective availability. */
 export interface ValuationRawRow {
   readonly outletId: string
   readonly outletCode: string
@@ -26,8 +26,8 @@ export interface ValuationQuery {
 }
 
 /**
- * Ketersediaan efektif: baris SKU menang atas baris produk (ARCH catalog). Tanpa baris = `AVAILABLE`.
- * Baris nonaktif (deleted_at) diabaikan.
+ * Effective availability: a SKU row wins over a product row (ARCH catalog). No row means `AVAILABLE`.
+ * Inactive rows (deleted_at) are ignored.
  */
 export async function queryValuation(tx: TenantTx, tenantId: string, q: ValuationQuery): Promise<ValuationRawRow[]> {
   const outletCond = q.outletId ? sql`AND v.outlet_id = ${q.outletId}::uuid` : sql``

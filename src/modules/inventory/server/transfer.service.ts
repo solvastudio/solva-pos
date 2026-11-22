@@ -98,7 +98,7 @@ async function loadTransferLines(tx: TenantTx, tenantId: string, transferId: str
   }))
 }
 
-/** Simpan draft transfer (DRAFT saja). Outlet asal = outlet dokumen; tujuan wajib berbeda (CHK). */
+/** Saves a transfer draft (DRAFT only). Source outlet = document outlet; destination must differ (CHK). */
 export async function saveTransferDraft(
   actor: IdentityAuthActor,
   input: TransferDraftInput,
@@ -193,8 +193,8 @@ export async function cancelTransferDraft(actor: IdentityAuthActor, id: string):
 }
 
 /**
- * Kirim transfer (DRAFT → SENT, FLOW-12): keluar dari outlet asal (TRANSFER_OUT) dengan nilai rata-rata
- * asal; `value_sent` tersimpan. Barang berada di in-transit (view v_in_transit), bukan saldo outlet mana pun.
+ * Sends a transfer (DRAFT → SENT, FLOW-12): leaves the source outlet (TRANSFER_OUT) at the source's average cost;
+ * `value_sent` is stored. The goods are in transit (view v_in_transit), not in any outlet balance.
  */
 export async function sendTransfer(actor: IdentityAuthActor, id: string): Promise<{ docNo: string }> {
   return withTenant(actor.tenantId, async (tx) => {
@@ -270,9 +270,9 @@ export interface ReceiveLineInput {
 }
 
 /**
- * Terima transfer (SENT → RECEIVED, satu kali, BR-TRF-003/004): nilai diterima proporsional
- * `R(value_sent × qty_terima / qty_kirim)`; selisih qty dan nilai dicatat dan (bila ada) flag SELISIH_TRANSFER.
- * Penerimaan 0 untuk semua baris mewajibkan alasan penutupan.
+ * Receives a transfer (SENT → RECEIVED, once, BR-TRF-003/004): the received value is proportional:
+ * `R(value_sent × qty_received / qty_sent)`; qty and value differences are recorded and, if any, flagged SELISIH_TRANSFER.
+ * A receipt of 0 for all lines requires a close reason.
  */
 export async function receiveTransfer(
   actor: IdentityAuthActor,

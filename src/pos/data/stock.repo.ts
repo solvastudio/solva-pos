@@ -5,8 +5,8 @@ import { estimateStock, type LocalStockSale } from '../domain/stock-estimate'
 import { getMeta, setMeta } from './meta.repo'
 
 /**
- * Menerapkan blok `stock` dari pull secara atomik: ganti penuh `stock_snapshot` dan metadata (Fase 53).
- * Tidak pernah dipanggil oleh alur apply master; galat dicatat oleh pemanggil tanpa menggagalkan siklus.
+ * Applies the `stock` block from a pull atomically: fully replaces `stock_snapshot` and its metadata.
+ * Never called by the master-apply flow; errors are logged by the caller without failing the cycle.
  */
 export async function applyStockSnapshot(db: SolvaDb, block: StockSnapshotBlock): Promise<void> {
   await db.transaction('rw', [db.stock_snapshot, db.meta], async (tx) => {
@@ -23,8 +23,8 @@ export async function applyStockSnapshot(db: SolvaDb, block: StockSnapshotBlock)
 }
 
 /**
- * Baca estimasi stok per SKU untuk layar jual (satu panggilan per render daftar, bukan per kartu).
- * Hanya membaca `stock_snapshot`, `meta`, dan outbox; tidak menulis apa pun.
+ * Reads the per-SKU stock estimate for the sell screen (one call per list render, not per card).
+ * Reads only `stock_snapshot`, `meta`, and the outbox; writes nothing.
  */
 export async function getEstimatesBulk(db: SolvaDb, skuIds: readonly string[]): Promise<Map<string, Qty | null>> {
   const out = new Map<string, Qty | null>()
@@ -33,7 +33,7 @@ export async function getEstimatesBulk(db: SolvaDb, skuIds: readonly string[]): 
   const [snapshotRows, meta, outboxRows] = await Promise.all([
     db.stock_snapshot.bulkGet([...skuIds]),
     getMeta(db, 'stock_snapshot_meta'),
-    // Outbox kecil (perintah belum ACK); tidak ada indeks pada `type`, jadi disaring di sini.
+    // Small outbox (commands not yet ACKed); there is no index on `type`, so filter here.
     db.outbox_command.filter((r) => r.type === 'FinalizeSale').toArray(),
   ])
   const ackedDeviceSeq = meta?.acked_device_seq ?? 0

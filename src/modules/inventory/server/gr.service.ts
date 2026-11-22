@@ -24,9 +24,9 @@ export interface GrLineInput {
   readonly skuId: string
   readonly uomId: string
   readonly qty: string
-  /** Biaya bersih per UOM terima (BR-STK-021). Dipakai bila `lineValue` tidak diisi. */
+  /** Net cost per receiving UOM (BR-STK-021). Used when `lineValue` is not given. */
   readonly unitCost?: number | null
-  /** Total nilai baris yang diketik (diutamakan bila keduanya diisi). */
+  /** Typed total line value (preferred when both are given). */
   readonly lineValue?: number | null
 }
 
@@ -47,7 +47,7 @@ export interface GrPostResult {
   readonly applied: boolean
 }
 
-/** Validasi & penurunan baris: qty dasar = qty × faktor snapshot; nilai = total ketikan atau R(qty × biaya). */
+/** Validates and derives lines: base qty = qty × snapshot factor; value = typed total, or R(qty × cost). */
 async function deriveLines(
   tx: TenantTx,
   tenantId: string,
@@ -98,7 +98,7 @@ async function deriveLines(
   })
 }
 
-/** Simpan/ubah draft GR (hanya DRAFT). Baris diganti seluruhnya. */
+/** Saves or updates a GR draft (DRAFT only). Lines are replaced entirely. */
 export async function saveGrDraft(actor: IdentityAuthActor, input: GrDraftInput): Promise<{ id: string; docNo: string }> {
   requireActorPermission(actor, 'inventory.manage', { outletId: input.outletId })
   return withTenant(actor.tenantId, async (tx) => {
@@ -207,8 +207,8 @@ async function lockGr(tx: TenantTx, tenantId: string, id: string): Promise<{
 }
 
 /**
- * Posting GR (BR-STK-020/022, FLOW-11): kunci dokumen, nomor dokumen, movement GR_IN per baris lewat
- * applyMovements, lalu audit terakhir. Idempoten: GR yang sudah POSTED dikembalikan apa adanya.
+ * Posts a GR (BR-STK-020/022, FLOW-11): locks the document, assigns the document number, applies GR_IN movements per line through
+ * applyMovements, then writes the final audit entry. Idempotent: an already POSTED GR is returned as-is.
  */
 export async function postGr(actor: IdentityAuthActor, id: string): Promise<GrPostResult> {
   return withTenant(actor.tenantId, async (tx) => {
@@ -280,8 +280,8 @@ export async function postGr(actor: IdentityAuthActor, id: string): Promise<GrPo
 }
 
 /**
- * Koreksi GR (BR-STK-022): dokumen REVERSAL baru yang menghapus nilai GR asal persis (GR_REVERSAL).
- * GR asal tidak diubah. Stok tidak cukup ⇒ saldo negatif dan flag (tidak ditolak).
+ * Reverses a GR (BR-STK-022): creates a new REVERSAL document that removes exactly the original GR's value (GR_REVERSAL).
+ * The original GR is not changed. Insufficient stock ⇒ negative balance and flag (not rejected).
  */
 export async function reverseGr(actor: IdentityAuthActor, id: string, reasonText: string): Promise<{ reversalId: string; docNo: string }> {
   const reason = reasonText.trim()

@@ -4,8 +4,8 @@ import type { TenantTx } from '~/server/db'
 import { dataFlag } from './schema'
 
 /**
- * Menyelesaikan flag `STOK_MINUS` untuk SKU yang saldonya kembali ≥ 0 (ARCH §5.2, SCHEMA §4.6.4).
- * Flag tidak dihapus — tetap sebagai jejak; hanya `status` menjadi `RESOLVED`.
+ * Resolves `STOK_MINUS` flags for SKUs whose balance is back to ≥ 0 (ARCH §5.2, SCHEMA §4.6.4).
+ * Flags are not deleted; they stay as a trail, and only `status` becomes `RESOLVED`.
  */
 export async function resolveStockMinusFlags(
   tx: TenantTx,

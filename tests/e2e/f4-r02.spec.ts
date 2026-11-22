@@ -25,7 +25,7 @@ test.describe('F4-K04 laporan R-02 sesuai ledger', () => {
     })
     await postGr(t.ownerActor, draft.id)
 
-    // Rekonsiliasi (K04): untuk setiap (outlet, SKU), jumlah value_delta ledger = inventory_value saldo.
+    // Reconciliation (K04): for each (outlet, SKU), the sum of ledger value_delta equals the balance inventory_value.
     await withTenant(t.tenantId, async (tx) => {
       const rows = await tx.execute<{ bal: string; mv: string }>(sql`
         SELECT b.inventory_value::text AS bal, COALESCE(m.s, 0)::text AS mv
@@ -42,7 +42,7 @@ test.describe('F4-K04 laporan R-02 sesuai ledger', () => {
     await loginAdminUi(page, t.slug, `owner-${t.slug}@example.test`, F3_OWNER_PASSWORD)
     await page.goto(`/${t.slug}/admin/stock`, { waitUntil: 'networkidle' })
     await expect(page.getByRole('heading', { name: 'Stok & Persediaan' })).toBeVisible({ timeout: 15_000 })
-    // Saldo: 120 pcs dan nilai Rp985.000 (tampil di ringkasan dan tabel saldo).
+    // Balance: 120 pcs and value Rp985,000 (shown in the summary and the balance table).
     await expect(page.getByRole('cell', { name: '120', exact: true }).first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText('985.000').first()).toBeVisible()
     await expect(page.getByText('KOPI').first()).toBeVisible()

@@ -4,15 +4,15 @@ import type { TenantTx } from '~/server/db'
 import { nonNegativeSkuIds } from './sale-stock.repo'
 
 /**
- * Flag stok (Fase 54): penyelesaian `STOK_MINUS` setelah saldo kembali ≥ 0, dan `SELISIH_TRANSFER`
- * untuk selisih penerimaan transfer (R-04). Flag tetap tercatat sebagai jejak (tidak dihapus).
+ * Stock flags: resolving `STOK_MINUS` once the balance is back to ≥ 0, and `SELISIH_TRANSFER`
+ * for transfer receipt differences (R-04). Flags stay recorded as a trail and are never deleted.
  */
 
 export async function resolveStockMinus(
   tx: TenantTx,
   input: { tenantId: string; outletId: string; skuIds: readonly string[] },
 ): Promise<number> {
-  // Hanya SKU yang saldonya kembali ≥ 0 yang flag-nya diselesaikan.
+  // Only SKUs whose balance is back to ≥ 0 have their flags resolved.
   const skuIds = await nonNegativeSkuIds(tx, input.tenantId, input.outletId, input.skuIds)
   return resolveStockMinusFlags(tx, { ...input, skuIds })
 }
@@ -42,8 +42,8 @@ export async function createTransferVarianceFlag(
 }
 
 /**
- * Menandai `STOK_MINUS` untuk setiap movement yang membuat saldo negatif (ARCH §5.2). Dipakai jalur
- * selain penjualan (kirim transfer, reversal GR). Tidak pernah menolak transaksi.
+ * Flags `STOK_MINUS` for every movement that makes the balance negative (ARCH §5.2). Used by paths
+ * other than sales (transfer send, GR reversal). Never rejects a transaction.
  */
 export async function createStockMinusFlags(
   tx: TenantTx,

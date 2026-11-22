@@ -183,8 +183,8 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
       invoiceConflictIdx: seriesOutcome.conflictIdx,
     })
 
-    // 3b. Stok & HPP otoritatif (Fase 53): movement SALE dan cost_snapshot dalam transaksi ini (BR-HPP-004).
-    //     Tidak pernah menolak karena stok (AP-02); saldo negatif hanya ditandai di langkah 5b.
+    // 3b. Authoritative stock and COGS: SALE movement and cost_snapshot within this transaction (BR-HPP-004).
+    //     Never rejects for stock reasons (AP-02); negative balances are only flagged in step 5b.
     const stock = await getSaleStockPort().applySale(tx, {
       tenantId,
       outletId: ctx.device.outletId,
@@ -265,7 +265,7 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
       flags.add(f)
     }
 
-    // 5b. Saldo stok negatif (BR-STK-002): tandai, jangan tolak (AP-02).
+    // 5b. Negative stock balance (BR-STK-002): flag, do not reject (AP-02).
     for (const neg of stock.negativeResults) {
       const line = payload.lines.find((l) => l.sku_id === neg.skuId)
       await createDataFlag(tx, {

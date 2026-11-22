@@ -34,11 +34,11 @@ const ledgerIdGen = createIdGenerator({
 })
 
 /**
- * Niat satu perubahan stok (SCHEMA §4.3.3). `kind`:
- * - `OUT`: keluar `qty` (positif) → HPP (AVERAGE/MIXED/REFERENCE);
- * - `IN`: masuk `qty` (positif) dengan `valueIn` dan basis (`costBasisHint`, default DECLARED);
- * - `IN_REF`: masuk pada biaya referensi (retur saat saldo ≤ 0, BR-HPP-005);
- * - `ADJUST`: penyesuaian bertanda `qty` (≠ 0).
+ * One stock change intent (SCHEMA §4.3.3). `kind`:
+ * - `OUT`: outgoing `qty` (positive) → COGS (AVERAGE/MIXED/REFERENCE);
+ * - `IN`: incoming `qty` (positive) with `valueIn` and basis (`costBasisHint`, default DECLARED);
+ * - `IN_REF`: incoming at the reference cost (return when balance ≤ 0, BR-HPP-005);
+ * - `ADJUST`: signed adjustment `qty` (≠ 0).
  */
 export interface MovementIntent {
   readonly outletId: string
@@ -53,7 +53,7 @@ export interface MovementIntent {
   readonly occurredAt: string
   readonly businessDate: string
   readonly reversesMovementId?: string | null
-  /** Urutan pemrosesan dalam satu panggilan (pemanggil memberi nomor; lihat AD-22). */
+  /** Processing order within one call (the caller assigns the numbers; see AD-22). */
   readonly order: number
 }
 
@@ -67,7 +67,7 @@ export interface AppliedMovement {
   readonly costBasis: CostBasis
   readonly isNegativeResult: boolean
   readonly balSeq: number
-  /** `false` bila intent ini sudah pernah diterapkan (idempoten: hasil yang ada dikembalikan). */
+  /** `false` when this intent was already applied (idempotent: the existing result is returned). */
   readonly applied: boolean
 }
 
@@ -75,13 +75,13 @@ export interface ApplyContext {
   readonly tenantId: string
   readonly commandId?: string | null
   readonly actorId?: string | null
-  /** Waktu server saat diproses (`processed_at`; acuan biaya). Disuntik, tidak dibaca dari jam. */
+  /** Server time at processing (`processed_at`; cost reference). Injected, not read from the clock. */
   readonly processedAt: string
 }
 
 export interface ApplyResult {
   readonly applied: readonly AppliedMovement[]
-  /** Kunci saldo yang berakhir negatif (pemanggil membuat flag STOK_MINUS). */
+  /** Balance keys that end up negative (the caller creates STOK_MINUS flags). */
   readonly negativeResults: readonly { outletId: string; skuId: string; qtyAfter: Qty }[]
 }
 
@@ -126,11 +126,11 @@ function applyOne(balance: StockBalance, i: MovementIntent): CostResult {
 }
 
 /**
- * Menerapkan daftar niat stok secara atomik di dalam transaksi pemanggil (BR-STK-001, AD-22):
- * 1. validasi; 2. kunci saldo `FOR UPDATE` berurutan (outlet_id, sku_id);
- * 3. idempotensi per (sumber, SKU, jenis) — yang sudah ada tidak dihitung ulang;
- * 4. terapkan berurutan `order` memakai `costing`, tulis ledger set-based, lalu satu UPDATE per kunci.
- * Tidak mengambil lock `audit_chain_head` (milik pemanggil) dan tidak menyentuh device.
+ * Applies a list of stock intents atomically inside the caller's transaction (BR-STK-001, AD-22):
+ * 1. validation; 2. lock balances `FOR UPDATE` in order (outlet_id, sku_id);
+ * 3. idempotency per (source, SKU, type) — existing intents are not recalculated;
+ * 4. apply in `order` using `costing`, write the ledger set-based, then one UPDATE per key.
+ * Does not take the `audit_chain_head` lock (that belongs to the caller) and does not touch devices.
  */
 export async function applyMovements(
   tx: TenantTx,
@@ -142,7 +142,7 @@ export async function applyMovements(
 
   const ordered = [...intents].sort((a, b) => a.order - b.order)
 
-  // Kunci unik (outlet, sku) terurut.
+  // Unique (outlet, sku) keys, sorted.
   const keyMap = new Map<string, BalanceKey>()
   for (const i of ordered) {
     keyMap.set(`${i.outletId}|${i.skuId}`, { outletId: i.outletId, skuId: i.skuId })
@@ -155,7 +155,7 @@ export async function applyMovements(
   await ensureBalanceRows(tx, ctx.tenantId, keys)
   const locked = await lockBalancesOrdered(tx, ctx.tenantId, keys)
 
-  // Idempotensi: intent yang sudah ada dilewati (hasil lama dikembalikan).
+  // Idempotency: intents that already exist are skipped (the previous result is returned).
   const existing = await findExistingMovements(
     tx,
     ctx.tenantId,

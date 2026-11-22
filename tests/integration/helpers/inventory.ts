@@ -34,8 +34,8 @@ export interface InventoryTenant {
 }
 
 /**
- * Tenant uji inventori: owner, dua outlet, dua SKU (base UOM `pcs`) dengan `sku_uom` dan harga default.
- * Stok awal nol; pemanggil membuat movement lewat `applyMovements`.
+ * Inventory test tenant: owner, two outlets, two SKUs (base UOM `pcs`) with `sku_uom` and default prices.
+ * Opening stock is zero; the caller creates movements through `applyMovements`.
  */
 export async function setupInventoryTenant(prefix: string): Promise<InventoryTenant> {
   const slug = uniqueSlug(prefix)
@@ -130,14 +130,14 @@ export async function setupInventoryTenant(prefix: string): Promise<InventoryTen
   }
 }
 
-/** Pembaruan master (kelas M) lewat writeMaster-equivalent: versi dinaikkan lewat masterTx. */
+/** Master update (class M) through a writeMaster equivalent: the version is bumped through masterTx. */
 export async function masterUpdate(tenantId: string, sqlText: string, params: unknown[]): Promise<void> {
   await masterTx(tenantId, async (c, v) => {
     await c.query(sqlText, [...params, v])
   })
 }
 
-/** Mengaktifkan stok outlet (BR-STK-004) pada waktu tertentu. */
+/** Enables outlet stock (BR-STK-004) at a given time. */
 export async function enableOutletInventory(tenantId: string, outletId: string, at: string): Promise<void> {
   await masterUpdate(tenantId, "UPDATE outlet SET inventory_enabled_at = $3, version = $4 WHERE tenant_id = $1 AND id = $2", [tenantId, outletId, at])
 }
@@ -146,7 +146,7 @@ export async function disableOutletInventory(tenantId: string, outletId: string)
   await masterUpdate(tenantId, "UPDATE outlet SET inventory_enabled_at = NULL, version = $3 WHERE tenant_id = $1 AND id = $2", [tenantId, outletId])
 }
 
-/** Mengubah flag produk milik SKU (track_stock / product_type) — produk adalah master kelas M. */
+/** Changes the product flags of a SKU (track_stock / product_type); the product is a class M master. */
 export async function setSkuProductFlags(
   tenantId: string,
   skuId: string,
@@ -160,7 +160,7 @@ export async function setSkuProductFlags(
   }
 }
 
-/** Menambah UOM kedua (mis. `dus` dengan faktor 12) untuk SKU uji. */
+/** Adds a second UOM (e.g. `dus` with factor 12) for a test SKU. */
 export async function addSkuUom(tenantId: string, skuId: string, code: string, factor: number): Promise<string> {
   return masterTx(tenantId, async (c, v) => {
     const uomId = (

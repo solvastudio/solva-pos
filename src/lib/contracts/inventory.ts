@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Kontrak input dokumen inventori (Fase 54). Kuantitas dikirim sebagai string desimal (BR-UOM-005);
- * uang sebagai bilangan bulat rupiah (BR-MNY-*). Tanggal bisnis `YYYY-MM-DD`.
+ * Input contracts for inventory documents. Quantities are sent as decimal strings (BR-UOM-005);
+ * money as integer rupiah (BR-MNY-*). Business dates are `YYYY-MM-DD`.
  */
 
 const uuid = z.string().uuid()

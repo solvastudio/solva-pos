@@ -15,7 +15,7 @@ import { F3_CASHIER_NAME, F3_CASHIER_PIN, F3_PRODUCTS, createF3Tenant, pairingCo
 
 test.use({ locale: 'id-ID' })
 
-/** Tanggal bisnis Asia/Jakarta hari ini (YYYY-MM-DD). */
+/** Business date in Asia/Jakarta today (YYYY-MM-DD). */
 function jakartaToday(): string {
   return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10)
 }
@@ -26,7 +26,7 @@ test.describe('F4-K02 penjualan offline yang tiba telat', () => {
   }) => {
     test.setTimeout(240_000)
     const t = await createF3Tenant('f4k02')
-    // Stok diaktifkan sebelum penjualan (BR-STK-004).
+    // Stock is enabled before the sale (BR-STK-004).
     await enableOutletTracking(t.ownerActor, t.outletId)
     const kopiSku = t.productIds.kopi.skuId
 
@@ -43,14 +43,14 @@ test.describe('F4-K02 penjualan offline yang tiba telat', () => {
     await openShiftUi(page, 500_000)
     await selectVirtualPrinter(page)
 
-    // Offline: 10 Kopi Hitam dijual pada perangkat (stok di server belum ada).
+    // Offline: 10 Kopi Hitam sold on the device (no stock on the server yet).
     await ctx.setOffline(true)
     for (let i = 0; i < 10; i++) {
       await scanBarcode(page, F3_PRODUCTS.kopi.barcode)
     }
     await payAndFinish(page, [{ method: 'CASH', amount: 210_000 }])
 
-    // Admin memposting penerimaan 120 pcs @ Rp985.000 di server (rata-rata 8.208,33) selagi perangkat offline.
+    // Admin posts a receipt of 120 pcs at Rp985,000 on the server (average 8,208.33) while the device is offline.
     const draft = await saveGrDraft(t.ownerActor, {
       outletId: t.outletId,
       businessDate: jakartaToday(),
@@ -58,7 +58,7 @@ test.describe('F4-K02 penjualan offline yang tiba telat', () => {
     })
     await postGr(t.ownerActor, draft.id)
 
-    // Tiba di server saat online: penjualan diproses memakai biaya saat server memprosesnya.
+    // Arrives at the server online: the sale is processed using the cost at processing time.
     await ctx.setOffline(false)
     await waitOutboxAllAcked(page, 90_000)
 
@@ -71,7 +71,7 @@ test.describe('F4-K02 penjualan offline yang tiba telat', () => {
       const totalCost = lines.rows.reduce((acc, r) => acc + Number(r.cost_snapshot ?? 0), 0)
       const totalQty = lines.rows.reduce((acc, r) => acc + Number(r.qty), 0)
       expect(totalQty).toBe(10)
-      // R(985.000 × 10 / 120) = 82.083 (bukan 80.000 dari harga perkiraan).
+      // R(985,000 × 10 / 120) = 82,083 (not 80,000 from the estimate).
       expect(totalCost).toBe(82_083)
 
       const bal = await tx.execute<{ qty: string; inventory_value: string }>(sql`
@@ -80,7 +80,7 @@ test.describe('F4-K02 penjualan offline yang tiba telat', () => {
       expect(Number(bal.rows[0]!.qty)).toBe(110)
       expect(Number(bal.rows[0]!.inventory_value)).toBe(902_917)
 
-      // Waktu kejadian (perangkat, offline) dan waktu diterima server berbeda: penjualan telat.
+      // Event time (device, offline) and server receipt time differ: a late sale.
       const times = await tx.execute<{ same: boolean }>(sql`
         SELECT (s.occurred_at = s.received_at) AS same FROM sale s
         WHERE s.tenant_id = ${t.tenantId}::uuid LIMIT 1`)

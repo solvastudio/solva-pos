@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
 import { stockMovement } from './schema'
 
-/** Waktu aktivasi stok outlet (BR-STK-004); `null` bila belum diaktifkan. */
+/** Outlet stock tracking activation time (BR-STK-004); `null` when not yet enabled. */
 export async function loadInventoryEnabledAt(tx: TenantTx, tenantId: string, outletId: string): Promise<string | null> {
   const res = await tx.execute<{ enabled: string | null }>(sql`
     SELECT inventory_enabled_at::text AS enabled
@@ -14,7 +14,7 @@ export async function loadInventoryEnabledAt(tx: TenantTx, tenantId: string, out
   return res.rows[0]?.enabled ?? null
 }
 
-/** SKU yang dilacak stoknya: produk RETAIL dengan `track_stock` (konsumsi resep F5 tidak di sini). */
+/** SKUs whose stock is tracked: RETAIL products with `track_stock` (recipe consumption is handled elsewhere). */
 export async function loadTrackedSkuIds(tx: TenantTx, tenantId: string, skuIds: readonly string[]): Promise<Set<string>> {
   const out = new Set<string>()
   if (skuIds.length === 0) return out
@@ -31,7 +31,7 @@ export async function loadTrackedSkuIds(tx: TenantTx, tenantId: string, skuIds: 
   return out
 }
 
-/** Movement SALE asal untuk setiap sumber (id baris penjualan) — dipakai void/retur sebagai `reverses_movement_id`. */
+/** Source SALE movement for each source (sale line id); used by void and return as `reverses_movement_id`. */
 export async function findSaleMovementIds(
   tx: TenantTx,
   tenantId: string,
@@ -58,7 +58,7 @@ export interface StockSnapshotRow {
   readonly qty: string
 }
 
-/** Saldo kuantitas per SKU untuk outlet (snapshot ke POS, tanpa nilai persediaan — MVP). */
+/** Quantity balance per SKU for an outlet (snapshot to the POS, without inventory value — MVP). */
 export async function readOutletStockRows(
   tx: TenantTx,
   tenantId: string,
@@ -83,7 +83,7 @@ export async function readOutletStockRows(
   }
 }
 
-/** Movement asal per sumber untuk jenis tertentu (mis. GR_IN untuk reversal GR). */
+/** Source movements per source for a given type (e.g. GR_IN for a GR reversal). */
 export async function findMovementIdsBySource(
   tx: TenantTx,
   tenantId: string,
@@ -106,7 +106,7 @@ export async function findMovementIdsBySource(
   return out
 }
 
-/** SKU dengan saldo ≥ 0 pada outlet (syarat penyelesaian flag STOK_MINUS, ARCH §5.2). */
+/** SKUs with balance ≥ 0 at an outlet (condition for resolving STOK_MINUS flags, ARCH §5.2). */
 export async function nonNegativeSkuIds(
   tx: TenantTx,
   tenantId: string,

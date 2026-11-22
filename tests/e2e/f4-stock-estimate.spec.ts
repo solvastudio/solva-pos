@@ -45,17 +45,17 @@ test.describe('F4 estimasi stok di POS (FR-POS-011, BR-STK-005)', () => {
     await openShiftUi(page, 500_000)
     await selectVirtualPrinter(page)
 
-    // Snapshot stok (20) sampai ke perangkat lewat pull.
+    // Stock snapshot (20) reaches the device through pull.
     await expect(page.getByText('Stok 20', { exact: true }).first()).toBeVisible({ timeout: 30_000 })
 
-    // Offline: jual 6 Kopi Hitam ⇒ estimasi 14.
+    // Offline: sell 6 Kopi Hitam ⇒ estimate 14.
     await ctx.setOffline(true)
     for (let i = 0; i < 6; i++) await scanBarcode(page, F3_PRODUCTS.kopi.barcode)
     await payAndFinish(page, [{ method: 'CASH', amount: 130_000 }])
     await startNewSale(page)
     await expect(page.getByText('Stok 14', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
 
-    // Jual 14 lagi ⇒ estimasi 0: chip non-blokir, dan penjualan tetap dapat dibayar.
+    // Sell 14 more ⇒ estimate 0: non-blocking chip, and the sale can still be paid.
     for (let i = 0; i < 14; i++) await scanBarcode(page, F3_PRODUCTS.kopi.barcode)
     await payAndFinish(page, [{ method: 'CASH', amount: 300_000 }])
     await startNewSale(page)
@@ -63,8 +63,8 @@ test.describe('F4 estimasi stok di POS (FR-POS-011, BR-STK-005)', () => {
     await scanBarcode(page, F3_PRODUCTS.kopi.barcode)
     await expect(page.getByRole('button', { name: /^Bayar/ })).toBeEnabled()
 
-    // Tiba di server: 20 terjual dari snapshot 20 ⇒ saldo 0 (tidak negatif), tanpa flag stok minus.
-    // Item ke-21 hanya masuk keranjang dan tidak dibayar, jadi tidak membuat movement.
+    // On the server: 20 sold from a snapshot of 20 ⇒ balance 0 (not negative), no negative-stock flag.
+    // Item 21 only enters the cart and is not paid, so it creates no movement.
     await ctx.setOffline(false)
     await waitOutboxAllAcked(page, 120_000)
     await withTenant(t.tenantId, async (tx) => {

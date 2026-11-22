@@ -16,7 +16,7 @@ type Op =
   | { kind: 'OUT'; qtyUnits: number }
   | { kind: 'ADJ'; deltaUnits: number }
 
-/** Kuantitas skala 4 dari satuan 0,01 (mis. 1234 → "12.34"). */
+/** Scale-4 quantity in units of 0.01 (e.g. 1234 → "12.34"). */
 function unitsToQty(units: number): Qty {
   const whole = Math.floor(units / 100)
   const frac = String(units % 100).padStart(2, '0')
@@ -29,7 +29,7 @@ const opArb: fc.Arbitrary<Op> = fc.oneof(
   fc.record({ kind: fc.constant('ADJ' as const), deltaUnits: fc.integer({ min: -5000, max: 5000 }).filter((n) => n !== 0) }),
 )
 
-/** Menjalankan urutan operasi dan mengembalikan jejak saldo + nilai delta. */
+/** Runs a sequence of operations and returns the balance trace and value deltas. */
 function run(ops: readonly Op[]): { trail: StockBalance[]; deltas: Money[]; initial: StockBalance } {
   let b = emptyBalance()
   const initial = b

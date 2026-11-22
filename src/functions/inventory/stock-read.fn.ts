@@ -14,7 +14,7 @@ import {
 import { requirePermission } from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware } from '../middleware'
 
-/** Baca dokumen inventori dan laporan R-02 (SCR-A06). */
+/** Read inventory documents and the R-02 report (SCR-A06). */
 
 const optionalOutlet = z.object({ outletId: z.string().uuid().optional() })
 

@@ -119,6 +119,6 @@ describe('CashMovementScreen (SCR-P12)', () => {
       rules: { 'color-contrast': { enabled: false }, 'landmark-unique': { enabled: false } },
     })
     expect(axeRes.violations).toEqual([])
-    // Batas 15 dtk: axe + IndexedDB tetap lambat saat seluruh suite unit berjalan paralel (lihat gate:f3).
+    // 15 s limit: axe + IndexedDB stay slow while the whole unit suite runs in parallel (see gate:f3).
   }, 15_000)
 })

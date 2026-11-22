@@ -3,9 +3,9 @@ import type { Money, Qty } from '~/lib/kernel'
 import type { TenantTx } from '~/server/db'
 
 /**
- * Port stok untuk alur penjualan (Fase 53). `sales` tidak mengimpor `inventory`; adaptornya
- * didaftarkan di composition root (`src/server/composition.ts`) dengan struktur yang sama.
- * Tanpa adaptor terdaftar (mis. tes sales murni), port bawaan tidak menulis apa pun.
+ * Stock port for the sales flow. `sales` does not import `inventory`; the adapter
+ * is registered in the composition root (`src/server/composition.ts`) with the same structure.
+ * Without a registered adapter (e.g. pure sales tests), the default port writes nothing.
  */
 
 export interface SaleStockLinePort {

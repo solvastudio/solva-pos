@@ -11,8 +11,8 @@ import {
 } from './sale-stock.repo'
 
 /**
- * Integrasi stok penjualan (Fase 53): HPP otoritatif dihitung server saat memproses (BR-HPP-004).
- * Tidak pernah menolak transaksi karena stok (AP-02); saldo negatif hanya ditandai.
+ * Sales stock integration: the authoritative COGS is computed by the server while processing (BR-HPP-004).
+ * Never rejects a transaction for stock reasons (AP-02); negative balances are only flagged.
  */
 
 export interface SaleStockLine {
@@ -36,7 +36,7 @@ export interface SaleStockInput {
 }
 
 export interface SaleStockResult {
-  /** Jumlah HPP baris yang dilacak; `null` bila tak ada baris yang dilacak (BR-STK-004). */
+  /** Sum of tracked line COGS; `null` when no line is tracked (BR-STK-004). */
   readonly costTotal: Money | null
   readonly lines: readonly { readonly lineId: string; readonly costSnapshot: Money | null }[]
   readonly negativeResults: readonly { readonly outletId: string; readonly skuId: string; readonly qtyAfter: Qty }[]
@@ -51,8 +51,8 @@ function noStock(lines: readonly SaleStockLine[]): SaleStockResult {
 }
 
 /**
- * Menulis movement `SALE` per baris ITEM yang dilacak dan mengembalikan `cost_snapshot` per baris.
- * Movement hanya dibuat bila outlet sudah diaktifkan dan `processed_at >= inventory_enabled_at` (asumsi 2).
+ * Writes a `SALE` movement per tracked ITEM line and returns `cost_snapshot` per line.
+ * Movements are only created when the outlet is enabled and `processed_at >= inventory_enabled_at` (assumption 2).
  */
 export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promise<SaleStockResult> {
   const enabledAt = await loadInventoryEnabledAt(tx, input.tenantId, input.outletId)
@@ -105,17 +105,17 @@ export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promi
   }
 }
 
-/** Baris void: nilai HPP asal dikurangi porsi yang sudah diretur kembali ke stok (BR-HPP-007). */
+/** Void line: original COGS minus the portion already returned to stock (BR-HPP-007). */
 export interface VoidStockLine {
   readonly lineId: string
   readonly lineNo: number
   readonly skuId: string | null
   readonly qtyBase: Qty
-  /** `cost_snapshot` baris penjualan; `null` bila baris tidak punya movement. */
+  /** `cost_snapshot` of the sale line; `null` when the line has no movement. */
   readonly costSnapshot: Money | null
-  /** Σ qty_returned_base untuk retur `KEMBALI_STOK` sebelumnya. */
+  /** Σ qty_returned_base for earlier `KEMBALI_STOK` returns. */
   readonly returnedQtyBase: Qty
-  /** Σ cost_returned untuk retur sebelumnya. */
+  /** Σ cost_returned for earlier returns. */
   readonly returnedCost: Money
 }
 
@@ -130,7 +130,7 @@ export interface VoidStockInput {
   readonly lines: readonly VoidStockLine[]
 }
 
-/** Membalik porsi yang belum diretur dengan `SALE_VOID` (idempoten per baris). */
+/** Reverses the portion not yet returned with `SALE_VOID` (idempotent per line). */
 export async function applyVoidStock(
   tx: TenantTx,
   input: VoidStockInput,
@@ -177,7 +177,7 @@ export async function applyVoidStock(
   return { reversed }
 }
 
-/** Baris retur: HPP kembali hanya untuk disposisi KEMBALI_STOK (BR-HPP-007). */
+/** Return line: COGS returned only for the KEMBALI_STOK disposition (BR-HPP-007). */
 export interface ReturnStockLine {
   readonly creditNoteLineId: string
   readonly lineNo: number
@@ -185,12 +185,12 @@ export interface ReturnStockLine {
   readonly skuId: string | null
   readonly disposition: string | null
   readonly qtyReturnedBase: Qty
-  /** Qty base baris penjualan asal. */
+  /** Base qty of the original sale line. */
   readonly saleQtyBase: Qty
   readonly costSnapshot: Money | null
-  /** Σ qty_returned_base KEMBALI_STOK sebelum retur ini. */
+  /** Σ qty_returned_base for KEMBALI_STOK before this return. */
   readonly returnedQtyBefore: Qty
-  /** Σ cost_returned sebelum retur ini. */
+  /** Σ cost_returned before this return. */
   readonly costReturnedBefore: Money
 }
 
@@ -206,8 +206,8 @@ export interface ReturnStockInput {
 }
 
 /**
- * Menghitung `cost_returned` per baris retur dan membuat movement `RETURN_IN` untuk KEMBALI_STOK.
- * Retur yang melengkapi seluruh qty asal mengambil sisa HPP (kumulatif tidak melebihi snapshot).
+ * Computes `cost_returned` per return line and creates a `RETURN_IN` movement for KEMBALI_STOK.
+ * A return that completes the original quantity takes the remaining COGS (the cumulative value never exceeds the snapshot).
  */
 export async function applyReturnStock(
   tx: TenantTx,
@@ -261,7 +261,7 @@ export async function applyReturnStock(
 }
 
 
-/** Saldo outlet untuk snapshot ke POS (dibaca oleh sync lewat port; BR-STK-005). */
+/** Outlet balance for the POS snapshot (read by sync through the port; BR-STK-005). */
 export async function readOutletStockForSnapshot(
   tx: TenantTx,
   tenantId: string,

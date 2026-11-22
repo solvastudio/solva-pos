@@ -3,7 +3,7 @@ import { date, text } from 'drizzle-orm/pg-core'
 import { isoTimestamptz, uuidId } from '~/server/db/columns'
 
 /**
- * Kolom standar kelas L (ledger append-only, SCHEMA §2.2 `STD-L`): tanpa `updated_at`, `version`, `deleted_at`.
+ * Standard columns for class L (append-only ledger, SCHEMA §2.2 `STD-L`): no `updated_at`, `version`, or `deleted_at`.
  */
 export function stdLColumns() {
   return {
@@ -17,7 +17,7 @@ export function stdLColumns() {
 }
 
 /**
- * Kolom standar kelas D (dokumen online, SCHEMA §2.2 `STD-D`): tanpa `version` (tidak diunduh device).
+ * Standard columns for class D (online documents, SCHEMA §2.2 `STD-D`): no `version` (devices do not download it).
  */
 export function stdDColumns() {
   return {
@@ -37,7 +37,7 @@ export function stdDColumns() {
 }
 
 /**
- * Kolom standar kelas S (master server-saja, SCHEMA §2.2 `STD-S`).
+ * Standard columns for class S (server-only master, SCHEMA §2.2 `STD-S`).
  */
 export function stdSColumns() {
   return {

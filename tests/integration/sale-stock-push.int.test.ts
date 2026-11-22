@@ -65,7 +65,7 @@ async function fixture(prefix: string): Promise<PushFixture> {
     ]),
   )
 
-  // Penyetuju void harus pengguna lain (VoidSalePayloadV1: void_approved_by ≠ voided_by).
+  // The void approver must be a different user (VoidSalePayloadV1: void_approved_by ≠ voided_by).
   const roles = await listRolesWithPermissions(t.actor)
   const managerRole = roles.find((r) => r.code === 'MANAGER')!
   const approverEmail = `mgr-${t.slug}@example.test`

@@ -142,7 +142,7 @@ export function calcSale(input: SaleCalcInput): SaleCalc {
 
   const billDiscountTotal = calcLineDiscount(s1, input.billDiscount)
   const netSubtotal = toMoney(s1 - billDiscountTotal)
-  // Seri LR diputuskan oleh nomor baris (BR-MNY-006), bukan posisi array: hasil tidak bergantung urutan penyajian.
+  // LR ties are decided by line number (BR-MNY-006), not array position: the result does not depend on presentation order.
   const tieRank = input.lines.map((l) => l.lineNo)
   const billDiscountAlloc = allocateComponentLR(billDiscountTotal, lineNets, tieRank)
 

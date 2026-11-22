@@ -6,10 +6,10 @@ import { averageCostForDisplay } from '../domain/costing'
 import { queryValuation } from './valuation.repo'
 
 /**
- * Laporan R-02 — Stok & Nilai Persediaan (FR-RPT-003, PRD §12 R-02).
- * - Saldo outlet dari `stock_balance` (sumber otoritatif); in-transit terpisah (`v_in_transit`, hanya SENT).
- * - Biaya rata-rata = nilai ÷ qty, untuk tampilan saja (BR-HPP-002); tidak disimpan.
- * - Item tidak tersedia tetap tampil dan nilainya tetap masuk total outlet (BR-CAT-017).
+ * R-02 report — Stock & Inventory Value (FR-RPT-003, PRD §12 R-02).
+ * - Outlet balance from `stock_balance` (authoritative source); in-transit is shown separately (`v_in_transit`, SENT only).
+ * - Average cost = value ÷ qty, for display only (BR-HPP-002); not stored.
+ * - Unavailable items stay visible and their value still counts toward the outlet total (BR-CAT-017).
  */
 
 export type AvailabilityFilter = 'ALL' | 'AVAILABLE' | 'UNAVAILABLE'
@@ -29,9 +29,9 @@ export interface R02Row {
   readonly skuId: string
   readonly skuCode: string
   readonly productName: string
-  /** Kuantitas base UOM, string kanonik. */
+  /** Quantity in base UOM, canonical string. */
   readonly qty: string
-  /** Biaya rata-rata tampilan (2 desimal) atau `null` bila qty ≤ 0. */
+  /** Display average cost (2 decimals), or `null` when qty ≤ 0. */
   readonly avgCost: string | null
   readonly inventoryValue: number
   readonly isNegative: boolean

@@ -57,7 +57,7 @@ export function ProductCard({ item, onSelect }: ProductCardProps) {
 
         {product.track_stock && stockQty !== null ? (
           outOfStock ? (
-            // Estimasi ≤ 0: chip non-blokir (tombol tetap bisa dipakai; FR-POS-011).
+            // Estimate ≤ 0: non-blocking chip (the button stays usable; FR-POS-011).
             <StockChip estimate={stockQty as Qty} className="shrink-0" />
           ) : (
             <span className="shrink-0 rounded-pill bg-surface-sunken px-2 py-0.5 text-caption font-medium tabular-nums text-ink-soft">

@@ -11,7 +11,7 @@ import {
   transferLine as transferLineTable,
 } from './schema'
 
-/** Baca-saja untuk halaman admin SCR-A06 (daftar transfer, opname, dan rincian baris opname). */
+/** Read-only data for admin page SCR-A06 (transfer list, stocktake, and stocktake line details). */
 
 export interface TransferListRow {
   readonly id: string
@@ -82,7 +82,7 @@ export interface StocktakeLineView {
   readonly skuId: string
   readonly snapshotQty: string
   readonly countedQty: string | null
-  /** Selisih hitung (hitungan − snapshot) bila sudah dihitung; `null` bila belum. */
+  /** Count difference (counted − snapshot) once counted; `null` until then. */
   readonly deltaQty: string | null
   readonly deltaValue: number | null
 }
@@ -153,7 +153,7 @@ export interface TransferDetail {
   readonly lines: readonly TransferLineView[]
 }
 
-/** Rincian transfer beserta barisnya (untuk form penerimaan). */
+/** Transfer details with its lines (for the receipt form). */
 export async function getTransfer(actor: IdentityAuthActor, id: string): Promise<TransferDetail> {
   requireActorPermission(actor, 'inventory.manage')
   if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'Transfer tidak ditemukan')
