@@ -77,7 +77,7 @@ export function PosWorkspaceShell({
   ]
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    <div className="flex min-h-screen flex-col bg-app">
       <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-2 border-b border-line bg-surface px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <TenantBadge variant="compact" name={tenantName} slug={cleanSlug} />

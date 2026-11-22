@@ -41,7 +41,7 @@ export function AdminShell({ session, children }: AdminShellProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-ink">
+    <div className="flex min-h-screen flex-col bg-app text-ink">
       <header className="sticky top-0 z-header flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 md:px-6">
         <div className="flex items-center gap-3">
           <IconButton

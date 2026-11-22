@@ -34,7 +34,7 @@ export function PlatformShell({
   }
 
   return (
-    <div className="min-h-screen bg-canvas text-ink">
+    <div className="min-h-screen bg-app text-ink">
       <header className="sticky top-0 z-header flex h-16 items-center justify-between gap-4 border-b border-line bg-surface px-4 md:px-6">
         <div className="flex items-center gap-6">
           <a href="/platform" className="flex items-center gap-2 text-title font-bold text-ink">

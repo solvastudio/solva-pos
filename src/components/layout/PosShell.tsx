@@ -29,7 +29,7 @@ export function PosShell({
   const { indicator } = useSyncState()
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    <div className="flex min-h-screen flex-col bg-app">
       <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-3 border-b border-line bg-surface px-4">
         <div className="flex min-w-0 items-center gap-3">
           <TenantBadge variant="compact" name={tenantName} slug={tenantSlug} />

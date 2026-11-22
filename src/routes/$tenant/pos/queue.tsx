@@ -12,7 +12,7 @@ function QueueRoute() {
   const { bootResult } = useRouteContext({ from: '/$tenant/pos' })
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
+    <Suspense fallback={<div className="min-h-screen bg-app" />}>
       <LazyQueueScreen tenant={tenant} bootResult={bootResult} />
     </Suspense>
   )
