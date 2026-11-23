@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Check, Minus, Plus } from '~/components/ui'
+import { Check } from '~/components/ui'
 import { formatMoney, toMoney } from '~/lib/kernel'
 
 export interface ShiftVarianceCellProps {
@@ -8,7 +8,7 @@ export interface ShiftVarianceCellProps {
 
 /**
  * Shift cash variance badge using DESIGN §2.1.7 divergent blue-orange palette
- * (never red/green) plus directional icon and explicit sign (`+` / `−`).
+ * (never red/green) with explicit directional sign (`+` / `−`).
  */
 export function ShiftVarianceCell({ variance }: ShiftVarianceCellProps) {
   const { t, i18n } = useTranslation()
@@ -36,10 +36,9 @@ export function ShiftVarianceCell({ variance }: ShiftVarianceCellProps) {
     return (
       <span
         data-variance="negative"
-        className="inline-flex items-center gap-1 rounded-control border border-warning-line bg-warning-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-warning-ink"
+        className="inline-flex items-center rounded-control border border-warning-line bg-warning-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-warning-ink"
       >
-        <Minus className="size-3.5 shrink-0" aria-hidden="true" />
-        <span>{`−${formatted}`}</span>
+        {`−${formatted}`}
       </span>
     )
   }
@@ -48,10 +47,9 @@ export function ShiftVarianceCell({ variance }: ShiftVarianceCellProps) {
   return (
     <span
       data-variance="positive"
-      className="inline-flex items-center gap-1 rounded-control border border-info-line bg-info-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-info-ink"
+      className="inline-flex items-center rounded-control border border-info-line bg-info-soft px-2 py-0.5 font-mono text-caption font-semibold tabular-nums text-info-ink"
     >
-      <Plus className="size-3.5 shrink-0" aria-hidden="true" />
-      <span>{`+${formatted}`}</span>
+      {`+${formatted}`}
     </span>
   )
 }
