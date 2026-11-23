@@ -43,6 +43,7 @@ export interface R02Row {
 export interface R02OutletTotal {
   readonly outletId: string
   readonly outletCode: string
+  readonly outletName: string
   readonly inventoryValue: number
   readonly negativeCount: number
   readonly valueInTransit: number
@@ -98,6 +99,7 @@ export async function reportR02(actor: IdentityAuthActor, filter: R02Filter = {}
     const cur = byOutlet.get(r.outletId) ?? {
       outletId: r.outletId,
       outletCode: r.outletCode,
+      outletName: r.outletName,
       inventoryValue: 0,
       negativeCount: 0,
       valueInTransit: 0,
@@ -109,5 +111,10 @@ export async function reportR02(actor: IdentityAuthActor, filter: R02Filter = {}
       valueInTransit: cur.valueInTransit + r.valueInTransit,
     })
   }
-  return { rows, totals: [...byOutlet.values()].sort((a, b) => a.outletCode.localeCompare(b.outletCode)) }
+  return {
+    rows,
+    totals: [...byOutlet.values()].sort((a, b) =>
+      (a.outletName || a.outletCode).localeCompare(b.outletName || b.outletCode),
+    ),
+  }
 }

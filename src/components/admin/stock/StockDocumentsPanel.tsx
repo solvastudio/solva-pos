@@ -28,6 +28,11 @@ import {
   sendTransferFn,
 } from '~/functions/inventory/stock-write.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
+
+function formatOutletName(outlets: readonly { id: string; code: string; name: string }[], id: string): string {
+  const outlet = outlets.find((o) => o.id === id)
+  return outlet ? outlet.name || outlet.code : id
+}
 import type { GrRow, StocktakeRow, SupplierView, TransferRow } from './stock-doc-types'
 
 /**
@@ -114,7 +119,7 @@ function ReceiptsTab() {
   const [reverseTarget, setReverseTarget] = useState<GrRow | null>(null)
   const [reverseReason, setReverseReason] = useState('')
 
-  const outletLabel = (id: string) => outlets.find((o) => o.id === id)?.code ?? id
+  const outletLabel = (id: string) => formatOutletName(outlets, id)
 
   const postMut = useMutation({
     mutationFn: async () => {
@@ -192,7 +197,7 @@ function ReceiptsTab() {
           <Field label={t('admin.stock.colOutlet')} htmlFor="gr-outlet">
             <Select
               id="gr-outlet"
-              options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` }))]}
+              options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]}
               value={outletId}
               onValueChange={setOutletId}
             />
@@ -310,7 +315,7 @@ function TransfersTab() {
   const [qty, setQty] = useState('')
   const [receiveId, setReceiveId] = useState<string | null>(null)
 
-  const outletLabel = (id: string) => outlets.find((o) => o.id === id)?.code ?? id
+  const outletLabel = (id: string) => formatOutletName(outlets, id)
 
   const sendMut = useMutation({
     mutationFn: async () => {
@@ -356,10 +361,10 @@ function TransfersTab() {
         <h2 id="tr-form-title" className="text-h3 font-semibold text-ink">{t('admin.stock.transferFormTitle')}</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <Field label={t('admin.stock.colFrom')} htmlFor="tr-from">
-            <Select id="tr-from" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` }))]} value={fromId} onValueChange={setFromId} />
+            <Select id="tr-from" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={fromId} onValueChange={setFromId} />
           </Field>
           <Field label={t('admin.stock.colTo')} htmlFor="tr-to">
-            <Select id="tr-to" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` }))]} value={toId} onValueChange={setToId} />
+            <Select id="tr-to" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={toId} onValueChange={setToId} />
           </Field>
           <Field label={t('admin.stock.colDate')} htmlFor="tr-date">
             <Input id="tr-date" type="date" value={businessDate} onChange={(e) => setBusinessDate(e.target.value)} />
@@ -488,7 +493,7 @@ function StocktakesTab() {
   const [businessDate, setBusinessDate] = useState(todayIso())
   const [countId, setCountId] = useState<string | null>(null)
 
-  const outletLabel = (id: string) => outlets.find((o) => o.id === id)?.code ?? id
+  const outletLabel = (id: string) => formatOutletName(outlets, id)
 
   const createMut = useMutation({
     mutationFn: () => createStocktakeFn({ data: { outletId, businessDate, scope: 'ALL' } }),
@@ -552,7 +557,7 @@ function StocktakesTab() {
         <p className="text-body-sm text-ink-muted">{t('admin.stock.stocktakeHelp')}</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Field label={t('admin.stock.colOutlet')} htmlFor="sto-outlet">
-            <Select id="sto-outlet" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` }))]} value={outletId} onValueChange={setOutletId} />
+            <Select id="sto-outlet" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={outletId} onValueChange={setOutletId} />
           </Field>
           <Field label={t('admin.stock.colDate')} htmlFor="sto-date">
             <Input id="sto-date" type="date" value={businessDate} onChange={(e) => setBusinessDate(e.target.value)} />

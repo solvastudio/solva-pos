@@ -79,11 +79,11 @@ function AdminStockPage() {
   const report = reportQuery.data
   const outletOptions = [
     { value: '', label: t('admin.stock.allOutlets') },
-    ...(outletsQuery.data ?? []).map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` })),
+    ...(outletsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name || o.code })),
   ]
 
   const columns: readonly DataTableColumn<R02Row>[] = [
-    { id: 'outlet', header: t('admin.stock.colOutlet'), cell: (r) => r.outletCode },
+    { id: 'outlet', header: t('admin.stock.colOutlet'), cell: (r) => r.outletName || r.outletCode },
     {
       id: 'sku',
       header: t('admin.stock.colItem'),
@@ -139,7 +139,7 @@ function AdminStockPage() {
   ]
 
   const totalColumns: readonly DataTableColumn<NonNullable<typeof report>['totals'][number]>[] = [
-    { id: 'outlet', header: t('admin.stock.colOutlet'), cell: (r) => r.outletCode },
+    { id: 'outlet', header: t('admin.stock.colOutlet'), cell: (r) => r.outletName || r.outletCode },
     {
       id: 'value',
       header: t('admin.stock.colValue'),
@@ -253,7 +253,7 @@ function AdminStockPage() {
         <Field label={t('admin.stock.filterOutlet')} htmlFor="stock-activate-outlet">
           <Select
             id="stock-activate-outlet"
-            options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...(outletsQuery.data ?? []).map((o) => ({ value: o.id, label: `${o.code} — ${o.name}` }))]}
+            options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...(outletsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name || o.code }))]}
             value={activateOutletId}
             onValueChange={setActivateOutletId}
           />
