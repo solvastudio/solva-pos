@@ -6,6 +6,7 @@ import { TenantBadge } from '~/components/layout/TenantBadge'
 import { Button, CircleAlert, Eye, EyeOff, Field, IconButton, Input } from '~/components/ui'
 import { getSessionFn } from '~/functions/auth/session.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
+import { formatAppTitle } from '~/lib/brand'
 import { safeReturnTo } from '~/lib/safe-redirect'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 
@@ -22,6 +23,12 @@ export const Route = createFileRoute('/$tenant/admin/login')({
       throw redirect({
         href: safeReturnTo(search.returnTo, session.tenantSlug),
       })
+    }
+  },
+  head: ({ match }) => {
+    const ctx = match.context as { tenant?: { name?: string } | null } | undefined
+    return {
+      meta: [{ title: formatAppTitle('admin', ctx?.tenant?.name) }],
     }
   },
   component: AdminLoginPage,

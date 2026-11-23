@@ -3,6 +3,7 @@ import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-
 import { PosRootBoundary } from '~/components/layout/PosRootBoundary'
 import { ToastProvider } from '~/components/ui/Toast'
 import { changeLocale } from '~/i18n'
+import { formatAppTitle } from '~/lib/brand'
 import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
 import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
@@ -72,9 +73,19 @@ export const Route = createFileRoute('/$tenant/pos')({
 
     return { bootResult, routeDecision }
   },
-  head: () => ({
-    links: [{ rel: 'manifest', href: './manifest.webmanifest' }],
-  }),
+  head: ({ match }) => {
+    const ctx = match.context as
+      | { bootResult?: BootResult; tenant?: { slug?: string; name?: string } | null }
+      | undefined
+    const bootedName =
+      ctx?.bootResult?.kind === 'READY' ? ctx.bootResult.tenant?.name : undefined
+    const routeTenantName =
+      ctx?.tenant?.slug && ctx.tenant.slug !== '_shell' ? ctx.tenant.name : undefined
+    return {
+      meta: [{ title: formatAppTitle('pos', bootedName ?? routeTenantName) }],
+      links: [{ rel: 'manifest', href: './manifest.webmanifest' }],
+    }
+  },
   component: PosLayoutComponent,
 })
 

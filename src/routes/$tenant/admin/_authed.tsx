@@ -3,6 +3,7 @@ import { AdminShell } from '~/components/layout/AdminShell'
 import { ToastProvider } from '~/components/ui'
 import { getSessionFn, type AdminSessionView } from '~/functions/auth/session.fn'
 import { changeLocale, i18next } from '~/i18n'
+import { formatAppTitle } from '~/lib/brand'
 import { safeReturnTo } from '~/lib/safe-redirect'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 
@@ -35,6 +36,12 @@ export const Route = createFileRoute('/$tenant/admin/_authed')({
     }
 
     return { session }
+  },
+  head: ({ match }) => {
+    const ctx = match.context as { tenant?: { name?: string } | null } | undefined
+    return {
+      meta: [{ title: formatAppTitle('admin', ctx?.tenant?.name) }],
+    }
   },
   component: AdminAuthedLayout,
 })
