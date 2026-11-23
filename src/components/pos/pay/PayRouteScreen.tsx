@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
+import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import { Button } from '~/components/ui/Button'
 import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
 import type { BootResult } from '~/pos/boot/boot'
@@ -63,7 +64,7 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
       const st = staff.find((s) => s.id === sessionStaff.staffId)
       setStaffName(st?.display_name ?? '')
       const reg = regs.find((r) => r.id === device.register_id)
-      if (outlet && reg) setOutletLabel(`${outlet.code} · ${reg.code}`)
+      if (outlet && reg) setOutletLabel(formatPosOutletLabel(outlet, reg))
     })
     return () => {
       cancelled = true

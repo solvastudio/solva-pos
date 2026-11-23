@@ -12,6 +12,13 @@ export interface ClockBounds {
   maxSeenMs: number
 }
 
+export function formatPosOutletLabel(
+  outlet: { name: string; code: string },
+  register: { name: string; code: string },
+): string {
+  return `${outlet.name || outlet.code} · ${register.name || register.code}`
+}
+
 export function usePosShellActions(tenant: string, bootResult: BootResult) {
   const navigate = useNavigate()
   const cleanSlug = tenant.toLowerCase()
@@ -50,7 +57,7 @@ export function usePosShellActions(tenant: string, bootResult: BootResult) {
       setStaffName(map.get(sessionStaff.staffId) ?? '')
       const reg = regs.find((r) => r.id === device.register_id)
       if (outlet && reg) {
-        setOutletLabel(`${outlet.code} · ${reg.code}`)
+        setOutletLabel(formatPosOutletLabel(outlet, reg))
       }
       const now = Date.now()
       const trustedNowMs = now + (clockMeta?.offset_ms ?? 0)

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import { PosShell } from '~/components/layout/PosShell'
 import { Numpad } from '~/components/pos/Numpad'
 import { PinDots } from '~/components/pos/PinDots'
@@ -89,7 +90,7 @@ export function LoginRouteScreen({
 
     const reg = regs.find((r) => r.id === device.register_id)
     if (outlet && reg) {
-      setRegisterLabel(`${outlet.code} · ${reg.code}`)
+      setRegisterLabel(formatPosOutletLabel(outlet, reg))
     }
 
     setClockMeta(clock ? { offset_ms: clock.offset_ms, max_seen_time: clock.max_seen_time } : null)

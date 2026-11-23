@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
+import { usePosShellActions } from '~/components/pos/shell/use-pos-shell-actions'
 import { OpenShiftForm } from '~/components/pos/shift/OpenShiftForm'
 import type { BootResult } from '~/pos/boot/boot'
 import { getOutlet, listRegisters } from '~/pos/data/master.repo'
-import { setMeta } from '~/pos/data/meta.repo'
-import { clearSession, getSessionState } from '~/pos/session/session'
 import { openShift } from '~/pos/usecases/shift/open-shift'
 
 export interface OpenShiftScreenProps {
@@ -16,61 +14,45 @@ export interface OpenShiftScreenProps {
 
 export function OpenShiftScreen({ tenant, bootResult }: OpenShiftScreenProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const cleanSlug = tenant.toLowerCase()
+  const shell = usePosShellActions(tenant, bootResult)
 
-  const sessionStaff = getSessionState().staff
   const [outletName, setOutletName] = useState('')
   const [registerName, setRegisterName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const tenantName =
-    bootResult.kind === 'READY' && bootResult.tenant?.name ? bootResult.tenant.name : tenant
   const mandatoryUpdateBlocked =
     bootResult.kind === 'READY' && bootResult.state.kind === 'UPDATE_REQUIRED'
 
   useEffect(() => {
     if (bootResult.kind !== 'READY') return
     const { db, device } = bootResult
+    let cancelled = false
     void Promise.all([
       getOutlet(db, device.outlet_id),
       listRegisters(db, device.outlet_id),
     ]).then(([outlet, regs]) => {
+      if (cancelled) return
       if (outlet) setOutletName(outlet.name)
       const reg = regs.find((r) => r.id === device.register_id)
       if (reg) setRegisterName(reg.name || reg.code)
     })
+    return () => {
+      cancelled = true
+    }
   }, [bootResult])
 
-  async function handleLockScreen() {
-    if (bootResult.kind === 'READY' && sessionStaff) {
-      await setMeta(bootResult.db, 'idle_lock', {
-        locked: true,
-        locked_staff_id: sessionStaff.staffId,
-        locked_at: new Date().toISOString(),
-      })
-    }
-    clearSession()
-    void navigate({ href: `/${cleanSlug}/pos/login` })
-  }
-
-  function handleSwitchStaff() {
-    clearSession()
-    void navigate({ href: `/${cleanSlug}/pos/login` })
-  }
-
   async function handleOpenShift(openingCash: number) {
-    if (bootResult.kind !== 'READY' || !sessionStaff) return
+    if (!shell.db || !shell.sessionStaff) return
     setSubmitting(true)
     setErrorMessage(null)
     try {
-      const res = await openShift(bootResult.db, {
+      const res = await openShift(shell.db, {
         openingCash,
-        staffId: sessionStaff.staffId,
+        staffId: shell.sessionStaff.staffId,
       })
       if (res.ok || res.reason === 'SHIFT_ALREADY_OPEN') {
-        void navigate({ href: `/${cleanSlug}/pos/sell` })
+        void shell.navigate({ href: `/${shell.cleanSlug}/pos/sell` })
         return
       }
       if (res.reason === 'UPDATE_REQUIRED') {
@@ -87,23 +69,20 @@ export function OpenShiftScreen({ tenant, bootResult }: OpenShiftScreenProps) {
 
   return (
     <PosWorkspaceShell
-      tenantName={tenantName}
-      tenantSlug={cleanSlug}
-      outletLabel={outletName && registerName ? `${outletName} · ${registerName}` : undefined}
-      staffName={sessionStaff?.staffId}
-      shiftOpen={false}
+      tenantName={shell.tenantName}
+      tenantSlug={shell.cleanSlug}
+      outletLabel={shell.outletLabel}
+      staffName={shell.staffName}
+      shiftOpen={Boolean(shell.openShift)}
       activeNav="shift"
-      onLocaleChange={(next) => {
-        if (bootResult.kind === 'READY') {
-          void setMeta(bootResult.db, 'locale', next)
-        }
-      }}
-      onLockScreen={() => void handleLockScreen()}
-      onSwitchStaff={handleSwitchStaff}
+      onSyncNow={shell.handleSyncNow}
+      onLocaleChange={shell.handleLocaleChange}
+      onLockScreen={() => void shell.handleLockScreen()}
+      onSwitchStaff={shell.handleSwitchStaff}
     >
       <OpenShiftForm
-        staffName={sessionStaff?.staffId ?? ''}
-        outletName={outletName || tenantName}
+        staffName={shell.staffName}
+        outletName={outletName || shell.tenantName}
         registerName={registerName || t('pos.shell.registerFallback')}
         mandatoryUpdateBlocked={mandatoryUpdateBlocked}
         submitting={submitting}

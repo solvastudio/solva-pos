@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
+import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import type { BootResult } from '~/pos/boot/boot'
 import { getOutlet, listActiveStaff, listRegisters } from '~/pos/data/master.repo'
 import { setMeta } from '~/pos/data/meta.repo'
@@ -56,7 +57,7 @@ export function DoneRouteScreen({ tenant, saleId, bootResult }: DoneRouteScreenP
       const st = staff.find((s) => s.id === sessionStaff.staffId)
       setStaffName(st?.display_name ?? '')
       const reg = regs.find((r) => r.id === device.register_id)
-      if (outlet && reg) setOutletLabel(`${outlet.code} · ${reg.code}`)
+      if (outlet && reg) setOutletLabel(formatPosOutletLabel(outlet, reg))
     })
 
     const sub = observePrintJobForEntity(db, saleId).subscribe({

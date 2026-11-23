@@ -10,6 +10,7 @@ import { SearchBar } from '~/components/pos/sell/SearchBar'
 import type { SellCatalogItem, SellSkuUomOption } from '~/components/pos/sell/types'
 import type { VariantPickerOption } from '~/components/pos/sell/VariantPickerDialog'
 import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
+import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import { CircleAlert, TriangleAlert } from '~/components/ui/icons'
 import { getEstimatesBulk } from '~/pos/data/stock.repo'
 import { businessDate, toMoney, type OutletTimezone } from '~/lib/kernel'
@@ -161,7 +162,7 @@ export function SellScreen({ tenant, bootResult }: SellScreenProps) {
         const staffRec = staffList.find((s) => s.id === sessionStaff.staffId)
         setStaffName(staffRec?.display_name ?? '')
         const reg = regs.find((r) => r.id === device.register_id)
-        if (outlet && reg) setOutletLabel(`${outlet.code} · ${reg.code}`)
+        if (outlet && reg) setOutletLabel(formatPosOutletLabel(outlet, reg))
         if (role?.discount_limit_pct !== undefined) {
           setRoleLimitPct(String(role.discount_limit_pct))
         }
