@@ -270,7 +270,7 @@ describe('pos/printing/receipt-builder', () => {
     expect(enTxt).not.toBe(idTxt)
   })
 
-  it('builds REPRINT with CETAK ULANG badge, inclusive tax suffix, bill discount + SC, NK, and 48-col layout', () => {
+  it('builds REPRINT with CETAK ULANG badge, hides inclusive tax line, bill discount + SC, NK, and 48-col layout', () => {
     const sample = createContoh1Sample()
     const reprintDoc = buildReceipt({
       kind: 'REPRINT',
@@ -306,7 +306,7 @@ describe('pos/printing/receipt-builder', () => {
     })
     const reprintTxt = renderReceiptDocText(reprintDoc, 48)
     expect(reprintTxt).toContain('CETAK ULANG')
-    expect(reprintTxt).toContain('PPN 11% (termasuk)')
+    expect(reprintTxt).not.toContain('PPN')
     expect(reprintTxt).toContain('Diskon bill')
     expect(reprintTxt).toContain('Service charge')
     expect(reprintTxt).toContain('QRIS (QR-991)')

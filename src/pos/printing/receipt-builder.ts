@@ -61,6 +61,30 @@ function appendHeaderNodes(
   }
 }
 
+function appendDateCashierNodes(
+  nodes: ReceiptNode[],
+  locale: LocaleId,
+  iso: string,
+  tz: OutletTimezone,
+  cashierName: string,
+): void {
+  const t = i18next.getFixedT(locale)
+  nodes.push({
+    t: 'text',
+    text: t('receipt.dateLabel', { date: formatReceiptTimestamp(iso, tz) }),
+    align: 'left',
+  })
+  nodes.push({
+    t: 'text',
+    text: t('receipt.cashierLabel', { cashier: cashierName }),
+    align: 'left',
+  })
+}
+
+function formatReceiptTaxRate(rate: string): string {
+  return rate.includes('.') ? rate.replace(/\.?0+$/, '') : rate
+}
+
 function appendFooterNodes(
   nodes: ReceiptNode[],
   receiptSetting: Pick<OutletReceiptSettingRecord, 'footer_text'> | null,
@@ -121,14 +145,7 @@ export function buildReceipt(input: BuildReceiptInput): ReceiptDoc {
     text: t('receipt.invoiceNoLabel', { no: input.sale.invoice_no }),
     align: 'left',
   })
-  nodes.push({
-    t: 'text',
-    text: t('receipt.dateTimeCashier', {
-      date: formatReceiptTimestamp(input.sale.occurred_at, tz),
-      cashier: input.cashierName,
-    }),
-    align: 'left',
-  })
+  appendDateCashierNodes(nodes, locale, input.sale.occurred_at, tz, input.cashierName)
   if (input.includeRegisterLine && input.registerCode) {
     nodes.push({
       t: 'text',
@@ -187,15 +204,15 @@ export function buildReceipt(input: BuildReceiptInput): ReceiptDoc {
     })
   }
 
-  if (input.sale.tax_profile !== 'NONE' && (input.sale.tax_amount > 0 || Number(input.sale.tax_rate) > 0)) {
-    const baseLabel = t('receipt.taxLine', {
+  if (
+    input.sale.tax_profile !== 'NONE' &&
+    input.sale.price_tax_mode !== 'INCLUSIVE' &&
+    (input.sale.tax_amount > 0 || Number(input.sale.tax_rate) > 0)
+  ) {
+    const label = t('receipt.taxLine', {
       profile: input.sale.tax_profile,
-      rate: input.sale.tax_rate,
+      rate: formatReceiptTaxRate(input.sale.tax_rate),
     })
-    const label =
-      input.sale.price_tax_mode === 'INCLUSIVE'
-        ? `${baseLabel}${t('receipt.taxInclusiveSuffix')}`
-        : baseLabel
     nodes.push({
       t: 'row',
       left: label,
@@ -300,14 +317,7 @@ export function buildCreditNoteReceipt(input: BuildCreditNoteReceiptInput): Rece
     text: t('receipt.origInvoiceLabel', { no: input.creditNote.original_invoice_no }),
     align: 'left',
   })
-  nodes.push({
-    t: 'text',
-    text: t('receipt.dateTimeCashier', {
-      date: formatReceiptTimestamp(input.creditNote.occurred_at, tz),
-      cashier: input.cashierName,
-    }),
-    align: 'left',
-  })
+  appendDateCashierNodes(nodes, locale, input.creditNote.occurred_at, tz, input.cashierName)
   nodes.push({ t: 'sep' })
 
   for (const line of input.lines) {
@@ -326,7 +336,7 @@ export function buildCreditNoteReceipt(input: BuildCreditNoteReceiptInput): Rece
     left: t('receipt.subtotal'),
     right: formatNumberPlain(input.creditNote.net_total, locale),
   })
-  if (input.creditNote.tax_total > 0) {
+  if (input.creditNote.price_tax_mode !== 'INCLUSIVE' && input.creditNote.tax_total > 0) {
     nodes.push({
       t: 'row',
       left: t('receipt.taxLine', { profile: 'PPN', rate: '' }).trim(),
@@ -383,20 +393,22 @@ export function buildShiftRecap(input: BuildShiftRecapInput): ReceiptDoc {
     { t: 'text', text: input.outlet.name, align: 'center' },
     { t: 'sep' },
     { t: 'text', text: t('receipt.registerLabel', { code: input.registerCode }) },
-    {
-      t: 'text',
-      text: t('receipt.dateTimeCashier', {
-        date: formatReceiptTimestamp(input.shift.closed_at ?? input.shift.occurred_at, tz),
-        cashier: input.cashierName,
-      }),
-    },
+  ]
+  appendDateCashierNodes(
+    nodes,
+    input.locale,
+    input.shift.closed_at ?? input.shift.occurred_at,
+    tz,
+    input.cashierName,
+  )
+  nodes.push(
     { t: 'sep' },
     { t: 'row', left: t('receipt.openingCash'), right: formatNumberPlain(input.recap.openingCash, input.locale) },
     { t: 'row', left: t('receipt.cashSales'), right: formatNumberPlain(input.recap.cashSalesTotal, input.locale) },
     { t: 'row', left: t('receipt.cashIn'), right: formatNumberPlain(input.recap.cashInTotal, input.locale) },
     { t: 'row', left: t('receipt.cashOut'), right: formatNumberPlain(input.recap.cashOutTotal, input.locale) },
     { t: 'row', left: t('receipt.cashRefunds'), right: formatNumberPlain(input.recap.cashRefundsTotal, input.locale) },
-  ]
+  )
 
   const countSubmitted = input.shift.status !== 'OPEN' && input.shift.counted_cash !== null
   if (countSubmitted) {

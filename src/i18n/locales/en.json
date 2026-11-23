@@ -1969,6 +1969,8 @@
     "creditNoteNoLabel": "CN : {{no}}",
     "origInvoiceLabel": "Ref: {{no}}",
     "dateTimeCashier": "Date: {{date}} Cashier: {{cashier}}",
+    "dateLabel": "Date: {{date}}",
+    "cashierLabel": "Cashier: {{cashier}}",
     "registerLabel": "Reg: {{code}}",
     "lineDiscount": "Discount {{label}}",
     "subtotal": "Subtotal",

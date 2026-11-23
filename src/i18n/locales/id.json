@@ -1969,6 +1969,8 @@
     "creditNoteNoLabel": "NK : {{no}}",
     "origInvoiceLabel": "Ref: {{no}}",
     "dateTimeCashier": "Tgl: {{date}} Kasir: {{cashier}}",
+    "dateLabel": "Tgl: {{date}}",
+    "cashierLabel": "Kasir: {{cashier}}",
     "registerLabel": "Reg: {{code}}",
     "lineDiscount": "Diskon {{label}}",
     "subtotal": "Subtotal",
