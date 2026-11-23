@@ -53,6 +53,23 @@ body {
   @apply bg-app text-ink text-body antialiased;
 }
 
+/* Match browser autofill styling to wrapped <Input> surface so Chrome does not paint an inner blue rectangle */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  transition: background-color 9999s ease-out 0s;
+}
+
+input:disabled:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-sunken) inset;
+  -webkit-text-fill-color: var(--color-ink-disabled);
+}
+
 /* DOQ-01 check: OpenType 'tnum' feature is absent in bundled @fontsource-variable/plus-jakarta-sans woff2 subsets; use standard tabular-nums */
 .tabular-nums {
   font-variant-numeric: tabular-nums;

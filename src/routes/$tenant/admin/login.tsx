@@ -84,7 +84,9 @@ function AdminLoginPage() {
 
   return (
     <SystemPage>
-      <TenantBadge variant="hero" name={name} slug={slug} />
+      <div className="border-b border-line-subtle pb-5">
+        <TenantBadge variant="hero" name={name} slug={slug} />
+      </div>
       <h1 className="mt-5 text-h2 font-semibold text-ink">
         {t('tenant.login.title', { tenant: name })}
       </h1>
@@ -92,7 +94,7 @@ function AdminLoginPage() {
         {t('tenant.login.notYours', { tenant: name })}
       </p>
 
-      <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 flex flex-col gap-4" noValidate>
+      <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 flex flex-col gap-4" noValidate>
         {errorMessage ? (
           <div
             role="alert"
@@ -136,6 +138,7 @@ function AdminLoginPage() {
                 icon={showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 variant="ghost"
                 size="md"
+                className="-mr-1.5"
                 onClick={() => setShowPassword((prev) => !prev)}
               />
             }
@@ -147,7 +150,7 @@ function AdminLoginPage() {
         </Button>
       </form>
 
-      <p className="mt-6 border-t border-line pt-4 text-body-sm text-ink-soft">
+      <p className="mt-6 border-t border-line-subtle pt-4 text-body-sm leading-relaxed text-ink-soft">
         {t('auth.login.forgotHint')}
       </p>
     </SystemPage>
