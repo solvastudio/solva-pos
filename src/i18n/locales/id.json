@@ -1625,14 +1625,14 @@
     },
     "shortcuts": {
       "title": "Pintasan Keyboard",
-      "f2": "F2 atau / — Fokus pencarian",
-      "f4": "F4 — Bayar",
-      "arrows": "Panah Atas / Bawah — Pilih baris keranjang",
-      "plusMinus": "+ / - — Ubah jumlah baris terpilih",
-      "del": "Delete — Hapus baris terpilih",
-      "enter": "Enter — Konfirmasi dialog",
-      "esc": "Esc — Tutup dialog atau hapus pencarian",
-      "ctrlK": "Ctrl+K — Tampilkan pintasan"
+      "f2": "Fokus pencarian",
+      "f4": "Bayar",
+      "arrows": "Pilih baris keranjang",
+      "plusMinus": "Ubah jumlah baris terpilih",
+      "del": "Hapus baris terpilih",
+      "enter": "Konfirmasi dialog",
+      "esc": "Tutup dialog atau hapus pencarian",
+      "ctrlK": "Tampilkan pintasan"
     },
     "pay": {
       "title": "Pembayaran",

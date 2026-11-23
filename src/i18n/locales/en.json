@@ -1625,14 +1625,14 @@
     },
     "shortcuts": {
       "title": "Keyboard Shortcuts",
-      "f2": "F2 or / — Focus search",
-      "f4": "F4 — Pay",
-      "arrows": "Up / Down — Select cart line",
-      "plusMinus": "+ / - — Adjust selected line qty",
-      "del": "Delete — Remove selected line",
-      "enter": "Enter — Confirm dialog",
-      "esc": "Esc — Close dialog or clear search",
-      "ctrlK": "Ctrl+K — Show shortcuts"
+      "f2": "Focus search",
+      "f4": "Pay",
+      "arrows": "Select cart line",
+      "plusMinus": "Adjust selected line qty",
+      "del": "Remove selected line",
+      "enter": "Confirm dialog",
+      "esc": "Close dialog or clear search",
+      "ctrlK": "Show shortcuts"
     },
     "pay": {
       "title": "Payment",

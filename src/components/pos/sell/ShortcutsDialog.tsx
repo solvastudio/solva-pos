@@ -7,7 +7,21 @@ export interface ShortcutsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-const SHORTCUT_KEYS = ['f2', 'f4', 'arrows', 'plusMinus', 'del', 'enter', 'esc', 'ctrlK'] as const
+interface ShortcutRow {
+  readonly id: 'f2' | 'f4' | 'arrows' | 'plusMinus' | 'del' | 'enter' | 'esc' | 'ctrlK'
+  readonly keys: readonly string[]
+}
+
+const SHORTCUTS: readonly ShortcutRow[] = [
+  { id: 'f2', keys: ['F2', '/'] },
+  { id: 'f4', keys: ['F4'] },
+  { id: 'arrows', keys: ['↑', '↓'] },
+  { id: 'plusMinus', keys: ['+', '-'] },
+  { id: 'del', keys: ['Delete'] },
+  { id: 'enter', keys: ['Enter'] },
+  { id: 'esc', keys: ['Esc'] },
+  { id: 'ctrlK', keys: ['Ctrl', 'K'] },
+]
 
 export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
   const { t } = useTranslation()
@@ -19,15 +33,25 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
       title={t('pos.shortcuts.title')}
       size="sm"
       footer={
-        <Button type="button" variant="primary" onClick={() => onOpenChange(false)}>
+        <Button type="button" variant="primary" size="md" onClick={() => onOpenChange(false)}>
           {t('common.close')}
         </Button>
       }
     >
-      <ul className="flex flex-col gap-2 text-body text-ink">
-        {SHORTCUT_KEYS.map((key) => (
-          <li key={key} className="rounded-card border border-line bg-surface-sunken px-3 py-2">
-            {t(`pos.shortcuts.${key}`)}
+      <ul className="divide-y divide-line-subtle text-body text-ink">
+        {SHORTCUTS.map(({ id, keys }) => (
+          <li key={id} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+            <span className="text-ink-soft">{t(`pos.shortcuts.${id}`)}</span>
+            <span className="flex shrink-0 items-center gap-1">
+              {keys.map((keyLabel) => (
+                <kbd
+                  key={keyLabel}
+                  className="inline-flex h-6 min-w-6 items-center justify-center rounded-sm border border-line bg-surface-sunken px-1.5 font-mono text-label-sm font-medium text-ink"
+                >
+                  {keyLabel}
+                </kbd>
+              ))}
+            </span>
           </li>
         ))}
       </ul>
