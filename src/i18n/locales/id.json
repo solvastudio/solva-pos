@@ -208,7 +208,9 @@
       "menuClose": "Tutup menu navigasi",
       "navLabel": "Navigasi back-office",
       "accountLink": "Pengaturan akun",
-      "backToPicker": "Pindah aplikasi"
+      "backToPicker": "Pindah aplikasi",
+      "footerMadeBy": "Website ini dibuat oleh",
+      "footerStudioUrl": "www.solvastudio.com"
     },
     "nav": {
       "dashboard": "Beranda",

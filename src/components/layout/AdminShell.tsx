@@ -118,9 +118,22 @@ export function AdminShell({ session, children }: AdminShellProps) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">
-          <div className="mx-auto w-full max-w-screen-xl">{children}</div>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="min-w-0 flex-1 p-4 md:p-6">
+            <div className="mx-auto w-full max-w-screen-xl">{children}</div>
+          </main>
+          <footer className="border-t border-line-subtle bg-surface px-4 py-3 text-center text-caption text-ink-soft md:px-6">
+            <span>{t('admin.shell.footerMadeBy')}</span>{' '}
+            <a
+              href="https://www.solvastudio.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-ink-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-xs"
+            >
+              {t('admin.shell.footerStudioUrl')}
+            </a>
+          </footer>
+        </div>
       </div>
     </div>
   )

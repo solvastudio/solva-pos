@@ -208,7 +208,9 @@
       "menuClose": "Close navigation menu",
       "navLabel": "Back-office navigation",
       "accountLink": "Account settings",
-      "backToPicker": "Switch app"
+      "backToPicker": "Switch app",
+      "footerMadeBy": "This website is made by",
+      "footerStudioUrl": "www.solvastudio.com"
     },
     "nav": {
       "dashboard": "Dashboard",
