@@ -22,7 +22,7 @@ export function UomChip({
 
   if (selectable.length <= 1) {
     return (
-      <span className="inline-flex items-center rounded-pill border border-line bg-surface-sunken px-2 py-0.5 text-caption font-medium text-ink-soft">
+      <span className="inline-flex items-center rounded-full border border-line bg-surface-sunken px-2 py-0.5 text-caption font-medium text-ink-soft">
         {currentUomCode}
       </span>
     )
@@ -40,7 +40,7 @@ export function UomChip({
         }
       }}
       className={cn(
-        'h-7 rounded-pill border border-line bg-surface-sunken px-2 text-caption font-medium text-ink',
+        'h-7 rounded-full border border-line bg-surface-sunken px-2 text-caption font-medium text-ink',
         'focus:border-action focus:ring-2 focus:ring-focus-ring focus:outline-none',
       )}
     >

@@ -77,15 +77,15 @@ export function PosWorkspaceShell({
   ]
 
   return (
-    <div className="flex min-h-screen flex-col bg-app">
-      <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-2 border-b border-line bg-surface px-3 sm:px-4">
+    <div className="flex min-h-screen flex-col bg-app md:h-dvh md:overflow-hidden">
+      <header className="sticky top-0 z-header flex h-topbar shrink-0 items-center justify-between gap-2 border-b border-line bg-surface px-3 sm:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <TenantBadge variant="compact" name={tenantName} slug={cleanSlug} />
           <span className="truncate text-label font-semibold text-ink">
             {outletLabel ?? t('pos.shell.registerFallback')}
           </span>
           {shiftOpen ? (
-            <span className="hidden shrink-0 rounded-pill bg-success-soft px-2 py-0.5 text-caption font-medium text-success-ink sm:inline-flex">
+            <span className="hidden shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-caption font-medium text-success-ink sm:inline-flex">
               {t('pos.shellNav.shiftOpenBadge')}
             </span>
           ) : null}
@@ -157,7 +157,7 @@ export function PosWorkspaceShell({
       <div className="flex min-h-0 flex-1">
         <nav
           aria-label={t('pos.shellNav.navLabel')}
-          className="hidden w-pos-rail shrink-0 flex-col items-center gap-2 border-r border-line bg-surface py-3 md:flex"
+          className="hidden w-pos-rail shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-line bg-surface py-3 md:flex"
         >
           {navItems.map((item) => {
             const Icon = item.icon
@@ -172,7 +172,7 @@ export function PosWorkspaceShell({
                   void navigate({ href: item.href })
                 }}
                 className={cn(
-                  'flex min-h-touch w-14 flex-col items-center justify-center gap-1 rounded-card px-1 py-2 text-caption font-medium transition-colors',
+                  'flex min-h-control-md w-14 flex-col items-center justify-center gap-1 rounded-card px-1 py-2 text-caption font-medium transition-colors',
                   active
                     ? 'bg-action text-on-action'
                     : 'text-ink-soft hover:bg-surface-sunken hover:text-ink',
@@ -185,7 +185,7 @@ export function PosWorkspaceShell({
           })}
         </nav>
 
-        <main className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">{children}</main>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col pb-16 md:overflow-y-auto md:pb-0">{children}</main>
       </div>
 
       <nav
@@ -205,7 +205,7 @@ export function PosWorkspaceShell({
                 void navigate({ href: item.href })
               }}
               className={cn(
-                'flex min-h-touch min-w-16 flex-col items-center justify-center gap-0.5 rounded-card px-2 py-1 text-caption font-medium',
+                'flex min-h-control-md min-w-16 flex-col items-center justify-center gap-0.5 rounded-card px-2 py-1 text-caption font-medium',
                 active ? 'text-action font-semibold' : 'text-ink-soft',
               )}
             >

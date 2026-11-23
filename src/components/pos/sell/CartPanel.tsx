@@ -55,15 +55,15 @@ export function CartPanel({
   return (
     <aside
       aria-label={t('pos.cart.title')}
-      className="flex w-full min-w-0 shrink-0 flex-col border-t border-line bg-surface md:w-80 lg:w-96 md:border-t-0 md:border-l"
+      className="flex min-h-0 w-full min-w-0 shrink-0 flex-col border-t border-line bg-surface md:h-full md:w-80 lg:w-96 md:border-t-0 md:border-l"
     >
-      <div className="flex flex-col gap-2.5 border-b border-line px-4 py-3">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-line px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <ShoppingCart className="size-4 shrink-0 text-ink-soft" aria-hidden="true" />
             <h2 className="truncate text-h3 font-semibold text-ink">{t('pos.cart.title')}</h2>
           </div>
-          <span className="shrink-0 whitespace-nowrap rounded-pill bg-surface-sunken px-2.5 py-0.5 text-caption font-medium text-ink-soft tabular-nums">
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-surface-sunken px-2.5 py-0.5 text-caption font-medium text-ink-soft tabular-nums">
             {t('pos.cart.itemsCount', { count: itemCount })}
           </span>
         </div>
@@ -97,7 +97,7 @@ export function CartPanel({
         </div>
       </div>
 
-      <div role="list" className="flex min-h-48 flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div role="list" className="flex min-h-40 flex-1 flex-col gap-1.5 overflow-y-auto p-2.5">
         {cart.lines.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-card border border-dashed border-line bg-surface-sunken p-6 text-center text-body text-ink-soft">
             {t('pos.cart.empty')}
@@ -127,7 +127,7 @@ export function CartPanel({
         )}
       </div>
 
-      <div className="border-t border-line bg-surface-sunken p-4">
+      <div className="shrink-0 border-t border-line bg-surface-sunken p-3.5">
         <dl className="flex flex-col gap-1.5 text-label">
           <div className="flex justify-between text-ink-soft">
             <dt>{t('pos.cart.subtotal')}</dt>
@@ -188,7 +188,7 @@ export function CartPanel({
           fullWidth
           disabled={!canPay}
           onClick={onPay}
-          className="mt-4 justify-between border border-transparent disabled:border-line"
+          className="mt-3 justify-between border border-transparent disabled:border-line"
         >
           <span>{shiftOpen ? t('pos.cart.payButton') : t('pos.cart.shiftClosedDisabled')}</span>
           {shiftOpen ? (

@@ -69,35 +69,40 @@ export function CartLineRow({
       role="listitem"
       onClick={onSelect}
       className={cn(
-        'flex flex-col gap-2 rounded-card border p-3 transition-colors',
+        'flex flex-col gap-1.5 rounded-card border p-2.5 transition-colors',
         selected
-          ? 'border-action bg-surface'
+          ? 'border-action bg-surface ring-1 ring-action/20'
           : 'border-line bg-surface hover:border-line-strong',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-body font-semibold text-ink">{line.itemName}</div>
+          <div className="truncate text-body font-semibold leading-tight text-ink">{line.itemName}</div>
           {line.variantLabel ? (
-            <div className="truncate text-caption text-ink-soft">{line.variantLabel}</div>
+            <div className="truncate text-caption leading-tight text-ink-soft">{line.variantLabel}</div>
           ) : null}
         </div>
 
-        <button
-          type="button"
-          aria-label={t('pos.cart.removeLine')}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRemove()
-          }}
-          className="flex size-8 shrink-0 items-center justify-center rounded-input text-ink-soft hover:bg-danger-soft hover:text-danger-ink"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="font-mono text-body font-semibold text-ink tabular-nums">
+            {formatMoney(lineNet, locale)}
+          </span>
+          <button
+            type="button"
+            aria-label={t('pos.cart.removeLine')}
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove()
+            }}
+            className="flex size-7 shrink-0 items-center justify-center rounded-control text-ink-soft hover:bg-danger-soft hover:text-danger-ink"
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <UomChip
             currentUomId={line.uomId}
             currentUomCode={line.uomCode}
@@ -119,7 +124,7 @@ export function CartLineRow({
                 e.stopPropagation()
                 onOpenPriceEdit()
               }}
-              className="inline-flex items-center gap-1 rounded-pill border border-action bg-surface-sunken px-2 py-0.5 font-mono text-caption font-medium text-action tabular-nums hover:bg-surface"
+              className="inline-flex items-center gap-1 rounded-full border border-action bg-surface-sunken px-2 py-0.5 font-mono text-caption font-medium text-action tabular-nums hover:bg-surface"
             >
               <PencilLine className="size-3" aria-hidden="true" />
               <span>{formatMoney(line.unitPrice, locale)}</span>
@@ -129,39 +134,37 @@ export function CartLineRow({
               {formatMoney(line.unitPrice, locale)}
             </span>
           )}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenDiscount()
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-caption font-medium transition-colors',
+              lineDiscount > 0
+                ? 'border-warning-line bg-warning-soft text-warning-ink'
+                : 'border-line bg-surface-sunken text-ink-soft hover:text-ink',
+            )}
+          >
+            <Percent className="size-3" aria-hidden="true" />
+            <span>
+              {lineDiscount > 0
+                ? `-${formatMoney(lineDiscount, locale)}`
+                : t('pos.cart.discountButton')}
+            </span>
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenDiscount()
-          }}
-          className={cn(
-            'inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 text-caption font-medium',
-            lineDiscount > 0
-              ? 'border-warning-line bg-warning-soft text-warning-ink'
-              : 'border-line bg-surface-sunken text-ink-soft hover:text-ink',
-          )}
-        >
-          <Percent className="size-3" aria-hidden="true" />
-          <span>
-            {lineDiscount > 0
-              ? `-${formatMoney(lineDiscount, locale)}`
-              : t('pos.cart.discountButton')}
-          </span>
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="ml-auto flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             aria-label={t('pos.cart.qtyDecrease')}
             onClick={onDecrement}
-            className="flex min-h-touch w-11 items-center justify-center rounded-input border border-line bg-surface-sunken text-ink hover:bg-surface"
+            className="flex h-8 w-8 items-center justify-center rounded-control border border-line bg-surface-sunken text-ink transition-colors hover:bg-surface"
           >
-            <Minus className="size-4" aria-hidden="true" />
+            <Minus className="size-3.5" aria-hidden="true" />
           </button>
 
           <input
@@ -176,22 +179,18 @@ export function CartLineRow({
                 commitQty()
               }
             }}
-            className="min-h-touch w-14 rounded-input border border-line bg-surface text-center font-mono text-body font-semibold text-ink tabular-nums focus:border-action focus:ring-2 focus:ring-focus-ring focus:outline-none"
+            className="h-8 w-11 rounded-control border border-line bg-surface text-center font-mono text-body font-semibold text-ink tabular-nums focus:border-action focus:ring-2 focus:ring-focus-ring focus:outline-none"
           />
 
           <button
             type="button"
             aria-label={t('pos.cart.qtyIncrease')}
             onClick={onIncrement}
-            className="flex min-h-touch w-11 items-center justify-center rounded-input border border-line bg-surface-sunken text-ink hover:bg-surface"
+            className="flex h-8 w-8 items-center justify-center rounded-control border border-line bg-surface-sunken text-ink transition-colors hover:bg-surface"
           >
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="size-3.5" aria-hidden="true" />
           </button>
         </div>
-
-        <span className="font-mono text-body font-semibold text-ink tabular-nums">
-          {formatMoney(lineNet, locale)}
-        </span>
       </div>
 
       {qtyError ? (
