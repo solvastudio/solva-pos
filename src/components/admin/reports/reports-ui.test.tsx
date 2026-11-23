@@ -31,6 +31,8 @@ describe('Admin Reporting UI components (SCR-A02, R-01, R-03, R-04)', () => {
 
     const img = screen.getByRole('img')
     expect(img.getAttribute('aria-label')).toContain('Penjualan Neto Harian')
+    expect(screen.getAllByText(/120\.000/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/170\.100/).length).toBeGreaterThanOrEqual(2)
 
     const results = await axe.run(container)
     expect(results.violations).toEqual([])

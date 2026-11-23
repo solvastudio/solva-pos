@@ -41,13 +41,18 @@ export function BarChartSvg({
   })
 
   const svgWidth = 600
-  const svgHeight = 180
-  const padTop = 16
+  const svgHeight = 204
+  const padLeft = 84
+  const padRight = 16
+  const padTop = 26
   const padBottom = 28
+  const plotWidth = svgWidth - padLeft - padRight
   const chartHeight = svgHeight - padTop - padBottom
   const count = Math.max(1, points.length)
-  const slotWidth = svgWidth / count
-  const barWidth = Math.max(12, Math.min(48, Math.floor(slotWidth * 0.65)))
+  const slotWidth = plotWidth / count
+  const barWidth = Math.max(12, Math.min(52, Math.floor(slotWidth * 0.6)))
+  const showValueLabels = points.length <= 7
+  const yTicks = maxVal >= 2 ? [maxVal, Math.round(maxVal / 2), 0] : maxVal > 0 ? [maxVal, 0] : [0]
 
   const tableElement = (
     <table className="w-full border-collapse text-left text-body-sm">
@@ -103,27 +108,72 @@ export function BarChartSvg({
             role="img"
             aria-label={ariaSummary}
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            className="h-44 w-full overflow-visible"
+            className="h-48 w-full overflow-visible"
           >
             <title>{ariaSummary}</title>
+            {yTicks.map((tickVal) => {
+              const tickRatio = maxVal > 0 ? tickVal / maxVal : 0
+              const tickY = Math.round(padTop + chartHeight - tickRatio * chartHeight)
+              return (
+                <g key={tickVal}>
+                  <line
+                    x1={padLeft}
+                    y1={tickY}
+                    x2={svgWidth - padRight}
+                    y2={tickY}
+                    strokeDasharray={tickVal === 0 ? undefined : '4 4'}
+                    className={tickVal === 0 ? 'stroke-line' : 'stroke-line-subtle'}
+                  />
+                  <text
+                    x={padLeft - 8}
+                    y={tickY + 4}
+                    textAnchor="end"
+                    className="fill-ink-muted font-mono text-caption tabular-nums"
+                  >
+                    {formatMoney(toMoney(tickVal), locale)}
+                  </text>
+                </g>
+              )
+            })}
             {points.map((pt, idx) => {
               const ratio = maxVal > 0 ? Math.max(0.04, Math.abs(pt.value) / maxVal) : 0.04
-              const h = Math.round(ratio * chartHeight)
-              const x = Math.round(idx * slotWidth + (slotWidth - barWidth) / 2)
+              const h = pt.value === 0 ? 2 : Math.round(ratio * chartHeight)
+              const x = Math.round(padLeft + idx * slotWidth + (slotWidth - barWidth) / 2)
+              const centerX = Math.round(padLeft + idx * slotWidth + slotWidth / 2)
               const y = padTop + (chartHeight - h)
               const isActive = idx === resolvedActiveIndex
+              const formattedValue = formatMoney(toMoney(pt.value), locale)
               return (
                 <g key={pt.label}>
+                  <title>{`${pt.label}: ${formattedValue}`}</title>
                   <rect
                     x={x}
                     y={y}
                     width={barWidth}
                     height={h}
                     rx={4}
-                    className={isActive ? 'fill-success-solid' : 'fill-ink-muted'}
+                    className={
+                      isActive
+                        ? 'fill-primary-700 transition-colors hover:fill-primary-800'
+                        : 'fill-primary-300 transition-colors hover:fill-primary-500'
+                    }
                   />
+                  {showValueLabels ? (
+                    <text
+                      x={centerX}
+                      y={y - 6}
+                      textAnchor="middle"
+                      className={
+                        isActive
+                          ? 'fill-ink font-mono text-caption font-semibold tabular-nums'
+                          : 'fill-ink-soft font-mono text-caption tabular-nums'
+                      }
+                    >
+                      {formattedValue}
+                    </text>
+                  ) : null}
                   <text
-                    x={Math.round(idx * slotWidth + slotWidth / 2)}
+                    x={centerX}
                     y={svgHeight - 8}
                     textAnchor="middle"
                     className="fill-ink-soft font-mono text-caption"
