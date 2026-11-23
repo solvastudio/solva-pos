@@ -1,5 +1,5 @@
 import { useRouterState } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/Button'
 import { IconButton } from '~/components/ui/IconButton'
@@ -28,6 +28,17 @@ export function AdminShell({ session, children }: AdminShellProps) {
 
   const navItems = visibleAdminNavItems(session.permissions)
 
+  useEffect(() => {
+    if (!drawerOpen) return
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setDrawerOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [drawerOpen])
+
   async function handleSignOut() {
     setSigningOut(true)
     try {
@@ -52,6 +63,8 @@ export function AdminShell({ session, children }: AdminShellProps) {
             variant="ghost"
             size="md"
             className="md:hidden"
+            aria-expanded={drawerOpen}
+            aria-controls="admin-nav-drawer"
             onClick={() => setDrawerOpen((prev) => !prev)}
           />
           <TenantBadge variant="bar" name={name} slug={slug} />
@@ -80,11 +93,20 @@ export function AdminShell({ session, children }: AdminShellProps) {
       </header>
 
       <div className="flex w-full flex-1">
+        {drawerOpen ? (
+          <div
+            data-testid="admin-drawer-backdrop"
+            aria-hidden="true"
+            className="fixed inset-x-0 top-16 bottom-0 z-nav bg-scrim md:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
+        ) : null}
         <aside
+          id="admin-nav-drawer"
           aria-label={t('admin.shell.navLabel')}
           className={cn(
             'fixed top-16 bottom-0 left-0 z-nav w-60 overflow-y-auto overscroll-contain border-r border-line bg-surface p-4',
-            drawerOpen ? 'block shadow-card md:shadow-none' : 'hidden md:block',
+            drawerOpen ? 'block shadow-modal md:shadow-none' : 'hidden md:block',
           )}
         >
           <nav className="flex flex-col gap-1">
@@ -115,7 +137,14 @@ export function AdminShell({ session, children }: AdminShellProps) {
             })}
           </nav>
 
-          <div className="mt-6 border-t border-line pt-4 sm:hidden">
+          <div className="mt-6 flex flex-col items-start gap-3 border-t border-line pt-4 sm:hidden">
+            <a
+              href={tenantHref(slug, '/admin/account')}
+              onClick={() => setDrawerOpen(false)}
+              className="w-full truncate px-1 text-body-sm font-medium text-ink-soft hover:text-ink"
+            >
+              {session.displayName}
+            </a>
             <LangToggle onLocaleChange={(loc) => setPreferredLocaleFn({ data: { locale: loc } }).then(() => undefined)} />
           </div>
         </aside>

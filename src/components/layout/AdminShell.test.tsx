@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { changeLocale } from '~/i18n'
@@ -67,5 +67,33 @@ describe('AdminShell', () => {
 
     const axeRes = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
     expect(axeRes.violations).toEqual([])
+  })
+
+  it('opens mobile drawer with scrim backdrop and closes on backdrop click or Escape', () => {
+    render(
+      <AdminShell session={TEST_SESSION}>
+        <p>Konten Admin</p>
+      </AdminShell>,
+    )
+
+    const toggle = screen.getByRole('button', { name: 'Buka menu navigasi' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByTestId('admin-drawer-backdrop')).toBeNull()
+
+    fireEvent.click(toggle)
+    const closeBtn = screen.getByRole('button', { name: 'Tutup menu navigasi' })
+    expect(closeBtn.getAttribute('aria-expanded')).toBe('true')
+    const backdrop = screen.getByTestId('admin-drawer-backdrop')
+    expect(backdrop).toBeTruthy()
+    expect(screen.getAllByText('Owner').length).toBeGreaterThanOrEqual(2)
+
+    fireEvent.click(backdrop)
+    expect(screen.queryByTestId('admin-drawer-backdrop')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Buka menu navigasi' }).getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buka menu navigasi' }))
+    expect(screen.getByTestId('admin-drawer-backdrop')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByTestId('admin-drawer-backdrop')).toBeNull()
   })
 })
