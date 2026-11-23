@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/Button'
 import { Dialog } from '~/components/ui/Dialog'
+import { cn } from '~/lib/cn'
 import { formatMoney } from '~/lib/kernel'
 import type { PriceResolution } from '~/modules/catalog/shared'
 import type { ProductRecord, SkuRecord } from '~/pos/db/types'
@@ -35,9 +36,9 @@ export function VariantPickerDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('pos.sell.variantPickerTitle', { name: product.name })}
-      size="sm"
+      size="md"
     >
-      <div className="flex flex-col gap-2">
+      <div className={cn('grid gap-2.5', options.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1')}>
         {options.map((opt) => {
           const disabled = opt.price.kind === 'NO_PRICE'
           const priceLabel =
@@ -52,16 +53,25 @@ export function VariantPickerDialog({
               key={opt.sku.id}
               type="button"
               variant="secondary"
-              size="lg"
+              size="md"
               disabled={disabled}
               onClick={() => {
                 onSelectSku(opt)
                 onOpenChange(false)
               }}
-              className="justify-between"
+              className="w-full justify-between gap-2 px-3.5 text-left"
             >
-              <span>{opt.sku.variant_label ?? opt.sku.sku_code}</span>
-              <span className="font-mono tabular-nums">{priceLabel}</span>
+              <span className="min-w-0 truncate font-medium text-ink">
+                {opt.sku.variant_label ?? opt.sku.sku_code}
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 font-mono text-body font-semibold tabular-nums',
+                  disabled ? 'text-danger-ink' : 'text-ink-brand',
+                )}
+              >
+                {priceLabel}
+              </span>
             </Button>
           )
         })}
