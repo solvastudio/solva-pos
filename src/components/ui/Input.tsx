@@ -64,7 +64,7 @@ export function Input({
       : kind === 'number'
         ? 'decimal'
         : undefined)
-  const resolvedAutoComplete = kind === 'pin' ? 'off' : autoComplete
+  const resolvedAutoComplete = kind === 'pin' ? (autoComplete ?? 'one-time-code') : autoComplete
 
   return (
     <div

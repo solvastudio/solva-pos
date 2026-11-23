@@ -266,6 +266,7 @@ export function SupervisorPinDialog({
                 <Input
                   id={`${formId}-reason`}
                   type="text"
+                  autoComplete="off"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder={t('pos.supervisor.reasonPlaceholder')}

@@ -218,11 +218,11 @@
   --z-nav: 20;
   --z-header: 30;
   --z-banner: 35;
-  --z-dropdown: 65;
   --z-modal-backdrop: 50;
   --z-modal: 60;
   --z-toast: 70;
   --z-pin: 80;
+  --z-dropdown: 85;
   --z-system: 90;
 
   --duration-instant: 0ms;
