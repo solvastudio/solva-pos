@@ -422,7 +422,7 @@
       "tax": {
         "sectionTitle": "Outlet Tax & Charges",
         "nextTxBanner": "Applies to future transactions once terminals sync; effective-dated tax rates apply by business date.",
-        "rsk06Help": "Review tax rules with your accountant before enabling PPN or PB1 (RSK-06).",
+        "rsk06Help": "Review tax rules with your accountant before enabling PPN or PB1.",
         "taxProfileLabel": "Tax profile",
         "profileNONE": "None (No tax)",
         "profilePPN": "PPN (VAT)",

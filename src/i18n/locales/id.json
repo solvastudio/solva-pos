@@ -422,7 +422,7 @@
       "tax": {
         "sectionTitle": "Pajak & Biaya Outlet",
         "nextTxBanner": "Berlaku untuk transaksi berikutnya setelah perangkat sinkron; tarif pajak berlaku menurut tanggal bisnis.",
-        "rsk06Help": "Konfirmasikan aturan pajak dengan akuntan sebelum mengaktifkan PPN atau PB1 (RSK-06).",
+        "rsk06Help": "Konfirmasikan aturan pajak dengan akuntan sebelum mengaktifkan PPN atau PB1.",
         "taxProfileLabel": "Profil pajak",
         "profileNONE": "Tanpa Pajak (NONE)",
         "profilePPN": "PPN",
