@@ -148,7 +148,9 @@ export function CartPanel({
             </div>
           ) : null}
 
-          {cart.config.taxProfile !== 'NONE' && calc.taxAmount > 0 ? (
+          {cart.config.taxProfile !== 'NONE' &&
+          cart.config.priceTaxMode !== 'INCLUSIVE' &&
+          calc.taxAmount > 0 ? (
             <div className="flex justify-between text-ink-soft">
               <dt>{t('pos.cart.taxLabel', { profile: cart.config.taxProfile })}</dt>
               <dd className="font-mono tabular-nums">{formatMoney(calc.taxAmount, locale)}</dd>

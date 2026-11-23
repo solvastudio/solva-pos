@@ -267,4 +267,69 @@ describe('CartPanel (SCR-P04)', () => {
       HTMLElement.prototype.scrollIntoView = origScrollIntoView
     }
   })
+
+  it('hides Tax (PPN) line in cart summary when priceTaxMode is INCLUSIVE', () => {
+    let cart = createEmptyCart({
+      finalizeId: 'f3',
+      config: {
+        priceTaxMode: 'INCLUSIVE',
+        taxProfile: 'PPN',
+        taxRate: '11',
+        serviceChargeEnabled: false,
+        serviceChargeRate: '0',
+        serviceChargeTaxable: true,
+      },
+      cashRoundingUnit: 0,
+      taxRateId: 't1',
+      createdAt: '2026-11-20T01:00:00.000Z',
+      shiftId: 'shift-1',
+    })
+    cart = unwrapCart(
+      addItem(
+        cart,
+        {
+          skuId: 's1',
+          productId: 'p1',
+          uomId: 'u1',
+          skuCode: 'KOP',
+          itemName: 'Kopi',
+          uomCode: 'pcs',
+          conversionFactor: '1',
+          taxable: true,
+          allowFraction: false,
+          price: { kind: 'PRICE', price: toMoney(66_500), source: 'OUTLET' },
+        },
+        { newId: 'l1' },
+      ),
+    )
+
+    const calc = calcSale(toCalcInput(cart))
+    render(
+      <CartPanel
+        cart={cart}
+        totals={{
+          calc,
+          cashTotal: toMoney(calc.grandTotal),
+          roundingDelta: 0,
+          itemCount: cart.lines.length,
+        }}
+        selectedLineId="l1"
+        shiftOpen={true}
+        uomOptionsBySku={new Map()}
+        onSelectLine={vi.fn()}
+        onIncrementLine={vi.fn()}
+        onDecrementLine={vi.fn()}
+        onSetQty={() => null}
+        onChangeUom={() => null}
+        onOpenPriceEdit={vi.fn()}
+        onOpenLineDiscount={vi.fn()}
+        onOpenBillDiscount={vi.fn()}
+        onOpenCustomer={vi.fn()}
+        onRemoveLine={vi.fn()}
+        onPay={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText(/Tax \(PPN\)/i)).toBeNull()
+  })
 })
