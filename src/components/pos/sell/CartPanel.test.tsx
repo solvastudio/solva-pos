@@ -170,4 +170,101 @@ describe('CartPanel (SCR-P04)', () => {
     const axeRes = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
     expect(axeRes.violations).toEqual([])
   })
+
+  it('scrolls the selected cart line row into view when selection changes', () => {
+    const scrollIntoViewMock = vi.fn()
+    const origScrollIntoView = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = scrollIntoViewMock
+
+    try {
+      let cart = createEmptyCart({
+        finalizeId: 'f2',
+        config: {
+          priceTaxMode: 'EXCLUSIVE',
+          taxProfile: 'NONE',
+          taxRate: '0',
+          serviceChargeEnabled: false,
+          serviceChargeRate: '0',
+          serviceChargeTaxable: true,
+        },
+        cashRoundingUnit: 0,
+        taxRateId: null,
+        createdAt: '2026-11-20T01:00:00.000Z',
+        shiftId: 'shift-1',
+      })
+      cart = unwrapCart(
+        addItem(
+          cart,
+          {
+            skuId: 's1',
+            productId: 'p1',
+            uomId: 'u1',
+            skuCode: 'KOP',
+            itemName: 'Kopi',
+            uomCode: 'pcs',
+            conversionFactor: '1',
+            taxable: false,
+            allowFraction: false,
+            price: { kind: 'PRICE', price: toMoney(10_000), source: 'OUTLET' },
+          },
+          { newId: 'l1' },
+        ),
+      )
+      cart = unwrapCart(
+        addItem(
+          cart,
+          {
+            skuId: 's2',
+            productId: 'p2',
+            uomId: 'u1',
+            skuCode: 'TEH',
+            itemName: 'Teh',
+            uomCode: 'pcs',
+            conversionFactor: '1',
+            taxable: false,
+            allowFraction: false,
+            price: { kind: 'PRICE', price: toMoney(8_000), source: 'OUTLET' },
+          },
+          { newId: 'l2' },
+        ),
+      )
+
+      const calc = calcSale(toCalcInput(cart))
+      const totals = {
+        calc,
+        cashTotal: toMoney(calc.grandTotal),
+        roundingDelta: 0,
+        itemCount: cart.lines.length,
+      }
+
+      const commonProps = {
+        cart,
+        totals,
+        shiftOpen: true,
+        uomOptionsBySku: new Map(),
+        onSelectLine: vi.fn(),
+        onIncrementLine: vi.fn(),
+        onDecrementLine: vi.fn(),
+        onSetQty: () => null,
+        onChangeUom: () => null,
+        onOpenPriceEdit: vi.fn(),
+        onOpenLineDiscount: vi.fn(),
+        onOpenBillDiscount: vi.fn(),
+        onOpenCustomer: vi.fn(),
+        onRemoveLine: vi.fn(),
+        onPay: vi.fn(),
+      }
+
+      const { rerender } = render(<CartPanel {...commonProps} selectedLineId="l1" />)
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+      expect(scrollIntoViewMock).toHaveBeenLastCalledWith({ block: 'nearest' })
+
+      scrollIntoViewMock.mockClear()
+      rerender(<CartPanel {...commonProps} selectedLineId="l2" />)
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+      expect(scrollIntoViewMock).toHaveBeenLastCalledWith({ block: 'nearest' })
+    } finally {
+      HTMLElement.prototype.scrollIntoView = origScrollIntoView
+    }
+  })
 })

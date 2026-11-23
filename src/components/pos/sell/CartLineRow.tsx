@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '~/lib/cn'
 import { formatMoney, type Money } from '~/lib/kernel'
@@ -40,6 +40,7 @@ export function CartLineRow({
 }: CartLineRowProps) {
   const { t, i18n } = useTranslation()
   const locale = i18n.language === 'en-US' ? 'en-US' : 'id-ID'
+  const rowRef = useRef<HTMLDivElement | null>(null)
   const [qtyDraft, setQtyDraft] = useState<string>(line.qty)
   const [qtyError, setQtyError] = useState<string | null>(null)
 
@@ -47,6 +48,12 @@ export function CartLineRow({
     setQtyDraft(line.qty)
     setQtyError(null)
   }, [line.qty])
+
+  useEffect(() => {
+    if (selected && typeof rowRef.current?.scrollIntoView === 'function') {
+      rowRef.current.scrollIntoView({ block: 'nearest' })
+    }
+  }, [selected])
 
   function commitQty() {
     const trimmed = qtyDraft.trim()
@@ -66,6 +73,7 @@ export function CartLineRow({
 
   return (
     <div
+      ref={rowRef}
       role="listitem"
       onClick={onSelect}
       className={cn(
