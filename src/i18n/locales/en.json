@@ -210,7 +210,8 @@
       "accountLink": "Account settings",
       "backToPicker": "Switch app",
       "footerMadeBy": "This website is made by",
-      "footerStudioUrl": "www.solvastudio.com"
+      "footerStudioUrl": "www.solvastudio.com",
+      "footerVersion": "Solva POS {{version}}"
     },
     "nav": {
       "dashboard": "Dashboard",

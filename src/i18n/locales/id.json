@@ -210,7 +210,8 @@
       "accountLink": "Pengaturan akun",
       "backToPicker": "Pindah aplikasi",
       "footerMadeBy": "Website ini dibuat oleh",
-      "footerStudioUrl": "www.solvastudio.com"
+      "footerStudioUrl": "www.solvastudio.com",
+      "footerVersion": "Solva POS {{version}}"
     },
     "nav": {
       "dashboard": "Beranda",

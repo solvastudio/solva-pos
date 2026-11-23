@@ -6,6 +6,7 @@ import { IconButton } from '~/components/ui/IconButton'
 import { LogOut, Menu, X } from '~/components/ui/icons'
 import { setPreferredLocaleFn, type AdminSessionView } from '~/functions/auth/session.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
+import { APP_VERSION } from '~/lib/app-version'
 import { cn } from '~/lib/cn'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import { visibleAdminNavItems } from './admin-nav'
@@ -23,6 +24,7 @@ export function AdminShell({ session, children }: AdminShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const appVersion = typeof APP_VERSION === 'string' ? APP_VERSION : 'dev'
 
   const navItems = visibleAdminNavItems(session.permissions)
 
@@ -122,16 +124,24 @@ export function AdminShell({ session, children }: AdminShellProps) {
           <main className="min-w-0 flex-1 p-4 md:p-6">
             <div className="mx-auto w-full max-w-screen-xl">{children}</div>
           </main>
-          <footer className="border-t border-line-subtle bg-surface px-4 py-3 text-center text-caption text-ink-soft md:px-6">
-            <span>{t('admin.shell.footerMadeBy')}</span>{' '}
-            <a
-              href="https://www.solvastudio.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-ink-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-xs"
-            >
-              {t('admin.shell.footerStudioUrl')}
-            </a>
+          <footer className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-line-subtle bg-surface px-4 py-3 text-center text-caption text-ink-soft md:px-6">
+            <span>
+              {t('admin.shell.footerMadeBy')}{' '}
+              <a
+                href="https://www.solvastudio.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-ink-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-xs"
+              >
+                {t('admin.shell.footerStudioUrl')}
+              </a>
+            </span>
+            <span aria-hidden="true" className="text-ink-muted">
+              {'·'}
+            </span>
+            <span className="font-mono text-ink-muted">
+              {t('admin.shell.footerVersion', { version: appVersion })}
+            </span>
           </footer>
         </div>
       </div>

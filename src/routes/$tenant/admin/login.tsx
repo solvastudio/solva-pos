@@ -6,6 +6,7 @@ import { TenantBadge } from '~/components/layout/TenantBadge'
 import { Button, CircleAlert, Eye, EyeOff, Field, IconButton, Input } from '~/components/ui'
 import { getSessionFn } from '~/functions/auth/session.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
+import { APP_VERSION } from '~/lib/app-version'
 import { formatAppTitle } from '~/lib/brand'
 import { safeReturnTo } from '~/lib/safe-redirect'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
@@ -44,6 +45,7 @@ function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const appVersion = typeof APP_VERSION === 'string' ? APP_VERSION : 'dev'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -160,6 +162,9 @@ function AdminLoginPage() {
       <p className="mt-6 border-t border-line-subtle pt-4 text-body-sm leading-relaxed text-ink-soft">
         {t('auth.login.forgotHint')}
       </p>
+      <footer className="mt-4 text-center font-mono text-caption text-ink-muted">
+        {t('admin.shell.footerVersion', { version: appVersion })}
+      </footer>
     </SystemPage>
   )
 }
