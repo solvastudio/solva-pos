@@ -81,8 +81,8 @@ export function AdminShell({ session, children }: AdminShellProps) {
         <aside
           aria-label={t('admin.shell.navLabel')}
           className={cn(
-            'w-60 shrink-0 border-r border-line bg-surface p-4 md:block',
-            drawerOpen ? 'fixed inset-y-16 left-0 z-nav shadow-card' : 'hidden',
+            'fixed top-16 bottom-0 left-0 z-nav w-60 overflow-y-auto overscroll-contain border-r border-line bg-surface p-4',
+            drawerOpen ? 'block shadow-card md:shadow-none' : 'hidden md:block',
           )}
         >
           <nav className="flex flex-col gap-1">
@@ -118,7 +118,7 @@ export function AdminShell({ session, children }: AdminShellProps) {
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col md:pl-60">
           <main className="min-w-0 flex-1 p-4 md:p-6">
             <div className="mx-auto w-full max-w-screen-xl">{children}</div>
           </main>
