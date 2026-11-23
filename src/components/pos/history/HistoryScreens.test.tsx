@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -219,5 +219,51 @@ describe('HistoryListScreen & SaleDetailScreen (SCR-P10)', () => {
     const voidBtn = screen.getByRole('button', { name: 'Void Invoice' }) as HTMLButtonElement
     expect(voidBtn.disabled).toBe(true)
     expect(screen.getByText('Shift is already closed — issue a return instead.')).toBeTruthy()
+  })
+
+  it('places void reason category inside the Void Invoice approval dialog rather than the page body', async () => {
+    const user = userEvent.setup()
+    const { db, bootResult, saleId } = await seedHistoryDb()
+
+    const supId = '0192a000-0000-7000-8000-00000000e199'
+    const supRoleId = '0192a000-0000-7000-8000-00000000e198'
+    await db.app_user.put({ id: supId, display_name: 'Budi', is_active: true, deleted_at: null })
+    await db.staff_pin.put({
+      id: 'sp2',
+      user_id: supId,
+      device_salt: 's2',
+      pin_hash: 'h2',
+      kdf_algo: 'PBKDF2_SHA256',
+      kdf_params: { memorySize: 0, iterations: 1, parallelism: 1, hashLength: 32 },
+      kdf_salt: 'ks2',
+      pin_epoch: 1,
+      deleted_at: null,
+    })
+    await db.role.put({ id: supRoleId, code: 'SUPERVISOR', name: 'Supervisor', deleted_at: null })
+    await db.user_outlet.put({ id: 'uo2', user_id: supId, outlet_id: OUT, role_id: supRoleId, deleted_at: null })
+    await db.role_permission.put({ id: 'rp-void', role_id: supRoleId, permission_code: 'sale.void' })
+
+    render(
+      <ToastProvider>
+        <SaleDetailScreen tenant="demo" saleId={saleId} bootResult={bootResult} />
+      </ToastProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Kopi Tubruk')).toBeTruthy()
+    })
+
+    // Standalone Void reason card should not appear on the detail page itself
+    expect(screen.queryByLabelText('Void reason')).toBeNull()
+
+    const voidBtn = screen.getByRole('button', { name: 'Void Invoice' }) as HTMLButtonElement
+    expect(voidBtn.disabled).toBe(false)
+    await user.click(voidBtn)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Supervisor Approval — Void Invoice' })
+    const inDialog = within(dialog)
+    expect(await inDialog.findByLabelText('Void reason')).toBeTruthy()
+    expect(inDialog.getByLabelText('Reason')).toBeTruthy()
+    expect(inDialog.getByLabelText('Choose supervisor')).toBeTruthy()
   })
 })

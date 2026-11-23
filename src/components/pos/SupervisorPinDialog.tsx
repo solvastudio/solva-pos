@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/Button'
 import { Dialog } from '~/components/ui/Dialog'
@@ -29,6 +29,7 @@ export interface SupervisorPinDialogProps {
   warningNotice?: string
   confirmLabel?: string
   requireReason?: boolean
+  extraFields?: ReactNode
   onApproved: (result: { approverId: string; displayName: string; reason: string }) => void | Promise<void>
 }
 
@@ -48,6 +49,7 @@ export function SupervisorPinDialog({
   warningNotice,
   confirmLabel,
   requireReason = true,
+  extraFields,
   onApproved,
 }: SupervisorPinDialogProps) {
   const { t } = useTranslation()
@@ -256,6 +258,8 @@ export function SupervisorPinDialog({
                 options={approverOptions}
               />
             </Field>
+
+            {extraFields}
 
             {requireReason ? (
               <Field label={t('pos.supervisor.reasonLabel')} htmlFor={`${formId}-reason`}>

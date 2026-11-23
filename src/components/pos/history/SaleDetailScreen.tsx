@@ -5,6 +5,7 @@ import { usePosShellActions } from '~/components/pos/shell/use-pos-shell-actions
 import { Button } from '~/components/ui/Button'
 import { Card } from '~/components/ui/Card'
 import { Chip } from '~/components/ui/Chip'
+import { Field } from '~/components/ui/Field'
 import { Select } from '~/components/ui/Select'
 import { useToast } from '~/components/ui/Toast'
 import { Ban, Printer, Undo2 } from '~/components/ui/icons'
@@ -157,7 +158,10 @@ export function SaleDetailScreen({ tenant, saleId, bootResult }: SaleDetailScree
                 size="md"
                 disabled={!canVoid}
                 leadingIcon={<Ban className="size-4" />}
-                onClick={() => setVoidDialogOpen(true)}
+                onClick={() => {
+                  setVoidReasonCode('MISTAKE')
+                  setVoidDialogOpen(true)
+                }}
               >
                 {t('pos.history.voidButton')}
               </Button>
@@ -252,25 +256,6 @@ export function SaleDetailScreen({ tenant, saleId, bootResult }: SaleDetailScree
                 <span className="font-mono text-h3">{formatMoney(toMoney(sale.total_due), locale)}</span>
               </div>
             </Card>
-
-            {canVoid ? (
-              <Card className="flex flex-col gap-2 p-4">
-                <label className="text-label font-medium text-ink" htmlFor="void-reason-select">
-                  {t('pos.history.voidReasonCodeLabel')}
-                </label>
-                <Select
-                  id="void-reason-select"
-                  value={voidReasonCode}
-                  onValueChange={(v) => setVoidReasonCode(v as VoidReasonCode)}
-                  options={[
-                    { value: 'MISTAKE', label: t('pos.history.voidReasonOptions.MISTAKE') },
-                    { value: 'CANCELLED', label: t('pos.history.voidReasonOptions.CANCELLED') },
-                    { value: 'DUPLICATE', label: t('pos.history.voidReasonOptions.DUPLICATE') },
-                    { value: 'OTHER', label: t('pos.history.voidReasonOptions.OTHER') },
-                  ]}
-                />
-              </Card>
-            ) : null}
           </>
         )}
       </div>
@@ -289,6 +274,21 @@ export function SaleDetailScreen({ tenant, saleId, bootResult }: SaleDetailScree
             trustedNowMs={shell.clockBounds.trustedNowMs}
             maxSeenMs={shell.clockBounds.maxSeenMs}
             title={t('pos.history.voidReasonTitle')}
+            extraFields={
+              <Field label={t('pos.history.voidReasonCodeLabel')} htmlFor="void-reason-select">
+                <Select
+                  id="void-reason-select"
+                  value={voidReasonCode}
+                  onValueChange={(v) => setVoidReasonCode(v as VoidReasonCode)}
+                  options={[
+                    { value: 'MISTAKE', label: t('pos.history.voidReasonOptions.MISTAKE') },
+                    { value: 'CANCELLED', label: t('pos.history.voidReasonOptions.CANCELLED') },
+                    { value: 'DUPLICATE', label: t('pos.history.voidReasonOptions.DUPLICATE') },
+                    { value: 'OTHER', label: t('pos.history.voidReasonOptions.OTHER') },
+                  ]}
+                />
+              </Field>
+            }
             onApproved={handleVoidApproved}
           />
         </Suspense>
