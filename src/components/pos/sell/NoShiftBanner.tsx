@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { buttonVariants } from '~/components/ui/Button'
 import { TriangleAlert } from '~/components/ui/icons'
 
 export interface NoShiftBannerProps {
@@ -26,7 +27,7 @@ export function NoShiftBanner({ tenantSlug }: NoShiftBannerProps) {
       <Link
         to="/$tenant/pos/shift/open"
         params={{ tenant: cleanSlug }}
-        className="inline-flex min-h-touch items-center justify-center rounded-button bg-action px-4 text-label font-semibold text-on-action transition-colors hover:bg-action-hover"
+        className={buttonVariants({ variant: 'primary', size: 'md' })}
       >
         {t('pos.shift.openShiftCta')}
       </Link>

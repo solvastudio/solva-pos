@@ -47,14 +47,14 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
               onSubmitSearch()
             }
           }}
-          className="h-11 w-full rounded-input border border-line bg-surface pr-10 pl-9 text-body text-ink placeholder:text-ink-soft focus:border-action focus:ring-2 focus:ring-focus-ring focus:outline-none"
+          className="h-11 w-full rounded-control border border-line bg-surface pr-10 pl-9 text-body text-ink placeholder:text-ink-soft focus:border-action focus:ring-2 focus:ring-focus-ring focus:outline-none"
         />
         {value ? (
           <button
             type="button"
             aria-label={t('pos.sell.clearSearch')}
             onClick={() => onChange('')}
-            className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-input text-ink-soft hover:bg-surface-sunken hover:text-ink"
+            className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-control text-ink-soft hover:bg-surface-sunken hover:text-ink"
           >
             <X className="size-4" aria-hidden="true" />
           </button>

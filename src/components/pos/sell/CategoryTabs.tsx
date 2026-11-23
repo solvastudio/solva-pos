@@ -8,6 +8,15 @@ export interface CategoryTabsProps {
   onSelect: (categoryId: string | null) => void
 }
 
+function categoryTabClass(active: boolean) {
+  return cn(
+    'inline-flex h-control-sm shrink-0 items-center justify-center rounded-control border px-3.5 text-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-1',
+    active
+      ? 'border-action bg-action text-on-action'
+      : 'border-line bg-surface text-ink hover:bg-surface-sunken',
+  )
+}
+
 export function CategoryTabs({
   categories,
   selectedCategoryId,
@@ -26,12 +35,7 @@ export function CategoryTabs({
         role="tab"
         aria-selected={selectedCategoryId === null}
         onClick={() => onSelect(null)}
-        className={cn(
-          'min-h-touch shrink-0 rounded-pill border px-4 text-label font-medium transition-colors',
-          selectedCategoryId === null
-            ? 'border-action bg-action text-on-action'
-            : 'border-line bg-surface text-ink hover:bg-surface-sunken',
-        )}
+        className={categoryTabClass(selectedCategoryId === null)}
       >
         {t('pos.sell.allCategories')}
       </button>
@@ -45,12 +49,7 @@ export function CategoryTabs({
             role="tab"
             aria-selected={active}
             onClick={() => onSelect(cat.id)}
-            className={cn(
-              'min-h-touch shrink-0 rounded-pill border px-4 text-label font-medium transition-colors',
-              active
-                ? 'border-action bg-action text-on-action'
-                : 'border-line bg-surface text-ink hover:bg-surface-sunken',
-            )}
+            className={categoryTabClass(active)}
           >
             {cat.name}
           </button>
