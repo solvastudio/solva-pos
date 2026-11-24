@@ -120,6 +120,7 @@ describe('components/ui primitives and accessibility', () => {
   })
 
   it('Input, Field & Select: supports default and error states with 0 axe violations', async () => {
+    const user = userEvent.setup()
     const { container } = render(
       <div>
         <Field label="Amount" htmlFor="amt" hint="In IDR">
@@ -127,6 +128,9 @@ describe('components/ui primitives and accessibility', () => {
         </Field>
         <Field label="PIN" htmlFor="pin" error="Wrong PIN">
           <Input id="pin" kind="pin" invalid />
+        </Field>
+        <Field label="Password" htmlFor="pwd">
+          <Input id="pwd" type="password" defaultValue="secret123" />
         </Field>
         <Field label="Disabled Field" htmlFor="dis">
           <Input id="dis" disabled value="Locked" />
@@ -158,6 +162,14 @@ describe('components/ui primitives and accessibility', () => {
 
     expect(screen.getByLabelText('PIN')).toHaveAttribute('type', 'password')
     expect(screen.getByLabelText('PIN')).toHaveAttribute('aria-invalid', 'true')
+    const pwdInput = screen.getByLabelText('Password')
+    expect(pwdInput).toHaveAttribute('type', 'password')
+    const toggleBtn = screen.getByRole('button', { name: 'Tampilkan kata sandi' })
+    await user.click(toggleBtn)
+    expect(pwdInput).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'Sembunyikan kata sandi' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Sembunyikan kata sandi' }))
+    expect(pwdInput).toHaveAttribute('type', 'password')
     expect(screen.getByLabelText('Amount')).toHaveClass('tabular-nums')
     expect(screen.getByLabelText('Disabled Field')).toBeDisabled()
     expect(screen.getByLabelText('Category')).toHaveTextContent('All categories')

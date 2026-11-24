@@ -1,6 +1,9 @@
 import { cva, type VariantProps } from 'class-variance-authority'
-import type { InputHTMLAttributes, ReactNode } from 'react'
+import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '~/lib/cn'
+import { IconButton } from './IconButton'
+import { Eye, EyeOff } from './icons'
 
 const inputWrapperVariants = cva(
   'flex items-center gap-2 rounded-control border bg-surface px-3 transition-colors focus-within:ring-2 focus-within:ring-focus-ring focus-within:ring-offset-0',
@@ -56,7 +59,11 @@ export function Input({
   autoComplete,
   ...rest
 }: InputProps) {
-  const resolvedType = kind === 'pin' ? 'password' : (type ?? 'text')
+  const { t } = useTranslation()
+  const [revealed, setRevealed] = useState(false)
+  const canReveal = type === 'password' && kind !== 'pin' && !suffix && !readOnly
+  const resolvedType =
+    kind === 'pin' ? 'password' : canReveal && revealed ? 'text' : (type ?? 'text')
   const resolvedInputMode =
     inputMode ??
     (kind === 'money' || kind === 'pin'
@@ -97,7 +104,19 @@ export function Input({
         )}
         {...rest}
       />
-      {suffix ? <span className="shrink-0 text-ink-soft">{suffix}</span> : null}
+      {suffix ? (
+        <span className="shrink-0 text-ink-soft">{suffix}</span>
+      ) : canReveal ? (
+        <IconButton
+          label={revealed ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
+          icon={revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          variant="ghost"
+          size="md"
+          className="-mr-1.5"
+          disabled={disabled}
+          onClick={() => setRevealed((prev) => !prev)}
+        />
+      ) : null}
     </div>
   )
 }

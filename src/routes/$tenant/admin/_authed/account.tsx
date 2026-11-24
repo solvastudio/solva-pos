@@ -24,6 +24,7 @@ function AdminAccountPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordFormKey, setPasswordFormKey] = useState(0)
   const [localeSaved, setLocaleSaved] = useState(false)
 
   if (!session) {
@@ -95,6 +96,7 @@ function AdminAccountPage() {
       setCurrentPassword('')
       setNewPassword('')
       setRepeatPassword('')
+      setPasswordFormKey((k) => k + 1)
       setPasswordSuccess(true)
     } catch {
       setPasswordError(t('account.password.failed'))
@@ -151,6 +153,7 @@ function AdminAccountPage() {
       <Card className="p-6">
         <h2 className="text-title font-semibold text-ink">{t('account.passwordTitle')}</h2>
         <form
+          key={passwordFormKey}
           onSubmit={(e) => void handlePasswordSubmit(e)}
           className="mt-4 flex max-w-dialog-md flex-col gap-4"
           noValidate
