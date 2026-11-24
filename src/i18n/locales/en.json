@@ -278,7 +278,7 @@
         "colTxCount": "Transactions",
         "colGross": "Gross",
         "colDiscount": "Discount",
-        "colNetSubtotal": "Net Subtotal (S2)",
+        "colNetSubtotal": "Net Subtotal",
         "colServiceCharge": "Service Charge",
         "colTax": "Tax",
         "colRounding": "Rounding",

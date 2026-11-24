@@ -99,12 +99,13 @@ function AdminSalesReportPage() {
     {
       id: 'period',
       header: t('admin.report.sales.colPeriod'),
-      cell: (r) => <span className="font-mono font-medium">{r.periodKey}</span>,
+      stickyFirst: true,
+      cell: (r) => <span className="whitespace-nowrap font-mono font-medium">{r.periodKey}</span>,
     },
     {
       id: 'outlet',
       header: t('admin.report.sales.colOutlet'),
-      cell: (r) => `${r.outletCode} — ${r.outletName}`,
+      cell: (r) => <span className="whitespace-nowrap">{`${r.outletCode} — ${r.outletName}`}</span>,
     },
     {
       id: 'txCount',
