@@ -25,7 +25,7 @@ export async function nextDocNo(
   `)
   const code = outlet.rows[0]?.code
   if (!code) {
-    throw new AppError('VALIDATION_FAILED', 'Outlet tidak ditemukan')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.outletNotFound')
   }
   const mmyy = invoicePeriod(input.businessDate)
   const prefix = `${input.kind}-${code}-${mmyy}-`

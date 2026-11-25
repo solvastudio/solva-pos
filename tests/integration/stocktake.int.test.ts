@@ -151,9 +151,9 @@ describe('stocktake (FR-INV-007, FLOW-13, BR-STK-030..032, V-16)', () => {
     await enableOutletTracking(t.actor, t.outletA)
     await seed(t, t.skuA, '10', 10000)
     const s = await createStocktake(t.actor, { outletId: t.outletA, businessDate: '2026-11-20', scope: 'SELECTED', skuIds: [t.skuA] })
-    await expect(postStocktake(t.actor, s.id)).rejects.toThrow(/dihitung/)
+    await expect(postStocktake(t.actor, s.id)).rejects.toThrow(/allLinesCounted/)
     await cancelStocktake(t.actor, s.id)
-    await expect(postStocktake(t.actor, s.id)).rejects.toThrow(/sudah diposting|dibatalkan/)
+    await expect(postStocktake(t.actor, s.id)).rejects.toThrow(/stocktakeClosed/)
   })
 
   it('stocktake without stock activation is rejected', async () => {

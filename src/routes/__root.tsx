@@ -5,7 +5,7 @@ import { HeadContent, Outlet, Scripts, createRootRouteWithContext, type ErrorCom
 import { NotFoundView } from '~/components/layout/NotFoundView'
 import { RecoveryScreen } from '~/components/layout/RecoveryScreen'
 import { getPublicLocaleFn } from '~/functions/i18n/public-locale.fn'
-import { getLocale, i18next, type Locale } from '~/i18n'
+import { ensureAdminI18n, getLocale, i18next, needsAdminI18n, type Locale } from '~/i18n'
 import { BRAND_NAME } from '~/lib/brand'
 import appCss from '~/styles/app.css?url'
 
@@ -18,7 +18,10 @@ export interface RootRouteContext {
 }
 
 export const Route = createRootRouteWithContext<RootRouterContext>()({
-  beforeLoad: async (): Promise<RootRouteContext> => {
+  beforeLoad: async ({ location }): Promise<RootRouteContext> => {
+    if (needsAdminI18n(location.pathname)) {
+      await ensureAdminI18n()
+    }
     let publicLocale: Locale = getLocale()
     try {
       publicLocale = await getPublicLocaleFn()

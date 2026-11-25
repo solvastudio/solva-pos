@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest'
+import { ensureAdminI18n } from '~/i18n'
+
+// Admin/platform text is loaded on demand in the app; unit tests render both surfaces.
+await ensureAdminI18n()
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {

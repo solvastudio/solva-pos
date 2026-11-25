@@ -1,8 +1,16 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ERROR_CODES } from '~/lib/contracts'
 import { i18next } from './index'
-import en from './locales/en.json'
-import id from './locales/id.json'
+import enAdmin from './locales/en.admin.json'
+import enCore from './locales/en.json'
+import idAdmin from './locales/id.admin.json'
+import idCore from './locales/id.json'
+
+// The app merges the eager and the on-demand dictionaries; parity is checked on the merged view.
+const en = { ...enCore, ...enAdmin }
+const id = { ...idCore, ...idAdmin }
 
 function flattenDict(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
   const out: Record<string, string> = {}
@@ -27,6 +35,17 @@ describe('i18n/keys (dictionary parity, plurals, placeholders, 22 error codes)',
   const enFlat = flattenDict(en)
   const idKeys = Object.keys(idFlat).sort()
   const enKeys = Object.keys(enFlat).sort()
+
+  it('keeps the eager and the back-office dictionaries on disjoint top-level namespaces', () => {
+    // Read from disk: `ensureAdminI18n` deep-merges into the imported core objects at runtime.
+    const read = (f: string) => JSON.parse(readFileSync(join(import.meta.dirname, 'locales', f), 'utf8')) as object
+    for (const loc of ['id', 'en']) {
+      const core = Object.keys(read(`${loc}.json`))
+      const admin = Object.keys(read(`${loc}.admin.json`))
+      const overlap = core.filter((k) => admin.includes(k))
+      expect(overlap, `namespaces defined in both ${loc} files: ${overlap.join(', ')}`).toEqual([])
+    }
+  })
 
   it('has identical flattened keys between id.json and en.json', () => {
     const enSet = new Set(enKeys)

@@ -66,7 +66,7 @@ async function lockTransfer(tx: TenantTx, tenantId: string, id: string): Promise
     FOR UPDATE
   `)
   const r = res.rows[0]
-  if (!r) throw new AppError('VALIDATION_FAILED', 'Transfer tidak ditemukan')
+  if (!r) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNotFound')
   return {
     id: r.id,
     fromOutletId: r.outlet_id,
@@ -105,10 +105,10 @@ export async function saveTransferDraft(
 ): Promise<{ id: string; docNo: string }> {
   requireActorPermission(actor, 'inventory.manage', { outletId: input.fromOutletId })
   if (input.fromOutletId === input.toOutletId) {
-    throw new AppError('VALIDATION_FAILED', 'Outlet tujuan harus berbeda dari outlet asal')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferSameOutlet')
   }
   if (input.lines.length === 0) {
-    throw new AppError('VALIDATION_FAILED', 'Transfer harus memiliki minimal satu baris')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNeedsLine')
   }
   return withTenant(actor.tenantId, async (tx) => {
     const pairs = input.lines.map((l) => ({ skuId: l.skuId, uomId: l.uomId }))
@@ -119,11 +119,11 @@ export async function saveTransferDraft(
     `)
     const factorByKey = new Map(uomRes.rows.map((r) => [`${r.sku_id}|${r.uom_id}`, r.conversion_factor]))
     const lines = input.lines.map((l, i) => {
-      if (!isUuid(l.skuId) || !isUuid(l.uomId)) throw new AppError('VALIDATION_FAILED', 'SKU/UOM tidak valid')
+      if (!isUuid(l.skuId) || !isUuid(l.uomId)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.skuUomInvalid')
       const qtyInput = parseQty(l.qtyInput)
-      if (Number(qtyInput) <= 0) throw new AppError('VALIDATION_FAILED', 'Jumlah harus lebih dari nol')
+      if (Number(qtyInput) <= 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.qtyPositive')
       const factorRaw = factorByKey.get(`${l.skuId}|${l.uomId}`)
-      if (!factorRaw) throw new AppError('VALIDATION_FAILED', 'UOM tidak dimiliki SKU ini')
+      if (!factorRaw) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.uomNotOfSku')
       const factor = parseQty(factorRaw)
       return {
         lineNo: i + 1,
@@ -139,7 +139,7 @@ export async function saveTransferDraft(
     let docNo: string
     if (id) {
       const cur = await lockTransfer(tx, actor.tenantId, id)
-      if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'Transfer sudah dikirim dan tidak dapat diubah')
+      if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferSentLocked')
       docNo = cur.docNo
       await tx.delete(transferLineTable).where(and(eq(transferLineTable.tenantId, actor.tenantId), eq(transferLineTable.transferId, id)))
       await tx
@@ -183,7 +183,7 @@ export async function cancelTransferDraft(actor: IdentityAuthActor, id: string):
     const cur = await lockTransfer(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.fromOutletId })
     if (cur.status !== 'DRAFT') {
-      throw new AppError('VALIDATION_FAILED', 'Hanya draft yang dapat dibatalkan')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.onlyDraftCancelable')
     }
     await tx
       .update(transferTable)
@@ -201,13 +201,13 @@ export async function sendTransfer(actor: IdentityAuthActor, id: string): Promis
     const cur = await lockTransfer(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.fromOutletId })
     if (cur.status !== 'DRAFT') {
-      throw new AppError('VALIDATION_FAILED', 'Transfer sudah dikirim atau dibatalkan')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferSentOrCanceled')
     }
     const enabledAt = await loadInventoryEnabledAt(tx, actor.tenantId, cur.fromOutletId)
     if (!enabledAt) throw new AppError('VALIDATION_FAILED', 'admin.stock.trackingNotEnabled')
 
     const lines = await loadTransferLines(tx, actor.tenantId, id)
-    if (lines.length === 0) throw new AppError('VALIDATION_FAILED', 'Transfer kosong tidak dapat dikirim')
+    if (lines.length === 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.emptyTransfer')
     const docNo = await nextDocNo(tx, {
       tenantId: actor.tenantId,
       outletId: cur.fromOutletId,
@@ -283,7 +283,7 @@ export async function receiveTransfer(
     const cur = await lockTransfer(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.toOutletId })
     if (cur.status !== 'SENT') {
-      throw new AppError('VALIDATION_FAILED', 'Transfer belum dikirim atau sudah diterima')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNotReceivable')
     }
     const enabledAt = await loadInventoryEnabledAt(tx, actor.tenantId, cur.toOutletId)
     if (!enabledAt) throw new AppError('VALIDATION_FAILED', 'admin.stock.trackingNotEnabled')
@@ -291,14 +291,14 @@ export async function receiveTransfer(
     const lines = await loadTransferLines(tx, actor.tenantId, id)
     const byId = new Map(input.lines.map((l) => [l.lineId, parseQty(l.qtyReceivedBase)]))
     if (byId.size !== lines.length) {
-      throw new AppError('VALIDATION_FAILED', 'Setiap baris harus diisi jumlah penerimaannya')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.receiveQtyEveryLine')
     }
 
     const computed = lines.map((l) => {
       const received = byId.get(l.id)
-      if (received === undefined) throw new AppError('VALIDATION_FAILED', 'Baris transfer tidak dikenal')
+      if (received === undefined) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferLineUnknown')
       if (Number(received) < 0 || Number(received) > Number(l.qtySentBase)) {
-        throw new AppError('VALIDATION_FAILED', 'Jumlah diterima tidak boleh melebihi jumlah kirim (kelebihan lewat opname)')
+        throw new AppError('VALIDATION_FAILED', 'admin.stock.err.receiveExceedsSent')
       }
       const valueSent = l.valueSent ?? toMoney(0)
       const valueReceived: Money = Number(received) === 0 ? toMoney(0) : proRate(valueSent, received, l.qtySentBase)
@@ -313,7 +313,7 @@ export async function receiveTransfer(
 
     const allZero = computed.every((c) => Number(c.received) === 0)
     if (allZero && (!input.closeReasonCode || !input.closeReasonText || input.closeReasonText.trim().length === 0)) {
-      throw new AppError('VALIDATION_FAILED', 'Alasan penutupan wajib bila tidak ada barang yang diterima')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.closeReasonRequired')
     }
 
     const nowIso = new Date().toISOString()

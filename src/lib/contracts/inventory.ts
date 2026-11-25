@@ -6,8 +6,8 @@ import { z } from 'zod'
  */
 
 const uuid = z.string().uuid()
-const businessDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid')
-const qtyString = z.string().trim().regex(/^\d+(\.\d{1,4})?$/, 'Jumlah tidak valid (maks 4 desimal)')
+const businessDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'admin.stock.err.dateInvalid')
+const qtyString = z.string().trim().regex(/^\d+(\.\d{1,4})?$/, 'admin.stock.err.qtyInvalid')
 const moneyInt = z.number().int().min(0).max(999_999_999_999)
 
 export const grLineSchema = z.object({
@@ -62,7 +62,7 @@ export const stocktakeCreateSchema = z
     skuIds: z.array(uuid).max(2000).optional(),
   })
   .refine((v) => v.scope === 'ALL' || (v.skuIds?.length ?? 0) > 0, {
-    message: 'Pilih minimal satu SKU untuk opname parsial',
+    message: 'admin.stock.err.pickOneSku',
     path: ['skuIds'],
   })
 

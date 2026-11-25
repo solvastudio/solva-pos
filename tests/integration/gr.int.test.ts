@@ -92,7 +92,7 @@ describe('goods receipt (FR-INV-001/008, BR-STK-020/021/022, FLOW-11)', () => {
     const rev = await reverseGr(t.actor, g.id, 'Salah input pemasok')
     expect(rev.docNo).toMatch(/^GR-OUT01-1126-0002$/)
     expect(await balance(t, t.skuA)).toEqual({ qty: '0', value: 0 })
-    await expect(reverseGr(t.actor, g.id, 'lagi')).rejects.toThrow(/sudah dikoreksi/)
+    await expect(reverseGr(t.actor, g.id, 'lagi')).rejects.toThrow(/alreadyReversed/)
   })
 
   it('reversal after partial sale: negative balance and STOK_MINUS flag, not rejected', async () => {

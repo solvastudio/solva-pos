@@ -36,7 +36,7 @@ async function lockStocktake(tx: TenantTx, tenantId: string, id: string): Promis
     FOR UPDATE
   `)
   const r = res.rows[0]
-  if (!r) throw new AppError('VALIDATION_FAILED', 'Dokumen opname tidak ditemukan')
+  if (!r) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeNotFound')
   return { id: r.id, outletId: r.outlet_id, status: r.status, docNo: r.doc_no, businessDate: r.business_date }
 }
 
@@ -80,7 +80,7 @@ export interface StocktakeCreateInput {
 export async function createStocktake(actor: IdentityAuthActor, input: StocktakeCreateInput): Promise<{ id: string; docNo: string; lineCount: number }> {
   requireActorPermission(actor, 'inventory.manage', { outletId: input.outletId })
   if (input.scope === 'SELECTED' && (!input.skuIds || input.skuIds.length === 0)) {
-    throw new AppError('VALIDATION_FAILED', 'Pilih minimal satu SKU untuk opname parsial')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.pickOneSku')
   }
   return withTenant(actor.tenantId, async (tx) => {
     const enabledAt = await loadInventoryEnabledAt(tx, actor.tenantId, input.outletId)
@@ -94,9 +94,9 @@ export async function createStocktake(actor: IdentityAuthActor, input: Stocktake
     const qtyBySku = new Map(snapshotRows.rows.map((r) => [r.sku_id, r.qty]))
     const skuIds = input.scope === 'ALL' ? [...qtyBySku.keys()] : [...new Set(input.skuIds ?? [])]
     for (const id of skuIds) {
-      if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'SKU tidak valid')
+      if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.skuInvalid')
     }
-    if (skuIds.length === 0) throw new AppError('VALIDATION_FAILED', 'Tidak ada SKU untuk dihitung')
+    if (skuIds.length === 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.noSkuToCount')
 
     const id = idGen.newId()
     const docNo = draftDocNo()
@@ -133,10 +133,10 @@ export async function saveStocktakeCounts(
   return withTenant(actor.tenantId, async (tx) => {
     const cur = await lockStocktake(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.outletId })
-    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'Opname sudah diposting atau dibatalkan')
+    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeClosed')
     for (const c of counts) {
       const q = parseQty(c.countedQty)
-      if (Number(q) < 0) throw new AppError('VALIDATION_FAILED', 'Hitungan tidak boleh negatif')
+      if (Number(q) < 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.countNegative')
       await tx.execute(sql`
         UPDATE stocktake_line SET counted_qty = ${q}::numeric
         WHERE tenant_id = ${actor.tenantId}::uuid AND id = ${c.lineId}::uuid AND stocktake_id = ${id}::uuid
@@ -173,7 +173,7 @@ export async function previewStocktake(actor: IdentityAuthActor, id: string): Pr
       SELECT outlet_id, status FROM stocktake WHERE tenant_id = ${actor.tenantId}::uuid AND id = ${id}::uuid
     `)
     const head = res.rows[0]
-    if (!head) throw new AppError('VALIDATION_FAILED', 'Dokumen opname tidak ditemukan')
+    if (!head) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeNotFound')
     requireActorPermission(actor, 'inventory.manage', { outletId: head.outlet_id })
     const lines = await loadStocktakeLines(tx, actor.tenantId, id)
     const work = lines.filter((l) => l.countedQty !== null && cmpQty(subQty(l.countedQty!, l.snapshotQty), parseQty('0')) !== 0)
@@ -196,13 +196,13 @@ export async function postStocktake(actor: IdentityAuthActor, id: string): Promi
   return withTenant(actor.tenantId, async (tx) => {
     const cur = await lockStocktake(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.outletId })
-    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'Opname sudah diposting atau dibatalkan')
+    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeClosed')
     const enabledAt = await loadInventoryEnabledAt(tx, actor.tenantId, cur.outletId)
     if (!enabledAt) throw new AppError('VALIDATION_FAILED', 'admin.stock.trackingNotEnabled')
 
     const lines = await loadStocktakeLines(tx, actor.tenantId, id)
     if (lines.some((l) => l.countedQty === null)) {
-      throw new AppError('VALIDATION_FAILED', 'Semua baris harus dihitung sebelum posting')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.allLinesCounted')
     }
     const docNo = await nextDocNo(tx, {
       tenantId: actor.tenantId,
@@ -272,7 +272,7 @@ export async function cancelStocktake(actor: IdentityAuthActor, id: string): Pro
   return withTenant(actor.tenantId, async (tx) => {
     const cur = await lockStocktake(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.outletId })
-    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'Hanya draft yang dapat dibatalkan')
+    if (cur.status !== 'DRAFT') throw new AppError('VALIDATION_FAILED', 'admin.stock.err.onlyDraftCancelable')
     await tx
       .update(stocktakeTable)
       .set({ status: 'CANCELED', updatedAt: new Date().toISOString() })

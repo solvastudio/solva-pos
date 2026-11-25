@@ -120,7 +120,7 @@ export function SupervisorPinDialog({
       return
     }
     if (pin.length < 4) {
-      setErrorMsg(t('admin.users.pin.policyLength'))
+      setErrorMsg(t('pos.supervisor.pinLength'))
       return
     }
 
@@ -274,7 +274,7 @@ export function SupervisorPinDialog({
               </Field>
             ) : null}
 
-            <Field label={t('admin.users.pin.inputLabel')} htmlFor={`${formId}-pin`}>
+            <Field label={t('pos.supervisor.pinLabel')} htmlFor={`${formId}-pin`}>
               <Input
                 id={`${formId}-pin`}
                 kind="pin"

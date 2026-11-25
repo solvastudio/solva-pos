@@ -36,11 +36,11 @@ export interface SupplierInput {
 function normalize(input: SupplierInput): { name: string; contact: string | null } {
   const name = input.name.trim()
   if (name.length === 0 || name.length > 120) {
-    throw new AppError('VALIDATION_FAILED', 'Nama pemasok wajib diisi (maks 120 karakter)')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierNameRequired')
   }
   const contact = input.contact?.trim() ? input.contact.trim() : null
   if (contact && contact.length > 200) {
-    throw new AppError('VALIDATION_FAILED', 'Kontak pemasok maksimal 200 karakter')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierContactMax')
   }
   return { name, contact }
 }
@@ -65,7 +65,7 @@ export async function listSuppliers(actor: IdentityAuthActor, opts: { includeIna
 export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInput): Promise<{ id: string }> {
   requireActorPermission(actor, 'inventory.manage')
   const data = normalize(input)
-  if (input.id !== undefined && !isUuid(input.id)) throw new AppError('VALIDATION_FAILED', 'Pemasok tidak valid')
+  if (input.id !== undefined && !isUuid(input.id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierInvalid')
   return withTenant(actor.tenantId, async (tx) => {
     // Unique lower(name) among active rows (matches the partial index uq_supplier__tenant_name).
     const dup = await tx.execute<{ id: string }>(sql`
@@ -74,7 +74,7 @@ export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInpu
         AND lower(name) = lower(${data.name})
         AND (${input.id ?? null}::uuid IS NULL OR id <> ${input.id ?? null}::uuid)
       LIMIT 1`)
-    if (dup.rows.length > 0) throw new AppError('VALIDATION_FAILED', 'Nama pemasok sudah digunakan')
+    if (dup.rows.length > 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierNameTaken')
 
     const now = new Date().toISOString()
     if (input.id) {
@@ -83,7 +83,7 @@ export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInpu
         .set({ name: data.name, contact: data.contact, updatedAt: now, updatedBy: actor.appUserId })
         .where(and(eq(supplierTable.tenantId, actor.tenantId), eq(supplierTable.id, input.id), isNull(supplierTable.deletedAt)))
         .returning({ id: supplierTable.id })
-      if (res.length === 0) throw new AppError('VALIDATION_FAILED', 'Pemasok tidak ditemukan')
+      if (res.length === 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierNotFound')
       return { id: input.id }
     }
     const id = idGen.newId()
@@ -101,13 +101,13 @@ export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInpu
 
 export async function deleteSupplier(actor: IdentityAuthActor, id: string): Promise<void> {
   requireActorPermission(actor, 'inventory.manage')
-  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'Pemasok tidak valid')
+  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierInvalid')
   return withTenant(actor.tenantId, async (tx) => {
     const res = await tx
       .update(supplierTable)
       .set({ deletedAt: new Date().toISOString(), updatedBy: actor.appUserId })
       .where(and(eq(supplierTable.tenantId, actor.tenantId), eq(supplierTable.id, id), isNull(supplierTable.deletedAt)))
       .returning({ id: supplierTable.id })
-    if (res.length === 0) throw new AppError('VALIDATION_FAILED', 'Pemasok tidak ditemukan')
+    if (res.length === 0) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierNotFound')
   })
 }

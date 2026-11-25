@@ -91,22 +91,22 @@ function intentKey(i: MovementIntent): string {
 
 function validateIntent(i: MovementIntent): void {
   if (!isUuid(i.outletId) || !isUuid(i.skuId) || !isUuid(i.sourceId)) {
-    throw new RangeError('movement intent: outletId, skuId, sourceId harus UUID')
+    throw new RangeError('movement intent: outletId, skuId and sourceId must be UUIDs')
   }
   if (!(MOVEMENT_TYPES as readonly string[]).includes(i.movementType)) {
-    throw new RangeError(`movement intent: movementType tidak dikenal: ${i.movementType}`)
+    throw new RangeError(`movement intent: unknown movementType: ${i.movementType}`)
   }
   if (!(STOCK_SOURCE_TYPES as readonly string[]).includes(i.sourceType)) {
-    throw new RangeError(`movement intent: sourceType tidak dikenal: ${i.sourceType}`)
+    throw new RangeError(`movement intent: unknown sourceType: ${i.sourceType}`)
   }
   const sign = cmpQty(i.qty, parseQty('0'))
   if (i.kind === 'ADJUST') {
-    if (sign === 0) throw new RangeError('movement intent ADJUST: qty tidak boleh nol')
+    if (sign === 0) throw new RangeError('movement intent ADJUST: qty must not be zero')
   } else if (sign <= 0) {
-    throw new RangeError(`movement intent ${i.kind}: qty harus positif`)
+    throw new RangeError(`movement intent ${i.kind}: qty must be positive`)
   }
   if ((i.kind === 'IN' || i.kind === 'OUT_VALUE') && i.valueIn === undefined) {
-    throw new RangeError(`movement intent ${i.kind}: valueIn wajib`)
+    throw new RangeError(`movement intent ${i.kind}: valueIn is required`)
   }
 }
 
@@ -204,7 +204,7 @@ export async function applyMovements(
     seenInBatch.add(ikey)
 
     const current = state.get(key)
-    if (!current) throw new Error(`saldo tidak terkunci untuk ${key}`)
+    if (!current) throw new Error(`balance row was not locked for ${key}`)
     const result = applyOne(current, i)
     const balSeq = current.rev + 1
     const next: StockBalance = { ...result.next, rev: balSeq }
@@ -258,7 +258,7 @@ export async function applyMovements(
     const s = state.get(key)
     if (!s) continue
     const before = locked.find((r) => r.outletId === k.outletId && r.skuId === k.skuId)
-    if (before && before.rev === s.rev) continue // tidak ada movement baru untuk kunci ini
+    if (before && before.rev === s.rev) continue // no new movement for this key
     await updateBalance(tx, ctx.tenantId, k, {
       qty: s.qty,
       inventoryValue: s.inventoryValue,

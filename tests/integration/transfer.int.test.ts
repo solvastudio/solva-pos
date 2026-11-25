@@ -111,11 +111,11 @@ describe('inter-outlet transfer (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     })
     await expect(
       receiveTransfer(t.actor, draft.id, { lines: [{ lineId: line!.id, qtyReceivedBase: '41' }] }),
-    ).rejects.toThrow(/kelebihan/)
+    ).rejects.toThrow(/receiveExceedsSent/)
     await receiveTransfer(t.actor, draft.id, { lines: [{ lineId: line!.id, qtyReceivedBase: '40' }] })
     await expect(
       receiveTransfer(t.actor, draft.id, { lines: [{ lineId: line!.id, qtyReceivedBase: '40' }] }),
-    ).rejects.toThrow(/sudah diterima|belum dikirim/)
+    ).rejects.toThrow(/transferNotReceivable/)
   })
 
   it('a zero receipt for all lines requires a close reason', async () => {
@@ -133,7 +133,7 @@ describe('inter-outlet transfer (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
     })
     await expect(
       receiveTransfer(t.actor, draft.id, { lines: [{ lineId: line!.id, qtyReceivedBase: '0' }] }),
-    ).rejects.toThrow(/Alasan penutupan/)
+    ).rejects.toThrow(/closeReasonRequired/)
     await receiveTransfer(t.actor, draft.id, {
       lines: [{ lineId: line!.id, qtyReceivedBase: '0' }],
       closeReasonCode: 'LOST_IN_TRANSIT',
@@ -171,7 +171,7 @@ describe('inter-outlet transfer (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
       lines: [{ skuId: t.skuA, uomId: t.pcsUomId, qtyInput: '1' }],
     })
     await cancelTransferDraft(t.actor, draft.id)
-    await expect(sendTransfer(t.actor, draft.id)).rejects.toThrow(/dikirim atau dibatalkan/)
+    await expect(sendTransfer(t.actor, draft.id)).rejects.toThrow(/transferSentOrCanceled/)
   })
 
   it('destination equal to source is rejected', async () => {
@@ -183,7 +183,7 @@ describe('inter-outlet transfer (FR-INV-006, FLOW-12, BR-TRF-001..004, V-15)', (
         businessDate: '2026-11-20',
         lines: [{ skuId: t.skuA, uomId: t.pcsUomId, qtyInput: '1' }],
       }),
-    ).rejects.toThrow(/berbeda/)
+    ).rejects.toThrow(/transferSameOutlet/)
   })
 
   it('applyMovements can still be called directly (control): V-15 does not depend on the draft path', async () => {

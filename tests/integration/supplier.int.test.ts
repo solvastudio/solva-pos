@@ -11,7 +11,7 @@ describe('suppliers (CRUD, soft-delete)', () => {
   it('add, update, and reject duplicate names (case-insensitive)', async () => {
     const t = await setupInventoryTenant('sup')
     const a = await saveSupplier(t.actor, { name: '  PT Susu Murni ', contact: '021-555' })
-    await expect(saveSupplier(t.actor, { name: 'pt susu murni' })).rejects.toThrow(/sudah digunakan/)
+    await expect(saveSupplier(t.actor, { name: 'pt susu murni' })).rejects.toThrow(/supplierNameTaken/)
     await saveSupplier(t.actor, { id: a.id, name: 'PT Susu Murni Jaya', contact: null })
     const list = await listSuppliers(t.actor)
     expect(list).toEqual([{ id: a.id, name: 'PT Susu Murni Jaya', contact: null, active: true }])
@@ -19,9 +19,9 @@ describe('suppliers (CRUD, soft-delete)', () => {
 
   it('name length (max 120) and contact (max 200) validation', async () => {
     const t = await setupInventoryTenant('sup-len')
-    await expect(saveSupplier(t.actor, { name: '   ' })).rejects.toThrow(/wajib diisi/)
-    await expect(saveSupplier(t.actor, { name: 'x'.repeat(121) })).rejects.toThrow(/wajib diisi/)
-    await expect(saveSupplier(t.actor, { name: 'Ok', contact: 'y'.repeat(201) })).rejects.toThrow(/maksimal 200/)
+    await expect(saveSupplier(t.actor, { name: '   ' })).rejects.toThrow(/supplierNameRequired/)
+    await expect(saveSupplier(t.actor, { name: 'x'.repeat(121) })).rejects.toThrow(/supplierNameRequired/)
+    await expect(saveSupplier(t.actor, { name: 'Ok', contact: 'y'.repeat(201) })).rejects.toThrow(/supplierContactMax/)
   })
 
   it('delete = soft-delete: removed from the active list, still present when requested; the name may be reused', async () => {

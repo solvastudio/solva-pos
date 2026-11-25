@@ -177,6 +177,8 @@ const NON_POS_ROUTE_KEY_PATTERNS = [
   /routes\/platform/,
   /routes\/\$tenant\/join/,
   /routes\/\$tenant\/reset/,
+  // Back-office dictionary, loaded on demand by admin/platform routes only.
+  /src\/i18n\/admin-resources/,
 ]
 const ROUTER_FANOUT_KEY_PATTERNS = [/routeTree\.gen/, /src\/router\./]
 

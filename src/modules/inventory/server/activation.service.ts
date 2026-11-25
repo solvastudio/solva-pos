@@ -12,7 +12,7 @@ import { auditInventoryEvent } from './audit'
  * Applied through `writeMaster` (outlet = class M master) so devices receive the change.
  */
 export async function enableOutletTracking(actor: IdentityAuthActor, outletId: string): Promise<{ enabledAt: string }> {
-  if (!isUuid(outletId)) throw new AppError('VALIDATION_FAILED', 'Outlet tidak valid')
+  if (!isUuid(outletId)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.outletInvalid')
   requireActorPermission(actor, 'inventory.manage', { outletId })
   return withTenant(actor.tenantId, async (tx) => {
     const cur = await tx.execute<{ inventory_enabled_at: string | null }>(sql`
@@ -21,7 +21,7 @@ export async function enableOutletTracking(actor: IdentityAuthActor, outletId: s
       FOR UPDATE
     `)
     const row = cur.rows[0]
-    if (!row) throw new AppError('VALIDATION_FAILED', 'Outlet tidak ditemukan')
+    if (!row) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.outletNotFound')
     if (row.inventory_enabled_at) {
       // Postgres text format is not ISO; return ISO UTC so it matches the first call.
       return { enabledAt: new Date(row.inventory_enabled_at).toISOString() }

@@ -54,7 +54,7 @@ async function deriveLines(
   lines: readonly GrLineInput[],
 ): Promise<Array<{ skuId: string; uomId: string; qty: Qty; factor: Qty; qtyBase: Qty; unitCost: Money | null; lineValue: Money }>> {
   if (lines.length === 0) {
-    throw new AppError('VALIDATION_FAILED', 'Dokumen harus memiliki minimal satu baris')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.docNeedsLine')
   }
   const pairs = lines.map((l) => ({ skuId: l.skuId, uomId: l.uomId }))
   const uomRes = await tx.execute<{ sku_id: string; uom_id: string; conversion_factor: string }>(sql`
@@ -70,15 +70,15 @@ async function deriveLines(
 
   return lines.map((l) => {
     if (!isUuid(l.skuId) || !isUuid(l.uomId)) {
-      throw new AppError('VALIDATION_FAILED', 'SKU/UOM tidak valid')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.skuUomInvalid')
     }
     const qty = parseQty(l.qty)
     if (Number(qty) <= 0) {
-      throw new AppError('VALIDATION_FAILED', 'Jumlah harus lebih dari nol')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.qtyPositive')
     }
     const factorRaw = factorByKey.get(`${l.skuId}|${l.uomId}`)
     if (!factorRaw) {
-      throw new AppError('VALIDATION_FAILED', 'UOM tidak dimiliki SKU ini')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.uomNotOfSku')
     }
     const factor = parseQty(factorRaw)
     const qtyBase = mulQty(qty, factor)
@@ -89,10 +89,10 @@ async function deriveLines(
     } else if (unitCost !== null) {
       lineValue = mulRound(unitCost, qty)
     } else {
-      throw new AppError('VALIDATION_FAILED', 'Isi biaya per satuan atau total nilai baris')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.unitCostOrValue')
     }
     if (lineValue < 0) {
-      throw new AppError('VALIDATION_FAILED', 'Nilai baris tidak boleh negatif')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.lineValueNegative')
     }
     return { skuId: l.skuId, uomId: l.uomId, qty, factor, qtyBase, unitCost, lineValue }
   })
@@ -108,7 +108,7 @@ export async function saveGrDraft(actor: IdentityAuthActor, input: GrDraftInput)
     if (input.id) {
       const cur = await lockGr(tx, actor.tenantId, input.id)
       if (cur.status !== 'DRAFT') {
-        throw new AppError('VALIDATION_FAILED', 'Dokumen sudah diposting dan tidak dapat diubah')
+        throw new AppError('VALIDATION_FAILED', 'admin.stock.err.docAlreadyPosted')
       }
       await tx.delete(grLineTable).where(and(eq(grLineTable.tenantId, actor.tenantId), eq(grLineTable.goodsReceiptId, input.id)))
       await tx
@@ -194,7 +194,7 @@ async function lockGr(tx: TenantTx, tenantId: string, id: string): Promise<{
     FOR UPDATE
   `)
   const r = res.rows[0]
-  if (!r) throw new AppError('VALIDATION_FAILED', 'Dokumen tidak ditemukan')
+  if (!r) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.docNotFound')
   return {
     id: r.id,
     outletId: r.outlet_id,
@@ -222,7 +222,7 @@ export async function postGr(actor: IdentityAuthActor, id: string): Promise<GrPo
       return { id, docNo: cur.docNo, totalValue: row[0]!.totalValue, applied: false }
     }
     if (cur.docType !== 'RECEIPT') {
-      throw new AppError('VALIDATION_FAILED', 'Hanya penerimaan yang dapat diposting')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.onlyReceiptPostable')
     }
     const enabledAt = await loadInventoryEnabledAt(tx, actor.tenantId, cur.outletId)
     if (!enabledAt) {
@@ -231,7 +231,7 @@ export async function postGr(actor: IdentityAuthActor, id: string): Promise<GrPo
 
     const lines = await loadLines(tx, actor.tenantId, id)
     if (lines.length === 0) {
-      throw new AppError('VALIDATION_FAILED', 'Dokumen kosong tidak dapat diposting')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.emptyDocNotPostable')
     }
     const docNo = await nextDocNo(tx, {
       tenantId: actor.tenantId,
@@ -286,19 +286,19 @@ export async function postGr(actor: IdentityAuthActor, id: string): Promise<GrPo
 export async function reverseGr(actor: IdentityAuthActor, id: string, reasonText: string): Promise<{ reversalId: string; docNo: string }> {
   const reason = reasonText.trim()
   if (reason.length === 0 || reason.length > 500) {
-    throw new AppError('VALIDATION_FAILED', 'Alasan koreksi wajib diisi (maks 500 karakter)')
+    throw new AppError('VALIDATION_FAILED', 'admin.stock.err.reversalReasonRequired')
   }
   return withTenant(actor.tenantId, async (tx) => {
     const cur = await lockGr(tx, actor.tenantId, id)
     requireActorPermission(actor, 'inventory.manage', { outletId: cur.outletId })
     if (cur.status !== 'POSTED' || cur.docType !== 'RECEIPT') {
-      throw new AppError('VALIDATION_FAILED', 'Hanya penerimaan yang sudah diposting dapat dikoreksi')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.onlyPostedReversible')
     }
     const existing = await tx.execute<{ id: string }>(sql`
       SELECT id FROM goods_receipt WHERE tenant_id = ${actor.tenantId}::uuid AND reversal_of_id = ${id}::uuid
     `)
     if (existing.rows.length > 0) {
-      throw new AppError('VALIDATION_FAILED', 'Penerimaan ini sudah dikoreksi')
+      throw new AppError('VALIDATION_FAILED', 'admin.stock.err.alreadyReversed')
     }
 
     const origLines = await loadLines(tx, actor.tenantId, id)

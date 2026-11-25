@@ -97,13 +97,13 @@ export interface StocktakeDetail {
 
 export async function getStocktake(actor: IdentityAuthActor, id: string): Promise<StocktakeDetail> {
   requireActorPermission(actor, 'inventory.manage')
-  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'Dokumen opname tidak ditemukan')
+  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeNotFound')
   return withTenant(actor.tenantId, async (tx) => {
     const [head] = await tx
       .select({ id: stocktakeTable.id, docNo: stocktakeTable.docNo, status: stocktakeTable.status, outletId: stocktakeTable.outletId })
       .from(stocktakeTable)
       .where(eq(stocktakeTable.id, id))
-    if (!head) throw new AppError('VALIDATION_FAILED', 'Dokumen opname tidak ditemukan')
+    if (!head) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeNotFound')
     const lines = await tx
       .select({
         lineId: stocktakeLineTable.id,
@@ -156,7 +156,7 @@ export interface TransferDetail {
 /** Transfer details with its lines (for the receipt form). */
 export async function getTransfer(actor: IdentityAuthActor, id: string): Promise<TransferDetail> {
   requireActorPermission(actor, 'inventory.manage')
-  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'Transfer tidak ditemukan')
+  if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNotFound')
   return withTenant(actor.tenantId, async (tx) => {
     const [head] = await tx
       .select({
@@ -168,7 +168,7 @@ export async function getTransfer(actor: IdentityAuthActor, id: string): Promise
       })
       .from(transferTable)
       .where(eq(transferTable.id, id))
-    if (!head) throw new AppError('VALIDATION_FAILED', 'Transfer tidak ditemukan')
+    if (!head) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNotFound')
     const lines = await tx
       .select({
         lineId: transferLineTable.id,

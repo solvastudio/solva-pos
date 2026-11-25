@@ -41,6 +41,8 @@ describe('arch/no-takeover (FR-FNB-003, BR-FNB-003)', () => {
       ...walk(join(ROOT, 'src/routes/api/pos/v1/bills')),
       join(ROOT, 'src/i18n/locales/id.json'),
       join(ROOT, 'src/i18n/locales/en.json'),
+      join(ROOT, 'src/i18n/locales/id.admin.json'),
+      join(ROOT, 'src/i18n/locales/en.admin.json'),
     ]
 
     const hits: Array<{ file: string; line: number; text: string }> = []
