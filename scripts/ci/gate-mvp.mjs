@@ -16,7 +16,7 @@ const e2eJson = join(reportDir, 'e2e.json')
 
 const REQUIRED_VECTORS = [
   'V-01', 'V-02', 'V-03', 'V-04', 'V-05', 'V-06', 'V-07', 'V-08', 'V-09', 'V-10',
-  'V-11', 'V-12', 'V-13', 'V-14', 'V-15', 'V-16', 'V-17', 'V-18', 'V-19', 'V-20', 'V-30',
+  'V-11', 'V-12', 'V-13', 'V-14', 'V-15', 'V-16', 'V-17', 'V-18', 'V-19', 'V-20', 'V-30', 'V-49',
 ]
 
 function runNpm(args, extraEnv = {}) {

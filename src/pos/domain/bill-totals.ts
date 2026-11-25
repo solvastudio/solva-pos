@@ -1,4 +1,4 @@
-import { roundToUnit, toMoney, ZERO, type CashRoundingUnit, type Money } from '~/lib/kernel'
+import { roundCashDue, toMoney, ZERO, type CashRoundingUnit, type Money } from '~/lib/kernel'
 import {
   calcSale,
   type DiscountInput,
@@ -55,7 +55,7 @@ function toDiscountInput(
 
 /**
  * Computes live bill subtotal, discounts, service charge, tax, grand total, and cash rounding
- * exclusively by delegating to shared `@pos/sales-calc` (`calcSale`) and kernel `roundToUnit`.
+ * exclusively by delegating to shared `@pos/sales-calc` (`calcSale`) and kernel `roundCashDue`.
  */
 export function computeBillTotals(input: {
   bill: BillDiscountFields
@@ -94,7 +94,7 @@ export function computeBillTotals(input: {
   }
 
   const calc = calcSale(saleInput)
-  const cashTotal = toMoney(roundToUnit(calc.grandTotal, input.cashRoundingUnit))
+  const cashTotal = toMoney(roundCashDue(calc.grandTotal, input.cashRoundingUnit))
   const roundingDelta = toMoney(cashTotal - calc.grandTotal)
 
   return {

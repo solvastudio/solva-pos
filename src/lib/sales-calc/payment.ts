@@ -1,4 +1,4 @@
-import { roundToUnit, toMoney, ZERO, type CashRoundingUnit, type Money } from '~/lib/kernel'
+import { roundCashDue, toMoney, ZERO, type CashRoundingUnit, type Money } from '~/lib/kernel'
 import { PaymentError, type AppliedPayment, type PaymentInput, type PaymentSettlement } from './types'
 
 export interface SettlePaymentsInput {
@@ -83,7 +83,7 @@ export function settlePayments(input: SettlePaymentsInput): PaymentSettlement {
     }
 
     // Terminal settling CASH payment
-    const due = roundToUnit(toMoney(remaining), input.cashRoundingUnit)
+    const due = roundCashDue(toMoney(remaining), input.cashRoundingUnit)
     if (p.amount < due) {
       throw new PaymentError(
         'UNDERPAID',

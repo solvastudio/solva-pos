@@ -173,4 +173,30 @@ describe('sales-calc/payment (BR-PAY-001..005, V-04..V-08, V-11, V-30)', () => {
       }),
     ).toThrowError(/final settling payment/)
   })
+
+  it('V-49: does not round a small cash balance down to Rp0: the exact balance is due (BR-TAX-009)', () => {
+    const r = settlePayments({
+      grandTotal: toMoney(200),
+      cashRoundingUnit: 500,
+      payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(500) }],
+    })
+    expect(r.rounding).toBe(0)
+    expect(r.totalDue).toBe(200)
+    expect(r.cashApplied).toBe(200)
+    expect(r.changeTotal).toBe(300)
+    expect(r.payments[0]!.applied).toBeGreaterThan(0)
+
+    // Mixed: QRIS covers most of the bill, the leftover Rp40 (unit 100) is paid exactly in cash.
+    const mixed = settlePayments({
+      grandTotal: toMoney(10040),
+      cashRoundingUnit: 100,
+      payments: [
+        { methodCode: 'QRIS', kind: 'NON_CASH', amount: toMoney(10000) },
+        { methodCode: 'CASH', kind: 'CASH', amount: toMoney(100) },
+      ],
+    })
+    expect(mixed.rounding).toBe(0)
+    expect(mixed.cashApplied).toBe(40)
+    expect(mixed.changeTotal).toBe(60)
+  })
 })

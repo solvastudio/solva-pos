@@ -4,7 +4,7 @@ import {
   parseQty,
   ratioRound,
   returnWindowEnd,
-  roundToUnit,
+  roundCashDue,
   toMoney,
   ZERO,
   type Money,
@@ -133,7 +133,7 @@ export function calcCreditNote(input: CreditNoteInput): CreditNoteCalc {
       : toMoney(netTotal + scTotal)
 
   if (input.refund.method === 'CASH') {
-    const refundCashApplied = roundToUnit(refundGross, input.refund.cashRoundingUnit)
+    const refundCashApplied = roundCashDue(refundGross, input.refund.cashRoundingUnit)
     const rounding = toMoney(refundCashApplied - refundGross)
     return {
       lines,

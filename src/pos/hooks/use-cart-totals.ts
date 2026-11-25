@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { roundToUnit, toMoney, ZERO, type Money } from '~/lib/kernel'
+import { roundCashDue, toMoney, ZERO, type Money } from '~/lib/kernel'
 import { calcSale, type SaleCalc } from '~/lib/sales-calc'
 import { useStore } from 'zustand'
 import { toCalcInput } from '../domain/cart'
@@ -30,7 +30,7 @@ export function useCartTotals(): CartTotalsView {
 
   return useMemo(() => {
     const calc = cart.lines.length === 0 ? EMPTY_CALC : calcSale(toCalcInput(cart))
-    const cashTotal = toMoney(roundToUnit(calc.grandTotal, cart.cashRoundingUnit))
+    const cashTotal = toMoney(roundCashDue(calc.grandTotal, cart.cashRoundingUnit))
     const roundingDelta = cashTotal - calc.grandTotal
     const itemCount = cart.lines.length
     return {

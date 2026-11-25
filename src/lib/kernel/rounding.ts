@@ -165,3 +165,13 @@ export function roundToUnit(amount: Money, unit: CashRoundingUnit): Money {
   const snapped = roundHalfUp(new D(amount).div(unit))
   return toMoney(snapped * unit)
 }
+
+/**
+ * Cash amount actually due after cash rounding (BR-TAX-009). Same as `roundToUnit`, except that a
+ * non-zero balance never rounds down to Rp0: when the nearest multiple is 0 the exact balance is due
+ * (rounding 0), so a payment line always has a positive `amount_applied`.
+ */
+export function roundCashDue(amount: Money, unit: CashRoundingUnit): Money {
+  const rounded = roundToUnit(amount, unit)
+  return rounded === 0 && amount > 0 ? amount : rounded
+}

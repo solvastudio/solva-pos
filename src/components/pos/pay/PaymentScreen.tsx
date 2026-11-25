@@ -7,7 +7,7 @@ import { Field } from '~/components/ui/Field'
 import { CircleAlert } from '~/components/ui/icons'
 import { Input } from '~/components/ui/Input'
 import { MoneyInput } from '~/components/ui/MoneyInput'
-import { formatMoney, roundToUnit, toMoney, type Money } from '~/lib/kernel'
+import { formatMoney, roundCashDue, toMoney, type Money } from '~/lib/kernel'
 import type { DetailedPaymentEntry } from '~/pos/domain/build-finalize-payload'
 import { previewPayments } from '~/pos/domain/payment-preview'
 import type { CartState } from '~/pos/domain/cart'
@@ -129,7 +129,7 @@ export function PaymentScreen({
   )
 
   const roundedCashRemaining =
-    preview.remaining > 0 ? roundToUnit(preview.remaining, cart.cashRoundingUnit) : toMoney(0)
+    preview.remaining > 0 ? roundCashDue(preview.remaining, cart.cashRoundingUnit) : toMoney(0)
   const defaultAmount =
     preview.remaining > 0
       ? selectedMethod.kind === 'CASH'

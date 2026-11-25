@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BillItemModifierInput } from '~/lib/contracts'
-import { businessDate, roundToUnit, type OutletTimezone } from '~/lib/kernel'
+import { businessDate, roundCashDue, type OutletTimezone } from '~/lib/kernel'
 import { calcEqualSplit, type CartLineInput } from '~/lib/sales-calc'
 import { BillPanel } from '~/components/pos/fnb/BillPanel'
 import type { BillPanelItemView } from '~/components/pos/fnb/BillItemRow'
@@ -463,7 +463,7 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
         )
         const share = eq.shares[localBill.bill.share_index - 1]
         if (share) {
-          const cashTotal = roundToUnit(share.calc.grandTotal, effectiveConfig.cashRoundingUnit)
+          const cashTotal = roundCashDue(share.calc.grandTotal, effectiveConfig.cashRoundingUnit)
           return {
             calc: { ...share.calc, lines: [] },
             cashTotal,

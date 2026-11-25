@@ -9,6 +9,7 @@ import {
   proRate,
   ratioRound,
   roundHalfUp,
+  roundCashDue,
   roundToUnit,
 } from './rounding'
 
@@ -77,6 +78,21 @@ describe('kernel/rounding (V-01, V-02, V-03)', () => {
     expect(roundToUnit(toMoney(1250), 500)).toBe(1500)
     expect(roundToUnit(toMoney(1500), 1000)).toBe(2000)
     expect(() => roundToUnit(toMoney(-10), 100)).toThrowError(RangeError)
+  })
+
+  it('V-49: roundCashDue never rounds a non-zero balance down to Rp0 (BR-TAX-009); otherwise equals roundToUnit', () => {
+    // The nearest multiple is 0: the exact balance is due.
+    expect(roundCashDue(toMoney(200), 500)).toBe(200)
+    expect(roundCashDue(toMoney(499), 1000)).toBe(499)
+    expect(roundCashDue(toMoney(40), 100)).toBe(40)
+    // At and above half a unit the normal half-up rule applies.
+    expect(roundCashDue(toMoney(250), 500)).toBe(500)
+    expect(roundCashDue(toMoney(500), 1000)).toBe(1000)
+    expect(roundCashDue(toMoney(50), 100)).toBe(100)
+    // Zero stays zero; unit 0 is exact; normal amounts are unchanged.
+    expect(roundCashDue(toMoney(0), 500)).toBe(0)
+    expect(roundCashDue(toMoney(199), 0)).toBe(199)
+    expect(roundCashDue(toMoney(112476), 100)).toBe(112500)
   })
 })
 

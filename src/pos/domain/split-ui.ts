@@ -1,4 +1,4 @@
-import { addQty, cmpQty, parseQty, roundToUnit, toMoney, type CashRoundingUnit, type Money } from '~/lib/kernel'
+import { addQty, cmpQty, parseQty, roundCashDue, toMoney, type CashRoundingUnit, type Money } from '~/lib/kernel'
 import {
   calcEqualSplit,
   calcGroupSplit,
@@ -79,7 +79,7 @@ export function previewEqualSplit(input: {
   return res.shares.map((s) => ({
     label: `${input.bill.bill_ref}-${s.shareIndex}`,
     grandTotal: s.calc.grandTotal,
-    cashTotal: roundToUnit(s.calc.grandTotal, input.cashRoundingUnit),
+    cashTotal: roundCashDue(s.calc.grandTotal, input.cashRoundingUnit),
     itemCount: input.activeItems.length,
   }))
 }
@@ -150,7 +150,7 @@ export function previewGroupSplit(input: {
   return res.children.map((calc, i) => ({
     label: `${input.bill.bill_ref}-${i + 1}`,
     grandTotal: calc.grandTotal,
-    cashTotal: roundToUnit(calc.grandTotal, input.cashRoundingUnit),
+    cashTotal: roundCashDue(calc.grandTotal, input.cashRoundingUnit),
     itemCount: input.groups[i]!.length,
   }))
 }

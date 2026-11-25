@@ -8,6 +8,13 @@ import { expectedCash } from './shift-cash'
 import type { PaymentInput, SaleCalcInput } from './types'
 import { verifySale } from './verify'
 
+/** Independent oracle for BR-TAX-009: nearest multiple half-up, but a non-zero balance never becomes Rp0. */
+function expectedCashDue(amount: number, unit: number): number {
+  if (unit === 0) return amount
+  const rounded = Math.floor((amount + unit / 2) / unit) * unit
+  return rounded === 0 && amount > 0 ? amount : rounded
+}
+
 describe('sales-calc payment, return, shift cash, and verifySale properties (>= 300 runs)', () => {
   it('holds payment rounding & settlement invariants across random non-cash + cash splits', () => {
     fc.assert(
@@ -23,8 +30,7 @@ describe('sales-calc payment, return, shift cash, and verifySale properties (>= 
           if (nonCashAmt > 0 && nonCashAmt < grandRaw) {
             payments.push({ methodCode: 'QRIS', kind: 'NON_CASH', amount: toMoney(nonCashAmt) })
             const remaining = grandRaw - nonCashAmt
-            const cashDue =
-              unit === 0 ? remaining : Math.floor((remaining + unit / 2) / unit) * unit
+            const cashDue = expectedCashDue(remaining, unit)
             payments.push({
               methodCode: 'CASH',
               kind: 'CASH',
@@ -33,8 +39,7 @@ describe('sales-calc payment, return, shift cash, and verifySale properties (>= 
           } else if (nonCashAmt === grandRaw) {
             payments.push({ methodCode: 'QRIS', kind: 'NON_CASH', amount: grandTotal })
           } else {
-            const cashDue =
-              unit === 0 ? grandRaw : Math.floor((grandRaw + unit / 2) / unit) * unit
+            const cashDue = expectedCashDue(grandRaw, unit)
             payments.push({
               methodCode: 'CASH',
               kind: 'CASH',
@@ -47,6 +52,9 @@ describe('sales-calc payment, return, shift cash, and verifySale properties (>= 
           expect(sumApplied).toBe(grandTotal + res.rounding)
           expect(res.totalDue).toBe(grandTotal + res.rounding)
           expect(res.changeTotal).toBeGreaterThanOrEqual(0)
+          // Every payment line is positive (DB: sale_payment.amount_applied > 0), even when the nearest
+          // multiple of the unit would be 0.
+          for (const p of res.payments) expect(p.applied).toBeGreaterThan(0)
           if (unit > 0) {
             expect(Math.abs(res.rounding)).toBeLessThanOrEqual(unit / 2)
           } else {
