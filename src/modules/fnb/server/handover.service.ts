@@ -108,7 +108,7 @@ export async function handOverBill(
           throw new AppError('VALIDATION_FAILED', 'Only OPEN bills can be handed over')
         }
         if (locked.handoverStatus !== 'NONE') {
-          throw new AppError('HANDOVER_NOT_PENDING', 'Bill already has a pending handover')
+          throw new AppError('VALIDATION_FAILED', 'Bill already has a pending handover')
         }
         if (body.client_last_event_seq !== locked.lastEventSeq) {
           if (body.client_last_event_seq < locked.lastEventSeq) {

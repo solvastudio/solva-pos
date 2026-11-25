@@ -64,9 +64,12 @@ function listTestFiles(dir, out = []) {
 function checkAllVectors() {
   const files = [...listTestFiles(join(root, 'src')), ...listTestFiles(join(root, 'tests'))]
   const missing = []
+  const lines = files.flatMap((f) => readFileSync(f, 'utf8').split(/\r?\n/))
+  // The ID must appear in a describe/it/test title line; a mention in a comment is not coverage.
+  const titleLines = lines.filter((l) => /\b(describe|it|test)(\.\w+)?\(/.test(l))
   for (const id of REQUIRED_VECTORS) {
     const re = new RegExp(`\\b${id}\\b`)
-    if (!files.some((f) => re.test(readFileSync(f, 'utf8')))) missing.push(id)
+    if (!titleLines.some((l) => re.test(l))) missing.push(id)
   }
   return missing
 }

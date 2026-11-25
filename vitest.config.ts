@@ -21,6 +21,9 @@ export default defineConfig({
             'tests/arch/**/*.test.ts',
           ],
           environment: 'node',
+          // jsdom + axe screen tests take 3-7 s when 100+ files run in parallel; the 5 s default made
+          // them flaky (they pass alone), so give the whole project a realistic budget.
+          testTimeout: 30_000,
           setupFiles: ['./tests/setup-ui.ts', 'fake-indexeddb/auto'],
         },
       },

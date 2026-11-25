@@ -161,5 +161,6 @@ describe('PaymentScreen (SCR-P08)', () => {
 
     unmount()
     expect(getSessionState().paymentInProgress).toBe(false)
-  })
+  // axe over the full payment screen exceeds the 5 s default when the whole unit suite runs in parallel.
+  }, 30_000)
 })
