@@ -1,3 +1,6 @@
+export * from './shared/bill-events'
+export * from './shared/bill-projection'
+
 export interface FnbTableView {
   readonly id: string
   readonly outletId: string

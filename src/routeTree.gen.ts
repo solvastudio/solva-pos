@@ -74,7 +74,10 @@ import { Route as TenantAdminAuthedReportsShiftsRouteImport } from './routes/$te
 import { Route as TenantAdminAuthedStockIndexRouteImport } from './routes/$tenant/admin/_authed/stock/index'
 import { Route as TenantAdminAuthedStockDocumentsRouteImport } from './routes/$tenant/admin/_authed/stock/documents'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
+import { Route as ApiPosV1BillsAcceptRouteImport } from './routes/api/pos/v1/bills/accept'
+import { Route as ApiPosV1BillsHandoverRouteImport } from './routes/api/pos/v1/bills/handover'
 import { Route as ApiPosV1AssetsLogoOutletIdRouteImport } from './routes/api/pos/v1/assets.logo.$outletId'
+import { Route as ApiPosV1BillsHandoverCancelRouteImport } from './routes/api/pos/v1/bills/handover.cancel'
 import { Route as ApiPosV1PullFullPageRouteImport } from './routes/api/pos/v1/pull.full.page'
 import { Route as ApiPosV1PullFullStartRouteImport } from './routes/api/pos/v1/pull.full.start'
 
@@ -418,11 +421,27 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   path: '/admin/api/auth/$',
   getParentRoute: () => TenantRoute,
 } as any)
+const ApiPosV1BillsAcceptRoute = ApiPosV1BillsAcceptRouteImport.update({
+  id: '/api/pos/v1/bills/accept',
+  path: '/api/pos/v1/bills/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPosV1BillsHandoverRoute = ApiPosV1BillsHandoverRouteImport.update({
+  id: '/api/pos/v1/bills/handover',
+  path: '/api/pos/v1/bills/handover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPosV1AssetsLogoOutletIdRoute =
   ApiPosV1AssetsLogoOutletIdRouteImport.update({
     id: '/api/pos/v1/assets/logo/$outletId',
     path: '/api/pos/v1/assets/logo/$outletId',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPosV1BillsHandoverCancelRoute =
+  ApiPosV1BillsHandoverCancelRouteImport.update({
+    id: '/cancel',
+    path: '/cancel',
+    getParentRoute: () => ApiPosV1BillsHandoverRoute,
   } as any)
 const ApiPosV1PullFullPageRoute = ApiPosV1PullFullPageRouteImport.update({
   id: '/full/page',
@@ -499,9 +518,12 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
+  '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
   '/$tenant/admin/stock/': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
+  '/api/pos/v1/bills/handover/cancel': typeof ApiPosV1BillsHandoverCancelRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -566,9 +588,12 @@ export interface FileRoutesByTo {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
+  '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/catalog': typeof TenantAdminAuthedCatalogIndexRoute
   '/$tenant/admin/stock': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
+  '/api/pos/v1/bills/handover/cancel': typeof ApiPosV1BillsHandoverCancelRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -637,9 +662,12 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/_authed/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
+  '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/_authed/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
   '/$tenant/admin/_authed/stock/': typeof TenantAdminAuthedStockIndexRoute
   '/api/pos/v1/assets/logo/$outletId': typeof ApiPosV1AssetsLogoOutletIdRoute
+  '/api/pos/v1/bills/handover/cancel': typeof ApiPosV1BillsHandoverCancelRoute
   '/api/pos/v1/pull/full/page': typeof ApiPosV1PullFullPageRoute
   '/api/pos/v1/pull/full/start': typeof ApiPosV1PullFullStartRoute
 }
@@ -709,9 +737,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/accept'
+    | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/catalog/'
     | '/$tenant/admin/stock/'
     | '/api/pos/v1/assets/logo/$outletId'
+    | '/api/pos/v1/bills/handover/cancel'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesByTo: FileRoutesByTo
@@ -776,9 +807,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/accept'
+    | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/catalog'
     | '/$tenant/admin/stock'
     | '/api/pos/v1/assets/logo/$outletId'
+    | '/api/pos/v1/bills/handover/cancel'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   id:
@@ -846,9 +880,12 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/reports/shifts'
     | '/$tenant/admin/_authed/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/accept'
+    | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/_authed/catalog/'
     | '/$tenant/admin/_authed/stock/'
     | '/api/pos/v1/assets/logo/$outletId'
+    | '/api/pos/v1/bills/handover/cancel'
     | '/api/pos/v1/pull/full/page'
     | '/api/pos/v1/pull/full/start'
   fileRoutesById: FileRoutesById
@@ -872,6 +909,8 @@ export interface RootRouteChildren {
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
   ApiPosV1ReleaseRoute: typeof ApiPosV1ReleaseRoute
   ApiPosV1SignalsRoute: typeof ApiPosV1SignalsRoute
+  ApiPosV1BillsAcceptRoute: typeof ApiPosV1BillsAcceptRoute
+  ApiPosV1BillsHandoverRoute: typeof ApiPosV1BillsHandoverRouteWithChildren
   ApiPosV1AssetsLogoOutletIdRoute: typeof ApiPosV1AssetsLogoOutletIdRoute
 }
 
@@ -1332,12 +1371,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/api/pos/v1/bills/accept': {
+      id: '/api/pos/v1/bills/accept'
+      path: '/api/pos/v1/bills/accept'
+      fullPath: '/api/pos/v1/bills/accept'
+      preLoaderRoute: typeof ApiPosV1BillsAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pos/v1/bills/handover': {
+      id: '/api/pos/v1/bills/handover'
+      path: '/api/pos/v1/bills/handover'
+      fullPath: '/api/pos/v1/bills/handover'
+      preLoaderRoute: typeof ApiPosV1BillsHandoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pos/v1/assets/logo/$outletId': {
       id: '/api/pos/v1/assets/logo/$outletId'
       path: '/api/pos/v1/assets/logo/$outletId'
       fullPath: '/api/pos/v1/assets/logo/$outletId'
       preLoaderRoute: typeof ApiPosV1AssetsLogoOutletIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/pos/v1/bills/handover/cancel': {
+      id: '/api/pos/v1/bills/handover/cancel'
+      path: '/cancel'
+      fullPath: '/api/pos/v1/bills/handover/cancel'
+      preLoaderRoute: typeof ApiPosV1BillsHandoverCancelRouteImport
+      parentRoute: typeof ApiPosV1BillsHandoverRoute
     }
     '/api/pos/v1/pull/full/page': {
       id: '/api/pos/v1/pull/full/page'
@@ -1494,6 +1554,19 @@ const ApiPosV1PullRouteWithChildren = ApiPosV1PullRoute._addFileChildren(
   ApiPosV1PullRouteChildren,
 )
 
+interface ApiPosV1BillsHandoverRouteChildren {
+  ApiPosV1BillsHandoverCancelRoute: typeof ApiPosV1BillsHandoverCancelRoute
+}
+
+const ApiPosV1BillsHandoverRouteChildren: ApiPosV1BillsHandoverRouteChildren = {
+  ApiPosV1BillsHandoverCancelRoute: ApiPosV1BillsHandoverCancelRoute,
+}
+
+const ApiPosV1BillsHandoverRouteWithChildren =
+  ApiPosV1BillsHandoverRoute._addFileChildren(
+    ApiPosV1BillsHandoverRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   TenantRoute: TenantRouteWithChildren,
@@ -1513,6 +1586,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPosV1PushRoute: ApiPosV1PushRoute,
   ApiPosV1ReleaseRoute: ApiPosV1ReleaseRoute,
   ApiPosV1SignalsRoute: ApiPosV1SignalsRoute,
+  ApiPosV1BillsAcceptRoute: ApiPosV1BillsAcceptRoute,
+  ApiPosV1BillsHandoverRoute: ApiPosV1BillsHandoverRouteWithChildren,
   ApiPosV1AssetsLogoOutletIdRoute: ApiPosV1AssetsLogoOutletIdRoute,
 }
 export const routeTree = rootRouteImport

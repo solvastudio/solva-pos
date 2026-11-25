@@ -94,8 +94,10 @@ export {
   type TouchDeviceStatusPatch,
 } from './server/device-status-port'
 export {
+  executeOnlineCommand,
   processCommandAs,
   processPush,
+  type ExecuteOnlineCommandParams,
   type ProcessCommandAsOptions,
   type ProcessCommandAsResult,
   type ProcessPushDeps,

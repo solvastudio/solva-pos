@@ -2,6 +2,13 @@ import '@tanstack/react-start/server-only'
 
 export { hasSalesForProductOrSku } from './server/has-transactions'
 export {
+  __clearBillPortForTests,
+  getBillPort,
+  registerBillPort,
+  type BillPaymentRecord,
+  type BillPort,
+} from './server/bill-port'
+export {
   __clearSaleStockPortForTests,
   getSaleStockPort,
   registerSaleStockPort,

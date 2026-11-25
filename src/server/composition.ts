@@ -8,7 +8,12 @@ import {
   registerHasTransactionsPort,
   registerRecipeCostReaderPort,
 } from '~/modules/catalog/public'
-import { fnbFeedSources } from '~/modules/fnb/public'
+import {
+  appendBillEventsCommandHandler,
+  fnbFeedSources,
+  getBillForPayment,
+  markBillPaid,
+} from '~/modules/fnb/public'
 import {
   __clearEnrollmentCounterProviderForTests,
   __clearOutletCreatedHooksForTests,
@@ -20,12 +25,14 @@ import {
   touchDeviceStatus,
 } from '~/modules/identity/public'
 import {
+  __clearBillPortForTests,
   __clearSaleStockPortForTests,
   finalizeCreditNoteCommandHandler,
   finalizeSaleCommandHandler,
   getRecoveryCountersAndBindDevice,
   getShiftCashSalesAndRefundTotals,
   hasSalesForProductOrSku,
+  registerBillPort,
   registerSaleStockPort,
   voidSaleCommandHandler,
 } from '~/modules/sales/public'
@@ -83,6 +90,11 @@ export function composeServer(): void {
   registerCommandHandler(openShiftCommandHandler)
   registerCommandHandler(recordCashMovementCommandHandler)
   registerCommandHandler(closeShiftCommandHandler)
+  registerCommandHandler(appendBillEventsCommandHandler)
+  registerBillPort({
+    lockBillForPayment: (tx, tenantId, billId) => getBillForPayment(tx, tenantId, billId),
+    markBillPaid: (tx, tenantId, billId, nowIso) => markBillPaid(tx, tenantId, billId, nowIso),
+  })
   registerDeviceStatusPort({
     touchDeviceStatus,
     extendCredentialIfNeeded,
@@ -127,6 +139,7 @@ export function resetCompositionForTests(): void {
   __clearShiftRecapSalesPortForTests()
   __clearEnrollmentCounterProviderForTests()
   __clearSaleStockPortForTests()
+  __clearBillPortForTests()
   __clearOutletStockReaderForTests()
   registerRecipeCostReaderPort(null)
   composed = false

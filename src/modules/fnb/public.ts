@@ -17,3 +17,13 @@ export {
   type FnbActor,
   type FnbServiceDeps,
 } from './server/table.service'
+export { appendBillEventsCommandHandler } from './server/append-bill-events.command'
+export { getBillForPayment, markBillPaid } from './server/bill.repo'
+export { flagDoubleTableBillsIfNeeded } from './server/bill-flags.service'
+export {
+  acceptBill,
+  cancelBillHandover,
+  handOverBill,
+  type HandoverRequestMeta,
+  type HandoverResponse,
+} from './server/handover.service'

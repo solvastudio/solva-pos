@@ -1,10 +1,12 @@
 import '@tanstack/react-start/server-only'
 import { and, eq, inArray, isNull, or } from 'drizzle-orm'
+import type { ModifierAdjustType } from '~/lib/contracts'
 import { toMoney } from '~/lib/kernel'
 import type { TenantTx } from '~/server/db'
 import { resolvePrice, type PriceResolution } from '../domain/price'
-import type { AvailabilityStatus } from '../shared'
+import type { AvailabilityStatus, ProductType } from '../shared'
 import { itemOutletAvailability, priceEntry, product, sku, uom } from './schema'
+import { modifier, modifierIngredient, recipeItem } from './schema-fnb'
 
 export async function getProductSkuState(
   tx: TenantTx,
@@ -154,4 +156,119 @@ export async function filterMissingCatalogRefs(
   }
 
   return { missingSkuId: null, missingUomId: null }
+}
+
+export async function findMissingModifierId(
+  tx: TenantTx,
+  tenantId: string,
+  modifierIds: readonly string[],
+): Promise<string | null> {
+  const uniqueIds = [...new Set(modifierIds)]
+  if (uniqueIds.length === 0) return null
+  const found = await tx
+    .select({ id: modifier.id })
+    .from(modifier)
+    .where(and(eq(modifier.tenantId, tenantId), inArray(modifier.id, uniqueIds)))
+  const set = new Set(found.map((m) => m.id))
+  for (const id of uniqueIds) {
+    if (!set.has(id)) return id
+  }
+  return null
+}
+
+export async function getSkuProductTypes(
+  tx: TenantTx,
+  tenantId: string,
+  skuIds: readonly string[],
+): Promise<Map<string, { productType: ProductType; trackStock: boolean }>> {
+  const out = new Map<string, { productType: ProductType; trackStock: boolean }>()
+  const uniqueIds = [...new Set(skuIds)]
+  if (uniqueIds.length === 0) return out
+  const rows = await tx
+    .select({
+      skuId: sku.id,
+      productType: product.productType,
+      trackStock: product.trackStock,
+    })
+    .from(sku)
+    .innerJoin(product, and(eq(product.tenantId, sku.tenantId), eq(product.id, sku.productId)))
+    .where(and(eq(sku.tenantId, tenantId), inArray(sku.id, uniqueIds)))
+  for (const r of rows) {
+    out.set(r.skuId, { productType: r.productType as ProductType, trackStock: r.trackStock })
+  }
+  return out
+}
+
+export async function getRecipeFor(
+  tx: TenantTx,
+  tenantId: string,
+  menuSkuIds: readonly string[],
+): Promise<Map<string, Array<{ ingredientSkuId: string; qty: string }>>> {
+  const out = new Map<string, Array<{ ingredientSkuId: string; qty: string }>>()
+  const uniqueIds = [...new Set(menuSkuIds)]
+  if (uniqueIds.length === 0) return out
+  const rows = await tx
+    .select({
+      menuSkuId: recipeItem.menuSkuId,
+      ingredientSkuId: recipeItem.ingredientSkuId,
+      qty: recipeItem.qty,
+    })
+    .from(recipeItem)
+    .where(
+      and(
+        eq(recipeItem.tenantId, tenantId),
+        inArray(recipeItem.menuSkuId, uniqueIds),
+        isNull(recipeItem.deletedAt),
+      ),
+    )
+  for (const r of rows) {
+    let list = out.get(r.menuSkuId)
+    if (!list) {
+      list = []
+      out.set(r.menuSkuId, list)
+    }
+    list.push({ ingredientSkuId: r.ingredientSkuId, qty: r.qty })
+  }
+  return out
+}
+
+export async function getModifierIngredients(
+  tx: TenantTx,
+  tenantId: string,
+  modifierIds: readonly string[],
+): Promise<Map<string, Array<{ ingredientSkuId: string; adjustType: ModifierAdjustType; qty: string | null }>>> {
+  const out = new Map<
+    string,
+    Array<{ ingredientSkuId: string; adjustType: ModifierAdjustType; qty: string | null }>
+  >()
+  const uniqueIds = [...new Set(modifierIds)]
+  if (uniqueIds.length === 0) return out
+  const rows = await tx
+    .select({
+      modifierId: modifierIngredient.modifierId,
+      ingredientSkuId: modifierIngredient.ingredientSkuId,
+      adjustType: modifierIngredient.adjustType,
+      qty: modifierIngredient.qty,
+    })
+    .from(modifierIngredient)
+    .where(
+      and(
+        eq(modifierIngredient.tenantId, tenantId),
+        inArray(modifierIngredient.modifierId, uniqueIds),
+        isNull(modifierIngredient.deletedAt),
+      ),
+    )
+  for (const r of rows) {
+    let list = out.get(r.modifierId)
+    if (!list) {
+      list = []
+      out.set(r.modifierId, list)
+    }
+    list.push({
+      ingredientSkuId: r.ingredientSkuId,
+      adjustType: r.adjustType as ModifierAdjustType,
+      qty: r.qty,
+    })
+  }
+  return out
 }

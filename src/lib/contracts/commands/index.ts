@@ -4,6 +4,12 @@ import { upcastStoredPayload, type CommandUpcasterMap } from '../upcasters'
 import { AppendAuditPayloadV1 } from './append-audit'
 import { FinalizeCreditNotePayloadV1 } from './finalize-credit-note'
 import { FinalizeSalePayloadV1 } from './finalize-sale'
+import {
+  AcceptBillPayloadV1,
+  AppendBillEventsPayloadV1,
+  CancelBillHandoverPayloadV1,
+  HandOverBillPayloadV1,
+} from './fnb'
 import { ReportPinStatePayloadV1 } from './report-pin-state'
 import { CloseShiftPayloadV1, OpenShiftPayloadV1, RecordCashMovementPayloadV1 } from './shift'
 import { VoidSalePayloadV1 } from './void-sale'
@@ -11,6 +17,7 @@ import { VoidSalePayloadV1 } from './void-sale'
 export * from './append-audit'
 export * from './finalize-credit-note'
 export * from './finalize-sale'
+export * from './fnb'
 export * from './report-pin-state'
 export * from './shift'
 export * from './void-sale'
@@ -38,10 +45,10 @@ export const COMMAND_PAYLOAD_SCHEMAS: Record<CommandType, Record<number, z.ZodTy
   RecordCashMovement: { 1: RecordCashMovementPayloadV1 },
   CloseShift: { 1: CloseShiftPayloadV1 },
   AppendAudit: { 1: AppendAuditPayloadV1 },
-  AppendBillEvents: {},
-  HandOverBill: {},
-  AcceptBill: {},
-  CancelBillHandover: {},
+  AppendBillEvents: { 1: AppendBillEventsPayloadV1 },
+  HandOverBill: { 1: HandOverBillPayloadV1 },
+  AcceptBill: { 1: AcceptBillPayloadV1 },
+  CancelBillHandover: { 1: CancelBillHandoverPayloadV1 },
   ReportPinState: { 1: ReportPinStatePayloadV1 },
 }
 

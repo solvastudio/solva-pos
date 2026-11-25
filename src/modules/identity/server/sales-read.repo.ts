@@ -275,3 +275,71 @@ export async function getOutletLogoMeta(
 
   return rows[0] ?? null
 }
+
+export async function getRegisterHandoverTarget(
+  tx: TenantTx,
+  tenantId: string,
+  registerId: string,
+): Promise<{
+  id: string
+  outletId: string
+  registerType: 'CASHIER' | 'WAITER'
+  isActive: boolean
+  activeDeviceId: string | null
+} | null> {
+  const regRows = await tx
+    .select({
+      id: cashMaster.id,
+      outletId: cashMaster.outletId,
+      registerType: cashMaster.registerType,
+      status: cashMaster.status,
+    })
+    .from(cashMaster)
+    .where(and(eq(cashMaster.tenantId, tenantId), eq(cashMaster.id, registerId), isNull(cashMaster.deletedAt)))
+    .limit(1)
+  const reg = regRows[0]
+  if (!reg) return null
+
+  const devRows = await tx
+    .select({ id: device.id })
+    .from(device)
+    .where(and(eq(device.tenantId, tenantId), eq(device.registerId, registerId), isNull(device.revokedAt)))
+    .limit(1)
+
+  return {
+    id: reg.id,
+    outletId: reg.outletId,
+    registerType: reg.registerType as 'CASHIER' | 'WAITER',
+    isActive: reg.status === 'ACTIVE',
+    activeDeviceId: devRows[0]?.id ?? null,
+  }
+}
+
+export async function isDeviceActiveInTenant(
+  tx: TenantTx,
+  tenantId: string,
+  deviceId: string,
+): Promise<boolean> {
+  const rows = await tx
+    .select({ id: device.id })
+    .from(device)
+    .where(and(eq(device.tenantId, tenantId), eq(device.id, deviceId), isNull(device.revokedAt)))
+    .limit(1)
+  return rows.length > 0
+}
+
+export async function getOutletBusinessDateConfig(
+  tx: TenantTx,
+  tenantId: string,
+  outletId: string,
+): Promise<{ timezone: string; dayCutoffTime: string } | null> {
+  const rows = await tx
+    .select({
+      timezone: outlet.timezone,
+      dayCutoffTime: outlet.dayCutoffTime,
+    })
+    .from(outlet)
+    .where(and(eq(outlet.tenantId, tenantId), eq(outlet.id, outletId), isNull(outlet.deletedAt)))
+    .limit(1)
+  return rows[0] ?? null
+}

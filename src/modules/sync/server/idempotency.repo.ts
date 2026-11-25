@@ -35,7 +35,7 @@ export async function claimIdempotencyRow(
     commandType: string
     channel: 'OUTBOX' | 'ONLINE'
     schemaVersion: number
-    deviceSeq: number
+    deviceSeq: number | null
     payloadHash: string
     payloadSize: number
     requestRef: string | null

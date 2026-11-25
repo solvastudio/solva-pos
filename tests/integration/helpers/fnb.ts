@@ -40,12 +40,18 @@ export interface FnbTestFixture {
   readonly catalogActor: CatalogActor
   readonly fnbActor: FnbActor
   readonly appUserId: string
+  readonly legalEntityId: string
   readonly outletA: string
   readonly outletB: string
   readonly cashierRegId: string
   readonly waiterRegId: string
   readonly cashierDev: SyncDeviceIdentity
   readonly waiterDev: SyncDeviceIdentity
+  readonly cashierCredential: string
+  readonly waiterCredential: string
+  readonly cashMethodId: string
+  readonly qrisMethodId: string
+  readonly cashierShiftId: string
   readonly categoryId: string
   readonly pcsUomId: string
   readonly grUomId: string
@@ -203,6 +209,46 @@ export async function setupFnbTenant(prefix: string): Promise<FnbTestFixture> {
       )
     ).rows[0]!.id
 
+    const existingCash = await c.query<{ id: string }>(
+      `SELECT id FROM payment_method WHERE tenant_id = $1 AND code = 'CASH' AND deleted_at IS NULL LIMIT 1`,
+      [created.tenantId],
+    )
+    const cashMethodId =
+      existingCash.rows[0]?.id ??
+      (
+        await c.query<{ id: string }>(
+          `INSERT INTO payment_method (tenant_id, version, code, name, kind)
+           VALUES ($1, $2, 'CASH', 'Tunai', 'CASH') RETURNING id`,
+          [created.tenantId, v],
+        )
+      ).rows[0]!.id
+    const existingQris = await c.query<{ id: string }>(
+      `SELECT id FROM payment_method WHERE tenant_id = $1 AND code = 'QRIS' AND deleted_at IS NULL LIMIT 1`,
+      [created.tenantId],
+    )
+    const qrisMethodId =
+      existingQris.rows[0]?.id ??
+      (
+        await c.query<{ id: string }>(
+          `INSERT INTO payment_method (tenant_id, version, code, name, kind)
+           VALUES ($1, $2, 'QRIS', 'QRIS', 'NON_CASH') RETURNING id`,
+          [created.tenantId, v],
+        )
+      ).rows[0]!.id
+
+    const cashierShiftId = idGen.newId()
+    const shiftCmdId = idGen.newId()
+    await c.query(
+      `INSERT INTO idempotency_command (command_id, tenant_id, device_id, register_id, outlet_id, command_type, schema_version, device_seq, payload_hash, status, result)
+       VALUES ($1, $2, $3, $4, $5, 'OpenShift', 1, 900001, repeat('a', 64), 'ACKED', '{}'::jsonb)`,
+      [shiftCmdId, created.tenantId, enrC.device_id, cashierReg.id, outA.id],
+    )
+    await c.query(
+      `INSERT INTO cash_cashier (id, tenant_id, outlet_id, register_id, device_id, created_by, created_at_device, clock_offset_ms, occurred_at, business_date, command_id, schema_version, opening_cash)
+       VALUES ($1, $2, $3, $4, $5, $6, now(), 0, now(), '2026-11-24', $7, 1, 200000)`,
+      [cashierShiftId, created.tenantId, outA.id, cashierReg.id, enrC.device_id, created.ownerInvite.appUserId, shiftCmdId],
+    )
+
     return {
       categoryId,
       pcsUomId,
@@ -215,6 +261,9 @@ export async function setupFnbTenant(prefix: string): Promise<FnbTestFixture> {
       ingTrackedSkuId: ing1.skuId,
       ingUntrackedSkuId: ing2.skuId,
       tableA1Id,
+      cashMethodId,
+      qrisMethodId,
+      cashierShiftId,
     }
   })
 
@@ -225,10 +274,13 @@ export async function setupFnbTenant(prefix: string): Promise<FnbTestFixture> {
     catalogActor,
     fnbActor,
     appUserId: created.ownerInvite.appUserId,
+    legalEntityId: le.id,
     outletA: outA.id,
     outletB: outB.id,
     cashierRegId: cashierReg.id,
     waiterRegId: waiterReg.id,
+    cashierCredential: enrC.credential,
+    waiterCredential: enrW.credential,
     cashierDev: {
       tenantId: created.tenantId,
       deviceId: enrC.device_id,

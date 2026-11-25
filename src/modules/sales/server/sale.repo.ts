@@ -1,9 +1,20 @@
 import '@tanstack/react-start/server-only'
+import { webcrypto } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
-import type { FinalizeSalePayloadV1 } from '~/lib/contracts'
+import type { FinalizeSalePayloadV1, SaleLineModifierInput } from '~/lib/contracts'
+import { createIdGenerator } from '~/lib/kernel'
 import type { CommandContext } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
-import { creditNote, sale, saleLine, salePayment } from './schema'
+import { creditNote, sale, saleLine, saleLineModifier, salePayment } from './schema'
+
+const saleRepoIdGen = createIdGenerator({
+  nowMs: () => Date.now(),
+  nextUint32: () => {
+    const buf = new Uint32Array(1)
+    webcrypto.getRandomValues(buf)
+    return buf[0]!
+  },
+})
 
 export async function insertSaleFacts(
   tx: TenantTx,
@@ -12,6 +23,7 @@ export async function insertSaleFacts(
     payload: FinalizeSalePayloadV1
     finalInvoiceNo: string
     invoiceConflictIdx: number
+    lineModifiers?: ReadonlyMap<string, readonly SaleLineModifierInput[]>
   },
 ): Promise<void> {
   const { ctx, payload, finalInvoiceNo, invoiceConflictIdx } = params
@@ -129,6 +141,51 @@ export async function insertSaleFacts(
       isRoundingSettler: p.is_rounding_settler,
     })),
   )
+
+  if (params.lineModifiers && params.lineModifiers.size > 0) {
+    const modRows: Array<typeof saleLineModifier.$inferInsert> = []
+    for (const [saleLineId, mods] of params.lineModifiers.entries()) {
+      for (const m of mods) {
+        modRows.push({
+          id: saleRepoIdGen.newId(),
+          tenantId: ctx.device.tenantId,
+          saleLineId,
+          modifierId: m.modifier_id,
+          name: m.name,
+          priceDelta: m.price_delta,
+          qty: m.qty ?? 1,
+        })
+      }
+    }
+    if (modRows.length > 0) {
+      await tx.insert(saleLineModifier).values(modRows)
+    }
+  }
+}
+
+export async function findSaleByBillId(
+  tx: TenantTx,
+  tenantId: string,
+  billId: string,
+): Promise<{
+  id: string
+  invoiceNo: string
+  invoiceConflictIdx: number
+  receivedAt: string
+  costTotal: number | null
+} | null> {
+  const rows = await tx
+    .select({
+      id: sale.id,
+      invoiceNo: sale.invoiceNo,
+      invoiceConflictIdx: sale.invoiceConflictIdx,
+      receivedAt: sale.receivedAt,
+      costTotal: sale.costTotal,
+    })
+    .from(sale)
+    .where(and(eq(sale.tenantId, tenantId), eq(sale.billId, billId)))
+    .limit(1)
+  return rows[0] ?? null
 }
 
 export async function findSaleForVoid(

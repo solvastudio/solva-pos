@@ -1,7 +1,13 @@
 import '@tanstack/react-start/server-only'
-import { parseCommandPayload, type FinalizeSalePayloadV1, type FlagCode } from '~/lib/contracts'
+import {
+  parseCommandPayload,
+  SaleLineModifierInputSchema,
+  type FinalizeSalePayloadV1,
+  type FlagCode,
+  type SaleLineModifierInput,
+} from '~/lib/contracts'
 import { formatInvoiceNo, invoicePeriod, parseQty } from '~/lib/kernel'
-import { filterMissingCatalogRefs } from '~/modules/catalog/public'
+import { filterMissingCatalogRefs, findMissingModifierId } from '~/modules/catalog/public'
 import { findRegisterPrefixForBusinessDate, validateSaleIdentityRefs } from '~/modules/identity/public'
 import { getShiftForCommand, recomputeRecapIfClosed } from '~/modules/shift/public'
 import {
@@ -13,10 +19,11 @@ import {
 } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import { createLogger } from '~/server/log'
+import { getBillPort } from './bill-port'
 import { registerReceivedNumber } from './invoice-series.service'
 import { evaluateSaleBusinessFlags } from './sale-flags.service'
 import { verifyFinalizeSalePayload } from './sale-verify.adapter'
-import { insertSaleFacts, persistSaleCosts } from './sale.repo'
+import { findSaleByBillId, insertSaleFacts, persistSaleCosts } from './sale.repo'
 import { getSaleStockPort } from './stock-port'
 
 const log = createLogger('sales.finalize_sale')
@@ -130,6 +137,38 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
 
     const skuIds = payload.lines.map((l) => l.sku_id).filter((v): v is string => v !== null)
     const uomIds = payload.lines.map((l) => l.uom_id).filter((v): v is string => v !== null)
+    const lineModifiers = new Map<string, SaleLineModifierInput[]>()
+    const modifierIds: string[] = []
+    for (const l of payload.lines) {
+      if (l.modifiers && l.modifiers.length > 0) {
+        const parsedMods: SaleLineModifierInput[] = []
+        const seenModIds = new Set<string>()
+        for (const rawMod of l.modifiers) {
+          const parsed = SaleLineModifierInputSchema.safeParse(rawMod)
+          if (!parsed.success) {
+            throw new CommandRejected(
+              'STRUCTURAL',
+              'VALIDATION_FAILED',
+              parsed.error.issues[0]?.message ?? 'Invalid sale line modifier',
+            )
+          }
+          if (parsed.data.modifier_id) {
+            if (seenModIds.has(parsed.data.modifier_id)) {
+              throw new CommandRejected(
+                'STRUCTURAL',
+                'VALIDATION_FAILED',
+                `Duplicate modifier_id ${parsed.data.modifier_id} on line ${l.line_no}`,
+              )
+            }
+            seenModIds.add(parsed.data.modifier_id)
+            modifierIds.push(parsed.data.modifier_id)
+          }
+          parsedMods.push(parsed.data)
+        }
+        lineModifiers.set(l.id, parsedMods)
+      }
+    }
+
     const catCheck = await filterMissingCatalogRefs(tx, { tenantId, skuIds, uomIds })
     if (catCheck.missingSkuId) {
       throw new CommandRejected(
@@ -144,6 +183,67 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
         'UNKNOWN_REFERENCE',
         `Unknown uom_id ${catCheck.missingUomId}`,
       )
+    }
+    const missingModId = await findMissingModifierId(tx, tenantId, modifierIds)
+    if (missingModId) {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Unknown modifier_id ${missingModId}`,
+      )
+    }
+
+    // 1b. Lock bill FOR UPDATE (ARCH §5.2: idempotency -> bill -> invoice_series -> stock -> facts)
+    let lockedBillId: string | null = null
+    if (s.bill_id !== null) {
+      const billRow = await getBillPort().lockBillForPayment(tx, tenantId, s.bill_id)
+      if (!billRow) {
+        throw new CommandRejected(
+          'STRUCTURAL',
+          'UNKNOWN_REFERENCE',
+          `Unknown bill_id ${s.bill_id}`,
+        )
+      }
+      if (billRow.status === 'PAID') {
+        const existingSale = await findSaleByBillId(tx, tenantId, s.bill_id)
+        if (existingSale && existingSale.id === s.id) {
+          return {
+            sale_id: existingSale.id,
+            invoice_no: existingSale.invoiceNo,
+            invoice_conflict_idx: existingSale.invoiceConflictIdx,
+            received_at: existingSale.receivedAt,
+            flags: [],
+            cost_total: existingSale.costTotal,
+            lines: [],
+          }
+        }
+        throw new CommandRejected(
+          'STRUCTURAL',
+          'BILL_NOT_PAYABLE',
+          `Bill ${s.bill_id} is already PAID`,
+        )
+      }
+      if (
+        billRow.outletId !== ctx.device.outletId ||
+        ctx.device.registerType !== 'CASHIER' ||
+        billRow.leaseRegisterId !== ctx.device.registerId ||
+        billRow.handoverStatus !== 'NONE' ||
+        billRow.status !== 'OPEN'
+      ) {
+        throw new CommandRejected(
+          'STRUCTURAL',
+          'BILL_NOT_PAYABLE',
+          `Bill ${s.bill_id} cannot be paid by register ${ctx.device.registerId} (status=${billRow.status}, handover=${billRow.handoverStatus})`,
+        )
+      }
+      if (billRow.splitMode !== null && payload.lines.some((l) => l.line_kind !== 'ITEM')) {
+        throw new CommandRejected(
+          'STRUCTURAL',
+          'VALIDATION_FAILED',
+          'Non-ITEM split lines are not supported until Phase 58',
+        )
+      }
+      lockedBillId = billRow.id
     }
 
     const effectivePrefix = await findRegisterPrefixForBusinessDate(
@@ -181,7 +281,12 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
       payload,
       finalInvoiceNo: seriesOutcome.finalNo,
       invoiceConflictIdx: seriesOutcome.conflictIdx,
+      lineModifiers,
     })
+
+    if (lockedBillId !== null) {
+      await getBillPort().markBillPaid(tx, tenantId, lockedBillId, ctx.receivedAtIso)
+    }
 
     // 3b. Authoritative stock and COGS: SALE movement and cost_snapshot within this transaction (BR-HPP-004).
     //     Never rejects for stock reasons (AP-02); negative balances are only flagged in step 5b.
@@ -200,6 +305,10 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
         lineKind: l.line_kind,
         skuId: l.sku_id,
         qtyBase: parseQty(l.qty_base),
+        modifiers: (lineModifiers.get(l.id) ?? []).map((m) => ({
+          modifierId: m.modifier_id,
+          qty: m.qty ?? 1,
+        })),
       })),
     })
     await persistSaleCosts(tx, {
@@ -279,6 +388,23 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
         detail: { sku_id: neg.skuId, qty_after: neg.qtyAfter },
       })
       raisedAdd(flags, 'STOK_MINUS')
+    }
+
+    // 5c. Menu without recipe (BR-RCP-006): flag TANPA_RESEP on SALE_LINE, do not reject.
+    for (const missingLineId of stock.missingRecipeLineIds ?? []) {
+      const line = payload.lines.find((l) => l.id === missingLineId)
+      await createDataFlag(tx, {
+        tenantId,
+        outletId: ctx.device.outletId,
+        businessDate: s.business_date,
+        flagCode: 'TANPA_RESEP',
+        entityType: 'SALE_LINE',
+        entityId: missingLineId,
+        parentId: s.id,
+        commandId: ctx.commandId,
+        detail: line?.sku_id ? { sku_id: line.sku_id } : undefined,
+      })
+      raisedAdd(flags, 'TANPA_RESEP')
     }
 
     await recomputeRecapIfClosed(tx, s.shift_id, ctx.receivedAtIso)

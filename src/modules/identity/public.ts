@@ -122,10 +122,13 @@ export {
   findMissingAppUserId,
   findMissingPaymentMethodId,
   findRegisterPrefixForBusinessDate,
+  getOutletBusinessDateConfig,
   getOutletLogoMeta,
+  getRegisterHandoverTarget,
   getRegisterPendingCommandCount,
   getRegisterRecoveryContext,
   getTaxRateHistory,
+  isDeviceActiveInTenant,
   validateSaleIdentityRefs,
 } from './server/sales-read.repo'
 export {

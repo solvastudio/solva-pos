@@ -14,6 +14,7 @@ export interface SaleStockLinePort {
   readonly lineKind: 'ITEM' | 'SHARE' | 'STOCK_BASIS'
   readonly skuId: string | null
   readonly qtyBase: Qty
+  readonly modifiers?: readonly { readonly modifierId: string | null; readonly qty: number }[]
 }
 
 export interface SaleStockInputPort {
@@ -32,6 +33,7 @@ export interface SaleStockResultPort {
   readonly costTotal: Money | null
   readonly lines: readonly { readonly lineId: string; readonly costSnapshot: Money | null }[]
   readonly negativeResults: readonly { readonly outletId: string; readonly skuId: string; readonly qtyAfter: Qty }[]
+  readonly missingRecipeLineIds?: readonly string[]
 }
 
 export interface VoidStockLinePort {

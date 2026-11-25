@@ -60,7 +60,9 @@ describe('contracts/commands registry & parseCommandPayload', () => {
     }
 
     try {
-      parseCommandPayload('AppendBillEvents', 1, {})
+      parseCommandPayload('AppendBillEvents', 1, {}, {
+        schemas: { ...COMMAND_PAYLOAD_SCHEMAS, AppendBillEvents: {} },
+      })
       expect.unreachable('should throw ContractError')
     } catch (err) {
       expect(err).toBeInstanceOf(ContractError)

@@ -58,6 +58,7 @@ const syncIdGen = createIdGenerator({
 
 const SEMVER_APP_PATTERN = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const TRANSIENT_PG_CODES = new Set(['55P03', '40001', '40P01', '57P01', '53300', '57014'])
+const ONLINE_ONLY_COMMANDS = new Set(['HandOverBill', 'AcceptBill', 'CancelBillHandover'])
 
 export interface PushRequestMeta {
   schemaVersion: number
@@ -255,6 +256,14 @@ async function processSingleCommand(
           reason_code: reasonCode,
           ref: meta.requestRef,
         }
+      }
+
+      if (ONLINE_ONLY_COMMANDS.has(cmd.type)) {
+        return recordAttention(
+          'STRUCTURAL',
+          'VALIDATION_FAILED',
+          `Online-only command ${cmd.type} cannot be pushed via outbox`,
+        )
       }
 
       const handler = getCommandHandler(cmd.type)
@@ -870,4 +879,99 @@ export async function processCommandAs(
     }
     throw err
   }
+}
+
+export interface ExecuteOnlineCommandParams {
+  device: SyncDeviceIdentity
+  commandId: string
+  commandType: 'HandOverBill' | 'AcceptBill' | 'CancelBillHandover'
+  schemaVersion: number
+  appVersion: string | null
+  requestRef: string
+  payload: unknown
+  nowIso?: string
+}
+
+export interface OnlineCommandConflictError {
+  readonly kind: 'HASH_MISMATCH' | 'UNSUPPORTED_SCHEMA'
+  readonly message: string
+}
+
+/**
+ * Executes a `channel='ONLINE'` command (`device_seq = NULL`) inside a single tenant transaction.
+ * Only successful executions are persisted in `idempotency_command`; thrown errors roll back the claim.
+ */
+export async function executeOnlineCommand<TResult extends Record<string, unknown>>(
+  params: ExecuteOnlineCommandParams,
+  run: (tx: TenantTx, receivedAtIso: string) => Promise<TResult>,
+): Promise<{ result: TResult; replay: boolean; serverTime: string }> {
+  const startedAt = performance.now()
+  const receivedAtIso = params.nowIso ?? new Date().toISOString()
+  const safeAppVersion = normalizeSemverAppVersion(params.appVersion)
+  const rawJsonText = JSON.stringify(params.payload ?? null) ?? 'null'
+  const payloadSize = Buffer.byteLength(rawJsonText, 'utf8')
+  const payloadHash = sha256Hex(
+    canonicalJson({
+      type: params.commandType,
+      schema_version: params.schemaVersion,
+      payload: params.payload ?? null,
+    }),
+  )
+
+  return withTenant(
+    params.device.tenantId,
+    async (tx) => {
+      const claimed = await claimIdempotencyRow(tx, {
+        commandId: params.commandId,
+        tenantId: params.device.tenantId,
+        deviceId: params.device.deviceId,
+        registerId: params.device.registerId,
+        outletId: params.device.outletId,
+        commandType: params.commandType,
+        channel: 'ONLINE',
+        schemaVersion: params.schemaVersion,
+        deviceSeq: null,
+        payloadHash,
+        payloadSize,
+        requestRef: params.requestRef,
+        appVersion: safeAppVersion,
+        receivedAtIso,
+      })
+
+      if (!claimed) {
+        const existing = await findIdempotencyByCommandId(tx, params.device.tenantId, params.commandId)
+        if (!existing) {
+          throw new Error('Missing existing idempotency row after conflict')
+        }
+        if (existing.payloadHash !== payloadHash) {
+          const err = new Error('Online idempotency key reused with mismatched payload')
+          err.name = 'OnlineIdempotencyMismatchError'
+          throw err
+        }
+        return {
+          result: existing.result as TResult,
+          replay: true,
+          serverTime: receivedAtIso,
+        }
+      }
+
+      const ackResult = await run(tx, receivedAtIso)
+      const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+      await completeIdempotencyAck(tx, {
+        tenantId: params.device.tenantId,
+        commandId: params.commandId,
+        status: 'ACKED',
+        result: ackResult,
+        processedAtIso: receivedAtIso,
+        durationMs,
+      })
+
+      return {
+        result: ackResult,
+        replay: false,
+        serverTime: receivedAtIso,
+      }
+    },
+    { statementTimeoutMs: 10_000 },
+  )
 }

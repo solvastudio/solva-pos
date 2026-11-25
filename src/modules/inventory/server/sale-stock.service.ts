@@ -1,14 +1,20 @@
 import '@tanstack/react-start/server-only'
-import { addQty, cmpQty, normalizeQty, proRate, subMoney, subQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { addQty, cmpQty, normalizeQty, parseQty, proRate, subMoney, subQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { getModifierIngredients, getRecipeFor, getSkuProductTypes } from '~/modules/catalog/public'
 import type { TenantTx } from '~/server/db'
+import { createLogger } from '~/server/log'
 import { ZERO_QTY } from '../domain/costing'
 import { applyMovements, type MovementIntent } from './ledger.service'
+import { buildRecipeIntents } from './recipe-consumption.service'
 import {
+  findAllSaleMovements,
   findSaleMovementIds,
   loadInventoryEnabledAt,
-  loadTrackedSkuIds,
   readOutletStockRows,
+  type SaleOriginMovementRow,
 } from './sale-stock.repo'
+
+const log = createLogger('inventory.sale_stock')
 
 /**
  * Sales stock integration: the authoritative COGS is computed by the server while processing (BR-HPP-004).
@@ -21,6 +27,7 @@ export interface SaleStockLine {
   readonly lineKind: 'ITEM' | 'SHARE' | 'STOCK_BASIS'
   readonly skuId: string | null
   readonly qtyBase: Qty
+  readonly modifiers?: readonly { readonly modifierId: string | null; readonly qty: number }[]
 }
 
 export interface SaleStockInput {
@@ -40,6 +47,7 @@ export interface SaleStockResult {
   readonly costTotal: Money | null
   readonly lines: readonly { readonly lineId: string; readonly costSnapshot: Money | null }[]
   readonly negativeResults: readonly { readonly outletId: string; readonly skuId: string; readonly qtyAfter: Qty }[]
+  readonly missingRecipeLineIds: readonly string[]
 }
 
 function noStock(lines: readonly SaleStockLine[]): SaleStockResult {
@@ -47,12 +55,13 @@ function noStock(lines: readonly SaleStockLine[]): SaleStockResult {
     costTotal: null,
     lines: lines.map((l) => ({ lineId: l.lineId, costSnapshot: null })),
     negativeResults: [],
+    missingRecipeLineIds: [],
   }
 }
 
 /**
- * Writes a `SALE` movement per tracked ITEM line and returns `cost_snapshot` per line.
- * Movements are only created when the outlet is enabled and `processed_at >= inventory_enabled_at` (assumption 2).
+ * Writes a `SALE` movement per tracked retail ITEM line and `RECIPE_CONSUMPTION` per ingredient
+ * for tracked `MENU_FNB` lines, returning `cost_snapshot` per line (BR-HPP-004/006, BR-RCP-003..006).
  */
 export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promise<SaleStockResult> {
   const enabledAt = await loadInventoryEnabledAt(tx, input.tenantId, input.outletId)
@@ -60,25 +69,70 @@ export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promi
     return noStock(input.lines)
   }
 
-  const skuIds = input.lines.filter((l) => l.lineKind === 'ITEM' && l.skuId).map((l) => l.skuId!)
-  const tracked = await loadTrackedSkuIds(tx, input.tenantId, [...new Set(skuIds)])
-  const trackedLines = input.lines.filter((l) => l.lineKind === 'ITEM' && l.skuId && tracked.has(l.skuId))
-  if (trackedLines.length === 0) {
+  const itemLines = input.lines.filter((l) => l.lineKind === 'ITEM' && l.skuId)
+  const skuIds = [...new Set(itemLines.map((l) => l.skuId!))]
+  if (skuIds.length === 0) {
     return noStock(input.lines)
   }
 
-  const intents: MovementIntent[] = trackedLines.map((l) => ({
+  const skuTypes = await getSkuProductTypes(tx, input.tenantId, skuIds)
+  const retailIntents: MovementIntent[] = []
+  const menuSkuIds: string[] = []
+  const modifierIds: string[] = []
+
+  for (const l of itemLines) {
+    const meta = skuTypes.get(l.skuId!)
+    if (!meta || !meta.trackStock) continue
+    if (meta.productType === 'RETAIL') {
+      retailIntents.push({
+        outletId: input.outletId,
+        skuId: l.skuId!,
+        kind: 'OUT',
+        qty: l.qtyBase,
+        movementType: 'SALE',
+        sourceType: 'SALE_LINE',
+        sourceId: l.lineId,
+        occurredAt: input.occurredAt,
+        businessDate: input.businessDate,
+        order: l.lineNo * 1000,
+      })
+    } else if (meta.productType === 'MENU_FNB') {
+      menuSkuIds.push(l.skuId!)
+      for (const m of l.modifiers ?? []) {
+        if (m.modifierId) modifierIds.push(m.modifierId)
+      }
+    }
+  }
+
+  const recipesByMenuSku =
+    menuSkuIds.length > 0 ? await getRecipeFor(tx, input.tenantId, menuSkuIds) : new Map()
+  const modifierIngredientsByModifier =
+    modifierIds.length > 0 ? await getModifierIngredients(tx, input.tenantId, modifierIds) : new Map()
+
+  const recipeBuilt = buildRecipeIntents({
     outletId: input.outletId,
-    skuId: l.skuId!,
-    kind: 'OUT',
-    qty: l.qtyBase,
-    movementType: 'SALE',
-    sourceType: 'SALE_LINE',
-    sourceId: l.lineId,
     occurredAt: input.occurredAt,
     businessDate: input.businessDate,
-    order: l.lineNo,
-  }))
+    lines: itemLines,
+    skuTypes,
+    recipesByMenuSku,
+    modifierIngredientsByModifier,
+  })
+
+  const intents: MovementIntent[] = [...retailIntents, ...recipeBuilt.intents]
+  const recipeMenuSet = new Set(recipeBuilt.recipeMenuLineIds)
+
+  if (intents.length === 0) {
+    return {
+      costTotal: recipeMenuSet.size > 0 ? toMoney(0) : null,
+      lines: input.lines.map((l) => ({
+        lineId: l.lineId,
+        costSnapshot: recipeMenuSet.has(l.lineId) ? toMoney(0) : null,
+      })),
+      negativeResults: [],
+      missingRecipeLineIds: recipeBuilt.missingRecipeLineIds,
+    }
+  }
 
   const result = await applyMovements(
     tx,
@@ -86,22 +140,28 @@ export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promi
     intents,
   )
 
-  const costByLine = new Map<string, Money>()
+  const costByLine = new Map<string, number>()
   for (const a of result.applied) {
-    costByLine.set(a.sourceId, toMoney(-a.valueDelta))
+    costByLine.set(a.sourceId, (costByLine.get(a.sourceId) ?? 0) - a.valueDelta)
   }
 
   let total = 0
+  let hasCostedLine = false
   const lines = input.lines.map((l) => {
-    const cost = costByLine.get(l.lineId) ?? null
-    if (cost !== null) total += cost
+    const raw = costByLine.get(l.lineId)
+    const cost = raw !== undefined ? toMoney(raw) : recipeMenuSet.has(l.lineId) ? toMoney(0) : null
+    if (cost !== null) {
+      total += cost
+      hasCostedLine = true
+    }
     return { lineId: l.lineId, costSnapshot: cost }
   })
 
   return {
-    costTotal: costByLine.size > 0 ? toMoney(total) : null,
+    costTotal: hasCostedLine ? toMoney(total) : null,
     lines,
     negativeResults: result.negativeResults,
+    missingRecipeLineIds: recipeBuilt.missingRecipeLineIds,
   }
 }
 
@@ -130,25 +190,67 @@ export interface VoidStockInput {
   readonly lines: readonly VoidStockLine[]
 }
 
-/** Reverses the portion not yet returned with `SALE_VOID` (idempotent per line). */
+/** Reverses `SALE` and `RECIPE_CONSUMPTION` movements with `SALE_VOID` at snapshot cost (idempotent per line/SKU). */
 export async function applyVoidStock(
   tx: TenantTx,
   input: VoidStockInput,
 ): Promise<{ readonly reversed: readonly { lineId: string; qtyBase: Qty; valueBase: Money }[] }> {
   const candidates = input.lines.filter((l) => l.skuId !== null && l.costSnapshot !== null)
-  const saleMovements = await findSaleMovementIds(
+  const originMovements = await findAllSaleMovements(
     tx,
     input.tenantId,
     candidates.map((l) => l.lineId),
   )
 
+  const movementsByLine = new Map<string, SaleOriginMovementRow[]>()
+  for (const m of originMovements) {
+    let list = movementsByLine.get(m.sourceId)
+    if (!list) {
+      list = []
+      movementsByLine.set(m.sourceId, list)
+    }
+    list.push(m)
+  }
+
   const intents: MovementIntent[] = []
   const reversed: { lineId: string; qtyBase: Qty; valueBase: Money }[] = []
   for (const l of candidates) {
+    const lineMovements = movementsByLine.get(l.lineId) ?? []
+    const recipeMovements = lineMovements.filter((m) => m.movementType === 'RECIPE_CONSUMPTION')
+
+    if (recipeMovements.length > 0) {
+      let totalReversedValue = 0
+      const sortedRecipe = [...recipeMovements].sort((a, b) => (a.skuId < b.skuId ? -1 : a.skuId > b.skuId ? 1 : 0))
+      for (let idx = 0; idx < sortedRecipe.length; idx += 1) {
+        const rm = sortedRecipe[idx]!
+        const qtyStr = rm.qtyDelta.startsWith('-') ? rm.qtyDelta.slice(1) : rm.qtyDelta
+        const revQty = parseQty(qtyStr)
+        const revVal = toMoney(-rm.valueDelta)
+        totalReversedValue += revVal
+        intents.push({
+          outletId: input.outletId,
+          skuId: rm.skuId,
+          kind: 'IN',
+          qty: revQty,
+          valueIn: revVal,
+          costBasisHint: 'SNAPSHOT',
+          movementType: 'SALE_VOID',
+          sourceType: 'SALE_LINE',
+          sourceId: l.lineId,
+          occurredAt: input.occurredAt,
+          businessDate: input.businessDate,
+          reversesMovementId: rm.id,
+          order: l.lineNo * 1000 + idx + 1,
+        })
+      }
+      reversed.push({ lineId: l.lineId, qtyBase: l.qtyBase, valueBase: toMoney(totalReversedValue) })
+      continue
+    }
+
+    const saleMov = lineMovements.find((m) => m.movementType === 'SALE')
+    if (!saleMov) continue
     const remaining = subQty(l.qtyBase, l.returnedQtyBase)
     if (cmpQty(remaining, ZERO_QTY) <= 0) continue
-    const saleMovementId = saleMovements.get(l.lineId)
-    if (!saleMovementId) continue
     const value = subMoney(l.costSnapshot!, l.returnedCost)
     intents.push({
       outletId: input.outletId,
@@ -162,8 +264,8 @@ export async function applyVoidStock(
       sourceId: l.lineId,
       occurredAt: input.occurredAt,
       businessDate: input.businessDate,
-      reversesMovementId: saleMovementId,
-      order: l.lineNo,
+      reversesMovementId: saleMov.id,
+      order: l.lineNo * 1000,
     })
     reversed.push({ lineId: l.lineId, qtyBase: remaining, valueBase: value })
   }
@@ -218,11 +320,24 @@ export async function applyReturnStock(
     input.tenantId,
     input.lines.map((l) => l.saleLineId),
   )
+  const returnSkuIds = input.lines
+    .filter((l) => l.disposition === 'KEMBALI_STOK' && l.skuId !== null)
+    .map((l) => l.skuId!)
+  const skuTypes =
+    returnSkuIds.length > 0 ? await getSkuProductTypes(tx, input.tenantId, returnSkuIds) : new Map()
 
   const intents: MovementIntent[] = []
   const out: { creditNoteLineId: string; costReturned: Money | null }[] = []
   for (const l of input.lines) {
     if (l.disposition !== 'KEMBALI_STOK' || l.costSnapshot === null || !l.skuId) {
+      out.push({ creditNoteLineId: l.creditNoteLineId, costReturned: null })
+      continue
+    }
+    if (skuTypes.get(l.skuId)?.productType === 'MENU_FNB') {
+      log.warn(
+        { reason: 'menu_return_kembali_stok_ignored' },
+        'KEMBALI_STOK return on MENU_FNB item does not restore recipe ingredients',
+      )
       out.push({ creditNoteLineId: l.creditNoteLineId, costReturned: null })
       continue
     }

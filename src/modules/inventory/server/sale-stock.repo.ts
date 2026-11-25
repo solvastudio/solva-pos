@@ -31,6 +31,49 @@ export async function loadTrackedSkuIds(tx: TenantTx, tenantId: string, skuIds: 
   return out
 }
 
+/** Source SALE and RECIPE_CONSUMPTION movements per sale line (used by void and return). */
+export interface SaleOriginMovementRow {
+  readonly id: string
+  readonly sourceId: string
+  readonly skuId: string
+  readonly movementType: 'SALE' | 'RECIPE_CONSUMPTION'
+  readonly qtyDelta: string
+  readonly valueDelta: number
+}
+
+export async function findAllSaleMovements(
+  tx: TenantTx,
+  tenantId: string,
+  sourceIds: readonly string[],
+): Promise<SaleOriginMovementRow[]> {
+  if (sourceIds.length === 0) return []
+  const rows = await tx
+    .select({
+      id: stockMovement.id,
+      sourceId: stockMovement.sourceId,
+      skuId: stockMovement.skuId,
+      movementType: stockMovement.movementType,
+      qtyDelta: stockMovement.qtyDelta,
+      valueDelta: stockMovement.valueDelta,
+    })
+    .from(stockMovement)
+    .where(
+      and(
+        eq(stockMovement.tenantId, tenantId),
+        inArray(stockMovement.movementType, ['SALE', 'RECIPE_CONSUMPTION']),
+        inArray(stockMovement.sourceId, [...sourceIds]),
+      ),
+    )
+  return rows.map((r) => ({
+    id: r.id,
+    sourceId: r.sourceId,
+    skuId: r.skuId,
+    movementType: r.movementType as 'SALE' | 'RECIPE_CONSUMPTION',
+    qtyDelta: r.qtyDelta,
+    valueDelta: r.valueDelta,
+  }))
+}
+
 /** Source SALE movement for each source (sale line id); used by void and return as `reverses_movement_id`. */
 export async function findSaleMovementIds(
   tx: TenantTx,

@@ -163,7 +163,11 @@ export {
 } from './server/variant.service'
 export {
   filterMissingCatalogRefs,
+  findMissingModifierId,
   getCurrentPrice,
   getEffectiveAvailabilityRow,
+  getModifierIngredients,
   getProductSkuState,
+  getRecipeFor,
+  getSkuProductTypes,
 } from './server/catalog-read.repo'
