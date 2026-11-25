@@ -6,10 +6,11 @@ import { findMissingAppUserId } from '~/modules/identity/public'
 import {
   CommandRejected,
   createDataFlag,
+  publishBillsChanged,
   type CommandContext,
   type CommandHandler,
 } from '~/modules/sync/public'
-import type { TenantTx } from '~/server/db'
+import { registerAfterCommit, type TenantTx } from '~/server/db'
 import {
   applyBillEvent,
   BillOpenedPayloadSchema,
@@ -374,6 +375,8 @@ export const appendBillEventsCommandHandler: CommandHandler<AppendBillEventsPayl
         commandId: ctx.commandId,
       })
     }
+
+    registerAfterCommit(tx, () => publishBillsChanged(tenantId, outletId))
 
     return {
       bill_id: payload.bill_id,

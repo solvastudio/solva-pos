@@ -12,6 +12,7 @@ import {
   appendBillEventsCommandHandler,
   fnbFeedSources,
   getBillForPayment,
+  getBillsSnapshot,
   markBillPaid,
 } from '~/modules/fnb/public'
 import {
@@ -51,7 +52,9 @@ import {
   registerShiftRecapSalesPort,
 } from '~/modules/shift/public'
 import {
+  __clearOutletBillsReaderForTests,
   __clearOutletStockReaderForTests,
+  registerOutletBillsReader,
   registerOutletStockReader,
   __clearCommandHandlersForTests,
   __clearDeviceStatusPortForTests,
@@ -124,6 +127,10 @@ export function composeServer(): void {
   registerOutletStockReader({
     read: (tx, tenantId, outletId) => readOutletStockForSnapshot(tx, tenantId, outletId),
   })
+  // Open-bills snapshot reader for pull.
+  registerOutletBillsReader({
+    read: (tx, input) => getBillsSnapshot(tx, input),
+  })
   registerRecipeCostReaderPort((tx, tenantId, skuIds) =>
     readTenantSkuAverageCosts(tx, tenantId, skuIds),
   )
@@ -141,6 +148,7 @@ export function resetCompositionForTests(): void {
   __clearSaleStockPortForTests()
   __clearBillPortForTests()
   __clearOutletStockReaderForTests()
+  __clearOutletBillsReaderForTests()
   registerRecipeCostReaderPort(null)
   composed = false
 }

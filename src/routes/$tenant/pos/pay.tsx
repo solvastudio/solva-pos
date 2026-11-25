@@ -9,15 +9,19 @@ const LazyPayRouteScreen = lazy(() =>
 
 export const Route = createFileRoute('/$tenant/pos/pay')({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    billId: typeof search.billId === 'string' ? search.billId : undefined,
+  }),
   component: PosPayRouteComponent,
 })
 
 function PosPayRouteComponent() {
   const { tenant } = Route.useParams()
+  const { billId } = Route.useSearch()
   const { bootResult } = Route.useRouteContext()
   return (
     <Suspense fallback={null}>
-      <LazyPayRouteScreen tenant={tenant} bootResult={bootResult} />
+      <LazyPayRouteScreen tenant={tenant} billId={billId} bootResult={bootResult} />
     </Suspense>
   )
 }

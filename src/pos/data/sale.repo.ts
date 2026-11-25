@@ -8,7 +8,9 @@ import {
 import { formatInvoiceNo } from '~/lib/kernel'
 import type { SolvaDb } from '../db/solva-db'
 import type {
+  BillRecord,
   CartDraftRecord,
+  IdRecord,
   OutboxCommandRow,
   PrintJobRecord,
   SaleLineRecord,
@@ -113,7 +115,9 @@ export async function commitAtomicSaleTransaction(
       db.local_counter,
       db.sale,
       db.sale_line,
+      db.sale_line_modifier,
       db.sale_payment,
+      db.bill,
       db.outbox_command,
       db.print_job,
       db.cart_draft,
@@ -172,7 +176,53 @@ export async function commitAtomicSaleTransaction(
 
       await saleTable.add(finalSale)
       await tx.table<SaleLineRecord, string>('sale_line').bulkAdd([...input.lineRecords])
+      const modRows: IdRecord[] = []
+      for (const line of input.lineRecords) {
+        if (Array.isArray(line.modifiers)) {
+          line.modifiers.forEach((m, idx) => {
+            modRows.push({
+              id: `${line.id}:${idx}`,
+              sale_line_id: line.id,
+              ...m,
+            })
+          })
+        }
+      }
+      if (modRows.length > 0) {
+        await tx.table<IdRecord, string>('sale_line_modifier').bulkAdd(modRows)
+      }
       await payTable.bulkAdd([...input.paymentRecords])
+
+      // Mark linked F&B bill PAID atomically so table returns to EMPTY once payment completes (BR-FNB-005).
+      let billDependsOn: string[] = []
+      if (finalSale.bill_id) {
+        const billTable: Table<BillRecord, string> = tx.table('bill')
+        const existingBill = await billTable.get(finalSale.bill_id)
+        if (existingBill) {
+          await billTable.update(finalSale.bill_id, {
+            status: 'PAID',
+            handover_status: 'NONE',
+            handover_target_register_id: null,
+            closed_at: finalSale.occurred_at,
+          })
+        }
+        const pendingBillCmds = await tx
+          .table<OutboxCommandRow, string>('outbox_command')
+          .where('dependency_key')
+          .equals(`bill:${finalSale.bill_id}`)
+          .toArray()
+        const latestPending = pendingBillCmds
+          .filter((c) => c.status !== 'ACKED' && c.status !== 'DISMISSED')
+          .sort((a, b) => b.device_seq - a.device_seq)[0]
+        if (latestPending) {
+          billDependsOn = [latestPending.id]
+        }
+      }
+
+      const dependsOn = [
+        ...(input.shiftOpenCommandId ? [input.shiftOpenCommandId] : []),
+        ...billDependsOn,
+      ]
 
       await enqueueCommand(tx, {
         id: finalSale.id,
@@ -181,7 +231,7 @@ export async function commitAtomicSaleTransaction(
         schemaVersion: SCHEMA_VERSION,
         registerId: input.registerId,
         dependencyKey: `sale:${finalSale.id}`,
-        dependsOn: input.shiftOpenCommandId ? [input.shiftOpenCommandId] : [],
+        dependsOn,
         createdAtDevice: input.createdAtDevice,
       })
 

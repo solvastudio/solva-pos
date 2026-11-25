@@ -62,7 +62,18 @@ export {
   stockEtag,
   type OutletStockReader,
 } from './server/stock-snapshot.service'
-export { publishMasterChanged, subscribeMasterChanged } from './server/signals'
+export {
+  __clearOutletBillsReaderForTests,
+  buildBillsSnapshot,
+  registerOutletBillsReader,
+  type OutletBillsReader,
+} from './server/bills-snapshot.service'
+export {
+  publishBillsChanged,
+  publishMasterChanged,
+  subscribeBillsChanged,
+  subscribeMasterChanged,
+} from './server/signals'
 export {
   createSignalsHub,
   DEFAULT_SIGNAL_COALESCE_MS,

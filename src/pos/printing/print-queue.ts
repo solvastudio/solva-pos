@@ -1,5 +1,6 @@
 import type { LocaleId } from '~/lib/kernel'
 import { getCachedAsset } from '../data/asset-cache.repo'
+import { getLocalBillWithItems } from '../data/bill.repo'
 import { getCreditNoteWithDetails } from '../data/credit-note.repo'
 import {
   getOutlet,
@@ -8,6 +9,11 @@ import {
   listRegisters,
 } from '../data/master.repo'
 import { getMeta } from '../data/meta.repo'
+import { getTableById } from '../data/table.repo'
+import { businessDate, type OutletTimezone } from '~/lib/kernel'
+import { computeBillTotals } from '../domain/bill-totals'
+import { buildConfigSnapshot } from '../domain/config-snapshot'
+import { buildPrebillDoc } from './prebill'
 import {
   claimNextPrintJob,
   markPrintJobDone,
@@ -106,6 +112,57 @@ async function resolveReceiptDocForJob(
       receiptSetting,
       cashierName: staffMap.get(cnDetails.creditNote.created_by) ?? cnDetails.creditNote.created_by,
       isReprint: job.kind === 'REPRINT',
+    })
+  }
+
+  if (job.kind === 'PREBILL' && job.entity_type === 'BILL') {
+    const details = await getLocalBillWithItems(db, job.entity_id)
+    if (!details) return null
+    const [table, bConfig] = await Promise.all([
+      getTableById(db, details.bill.table_id),
+      buildConfigSnapshot(db, {
+        outletId: outlet.id,
+        businessDate: businessDate(
+          details.bill.last_event_at ?? details.bill.occurred_at,
+          outlet.timezone as OutletTimezone,
+          outlet.day_cutoff_time.slice(0, 5),
+        ),
+      }),
+    ])
+    const fallbackConfig = {
+      priceTaxMode: outlet.price_tax_mode === 'INCLUSIVE' ? ('INCLUSIVE' as const) : ('EXCLUSIVE' as const),
+      taxProfile: (outlet.tax_profile === 'PB1' || outlet.tax_profile === 'PPN' ? outlet.tax_profile : 'NONE') as
+        | 'NONE'
+        | 'PB1'
+        | 'PPN',
+      taxRate: '0',
+      serviceChargeEnabled: Boolean(outlet.service_charge_enabled),
+      serviceChargeRate: String(outlet.service_charge_rate ?? '0'),
+      serviceChargeTaxable: outlet.service_charge_taxable ?? true,
+    }
+    const config = bConfig.ok ? bConfig.config : fallbackConfig
+    const cashRoundingUnit = bConfig.ok ? bConfig.cashRoundingUnit : 100
+    const totals = computeBillTotals({
+      bill: details.bill,
+      items: details.items,
+      config,
+      cashRoundingUnit,
+    })
+    return buildPrebillDoc({
+      billRef: details.bill.bill_ref,
+      tableName: table ? (table.area ? `${table.code} — ${table.area}` : table.code) : details.bill.table_id,
+      occurredAt: details.bill.prebill_printed_at ?? details.bill.last_event_at ?? details.bill.occurred_at,
+      staffName: staffMap.get(details.bill.created_by) ?? details.bill.created_by,
+      customerName: details.bill.customer_name,
+      items: details.items,
+      bill: details.bill,
+      totals,
+      priceTaxMode: config.priceTaxMode,
+      taxProfile: config.taxProfile,
+      taxRate: config.taxRate,
+      outlet,
+      receiptSetting,
+      locale,
     })
   }
 

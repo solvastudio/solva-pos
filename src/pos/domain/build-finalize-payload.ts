@@ -138,8 +138,8 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
     customer_name: cart.customer?.name ? cart.customer.name.slice(0, 80) : null,
     customer_phone: cart.customer?.phone ? cart.customer.phone.slice(0, 20) : null,
     catalog_cursor: input.deviceMeta.catalogCursor,
-    bill_id: null,
-    bill_ref: null,
+    bill_id: cart.billId ?? null,
+    bill_ref: cart.billRef ?? null,
   }
 
   const linesPayload: FinalizeSalePayloadV1['lines'] = cart.lines.map((line, i) => {
@@ -173,8 +173,13 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
       service_alloc: lineCalc.serviceAlloc,
       tax_alloc: lineCalc.taxAlloc,
       note: line.note ? line.note.slice(0, 200) : null,
-      source_bill_item_id: null,
-      modifiers: [],
+      source_bill_item_id: line.sourceBillItemId ?? null,
+      modifiers: (line.modifiers ?? []).map((m) => ({
+        modifier_id: m.modifier_id,
+        name: m.name,
+        price_delta: m.price_delta,
+        qty: m.qty,
+      })),
     }
   })
 

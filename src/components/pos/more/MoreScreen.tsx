@@ -35,7 +35,9 @@ export function MoreScreen({ tenant, bootResult }: MoreScreenProps) {
   )
   const [openingDrawer, setOpeningDrawer] = useState(false)
 
+  const isWaiter = shell.device?.register_type === 'WAITER'
   const canOpenDrawer =
+    !isWaiter &&
     Boolean(shell.sessionStaff?.permissions.has('drawer.open')) &&
     printer.capabilities.canOpenDrawer
 
@@ -59,6 +61,7 @@ export function MoreScreen({ tenant, bootResult }: MoreScreenProps) {
       outletLabel={shell.outletLabel}
       staffName={shell.staffName}
       shiftOpen={Boolean(shell.openShift)}
+      registerType={shell.device?.register_type}
       activeNav="more"
       onSyncNow={shell.handleSyncNow}
       onLocaleChange={shell.handleLocaleChange}
@@ -69,6 +72,8 @@ export function MoreScreen({ tenant, bootResult }: MoreScreenProps) {
         <h1 className="text-h2 font-semibold text-ink">{t('pos.more.title')}</h1>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {!isWaiter ? (
+            <>
           <Card className="flex flex-col justify-between gap-3 p-4">
             <div className="flex items-start gap-3">
               <Banknote className="mt-0.5 size-5 text-ink-brand" />
@@ -152,6 +157,8 @@ export function MoreScreen({ tenant, bootResult }: MoreScreenProps) {
               {t('pos.history.title')}
             </Button>
           </Card>
+            </>
+          ) : null}
 
           <Card className="flex flex-col justify-between gap-3 p-4">
             <div className="flex items-start gap-3">

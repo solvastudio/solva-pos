@@ -23,7 +23,7 @@ export type DeviceResult<T> =
   | { kind: 'rate_limited'; retryAfterMs: number }
   | { kind: 'network' }
   | { kind: 'timeout' }
-  | { kind: 'server_error'; status: number }
+  | { kind: 'server_error'; status: number; code?: string }
   | { kind: 'auth'; code: DeviceAuthFailureCode }
   | { kind: 'update_required'; release?: ReleaseBlock | null }
   | { kind: 'invalid' }
@@ -213,7 +213,16 @@ export async function deviceFetch<T>(
   }
 
   if (res.status >= 500 || !res.ok) {
-    return { kind: 'server_error', status: res.status }
+    const errCode =
+      body &&
+      typeof body === 'object' &&
+      'error' in body &&
+      body.error &&
+      typeof body.error === 'object' &&
+      typeof (body.error as { code?: unknown }).code === 'string'
+        ? (body.error as { code: string }).code
+        : undefined
+    return { kind: 'server_error', status: res.status, code: errCode }
   }
 
   const record = body && typeof body === 'object' ? (body as Record<string, unknown>) : {}

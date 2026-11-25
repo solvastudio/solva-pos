@@ -63,7 +63,14 @@ describe('pull contracts', () => {
     ).toBe(false)
   })
 
-  it('validates both PullResponse union variants', () => {
+  it('validates both PullResponse union variants and bills_etag', () => {
+    const req = PullRequest.parse({
+      cursor: null,
+      cycle: null,
+      bills_etag: '0123456789abcdef',
+    })
+    expect(req.bills_etag).toBe('0123456789abcdef')
+
     expect(
       PullResponse.parse({
         full_resync_required: true,
@@ -86,11 +93,13 @@ describe('pull contracts', () => {
         release: null,
         command_updates: [{ id: SAMPLE_UUID, status: 'ACKED' }],
         manifest: { counts: { outlet: 1 } },
+        bills: 'unchanged',
       }),
     ).toMatchObject({
       upper: 10,
       has_more: false,
       release: null,
+      bills: 'unchanged',
     })
   })
 })

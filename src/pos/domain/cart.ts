@@ -41,6 +41,13 @@ export interface CartLine {
   readonly allowFraction: boolean
   readonly discount?: CartDiscount
   readonly note?: string
+  readonly sourceBillItemId?: string | null
+  readonly modifiers?: readonly {
+    readonly modifier_id: string | null
+    readonly name: string
+    readonly price_delta: Money
+    readonly qty: number
+  }[]
 }
 
 export interface CartCustomer {
@@ -58,6 +65,8 @@ export interface CartState {
   readonly taxRateId: string | null
   readonly createdAt: string
   readonly shiftId: string | null
+  readonly billId?: string | null
+  readonly billRef?: string | null
 }
 
 export interface ResolvedCartItem {

@@ -1,6 +1,15 @@
 import { z } from 'zod'
-import { STORAGE_PERSIST_STATUS } from './enums'
+import {
+  BILL_HANDOVER_STATUS,
+  BILL_ITEM_STATUS,
+  BILL_SPLIT_MODE,
+  BILL_STATUS,
+  DISCOUNT_TYPE,
+  PRICE_SOURCE,
+  STORAGE_PERSIST_STATUS,
+} from './enums'
 import { ReleaseBlockSchema } from './release'
+import { zMoney, zMoneyNonNeg, zUuid } from './primitives'
 
 const LAST_ERROR_CODE_RE = /^[A-Z][A-Z0-9_]{1,39}$/
 const LAST_ERROR_REF_RE = /^[A-Za-z0-9._-]{1,64}$/
@@ -70,6 +79,8 @@ export const PullRequest = z
     report: DeviceReportSchema.optional(),
     /** Etag of the last stock snapshot the client received; `null`/absent = none yet. */
     stock_etag: z.string().regex(/^[0-9a-f]{16}$/).nullable().optional(),
+    /** Etag of the last open-bills snapshot the client received; `null`/absent = none yet. */
+    bills_etag: z.string().regex(/^[0-9a-f]{16}$/).nullable().optional(),
   })
   .strict()
 export type PullRequest = z.infer<typeof PullRequest>
@@ -103,6 +114,121 @@ export const StockSnapshotBlockSchema = z.object({
 })
 export type StockSnapshotBlock = z.infer<typeof StockSnapshotBlockSchema>
 
+export const BillSnapshotModifierSchema = z
+  .object({
+    modifier_id: zUuid,
+    name: z.string().min(1).max(60),
+    price_delta: zMoney,
+    qty: z.number().int().min(1),
+  })
+  .strict()
+export type BillSnapshotModifier = z.infer<typeof BillSnapshotModifierSchema>
+
+export const BillSnapshotItemSchema = z
+  .object({
+    id: zUuid,
+    line_no: z.number().int().positive(),
+    product_id: zUuid.nullable().optional(),
+    sku_id: zUuid,
+    uom_id: zUuid,
+    sku_code: z.string().min(1).max(64),
+    item_name: z.string().min(1).max(200),
+    uom_code: z.string().min(1).max(32),
+    qty: z.string().min(1),
+    conversion_factor: z.string().min(1),
+    unit_price: zMoneyNonNeg,
+    price_source: z.enum(PRICE_SOURCE),
+    is_open_price: z.boolean(),
+    taxable: z.boolean(),
+    discount_type: z.enum(DISCOUNT_TYPE).nullable(),
+    discount_pct: z.string().nullable(),
+    discount_input: zMoneyNonNeg.nullable(),
+    discount_approved_by: zUuid.nullable(),
+    note: z.string().nullable(),
+    status: z.enum(BILL_ITEM_STATUS),
+    void_reason_text: z.string().nullable().optional(),
+    created_event_id: zUuid.optional(),
+    modifiers: z.array(BillSnapshotModifierSchema),
+  })
+  .strict()
+export type BillSnapshotItem = z.infer<typeof BillSnapshotItemSchema>
+
+export const BillSnapshotRowSchema = z
+  .object({
+    bill_id: zUuid,
+    table_id: zUuid,
+    bill_ref: z.string().min(1).max(30),
+    status: z.enum(BILL_STATUS),
+    lease_device_id: zUuid,
+    lease_register_id: zUuid,
+    is_awaiting_payment: z.boolean(),
+    handover_status: z.enum(BILL_HANDOVER_STATUS),
+    handover_target_register_id: zUuid.nullable(),
+    last_event_seq: z.number().int().nonnegative(),
+    last_event_at: z.iso.datetime().nullable(),
+    bill_discount_type: z.enum(DISCOUNT_TYPE).nullable(),
+    bill_discount_pct: z.string().nullable(),
+    bill_discount_input: zMoneyNonNeg.nullable(),
+    bill_discount_approved_by: zUuid.nullable(),
+    customer_name: z.string().nullable(),
+    split_mode: z.enum(BILL_SPLIT_MODE).nullable().optional(),
+    parent_bill_id: zUuid.nullable().optional(),
+    share_index: z.number().int().positive().nullable().optional(),
+    share_count: z.number().int().positive().nullable().optional(),
+    items: z.array(BillSnapshotItemSchema),
+  })
+  .strict()
+export type BillSnapshotRow = z.infer<typeof BillSnapshotRowSchema>
+
+export const BillsSnapshotBlockSchema = z.object({
+  etag: z.string().regex(/^[0-9a-f]{16}$/),
+  as_of_server_time: z.iso.datetime(),
+  rows: z.array(BillSnapshotRowSchema),
+  truncated: z.boolean().optional(),
+})
+export type BillsSnapshotBlock = z.infer<typeof BillsSnapshotBlockSchema>
+
+export const BillDetailResponseSchema = z
+  .object({
+    id: zUuid,
+    tenant_id: zUuid,
+    outlet_id: zUuid,
+    register_id: zUuid,
+    device_id: zUuid,
+    table_id: zUuid,
+    bill_ref: z.string().min(1).max(30),
+    status: z.enum(BILL_STATUS),
+    lease_device_id: zUuid,
+    lease_register_id: zUuid,
+    handover_status: z.enum(BILL_HANDOVER_STATUS),
+    handover_target_register_id: zUuid.nullable(),
+    handover_event_id: zUuid.nullable(),
+    handover_requested_at: z.iso.datetime().nullable(),
+    prebill_seq: z.number().int().positive().nullable(),
+    prebill_printed_at: z.iso.datetime().nullable(),
+    last_content_seq: z.number().int().nonnegative(),
+    is_awaiting_payment: z.boolean(),
+    bill_discount_type: z.enum(DISCOUNT_TYPE).nullable(),
+    bill_discount_pct: z.string().nullable(),
+    bill_discount_input: zMoneyNonNeg.nullable(),
+    bill_discount_approved_by: zUuid.nullable(),
+    customer_name: z.string().nullable(),
+    customer_phone: z.string().nullable(),
+    split_mode: z.enum(BILL_SPLIT_MODE).nullable(),
+    parent_bill_id: zUuid.nullable(),
+    share_index: z.number().int().positive().nullable(),
+    share_count: z.number().int().positive().nullable(),
+    last_event_seq: z.number().int().nonnegative(),
+    last_event_at: z.iso.datetime().nullable(),
+    created_by: zUuid,
+    created_at_device: z.iso.datetime(),
+    occurred_at: z.iso.datetime(),
+    business_date: z.string(),
+    items: z.array(BillSnapshotItemSchema),
+  })
+  .strict()
+export type BillDetailResponse = z.infer<typeof BillDetailResponseSchema>
+
 export const PullPageSuccessResponse = z.object({
   server_time: z.iso.datetime(),
   upper: z.number().int().nonnegative(),
@@ -115,6 +241,7 @@ export const PullPageSuccessResponse = z.object({
   command_updates: z.array(PullCommandUpdateSchema).optional(),
   manifest: PullManifestSchema.optional(),
   stock: z.union([z.literal('unchanged'), StockSnapshotBlockSchema]).optional(),
+  bills: z.union([z.literal('unchanged'), BillsSnapshotBlockSchema]).optional(),
 })
 
 export const PullResponse = z.union([PullResyncRequiredResponse, PullPageSuccessResponse])

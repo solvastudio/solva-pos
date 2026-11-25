@@ -8,6 +8,7 @@ import type { BootResult } from '~/pos/boot/boot'
 import { decideRoute, type RouteDecision } from '~/pos/boot/route-decision'
 import { getCachedBootPos, invalidateBootPosCache } from '~/pos/hooks/use-boot'
 import { createIdleLockController } from '~/pos/session/idle-lock'
+import { isRouteForbiddenForWaiter, isWaiterRegister } from '~/pos/session/nav'
 import { clearSession, getSessionState } from '~/pos/session/session'
 import type { SyncController } from '~/pos/sync'
 import type { PersistentUpdateController } from '~/pos/sync/update-manager'
@@ -68,6 +69,16 @@ export const Route = createFileRoute('/$tenant/pos')({
     ) {
       throw redirect({
         href: loginPath,
+      })
+    }
+
+    if (
+      bootResult.kind === 'READY' &&
+      isWaiterRegister(bootResult.device.register_type) &&
+      isRouteForbiddenForWaiter(path)
+    ) {
+      throw redirect({
+        href: `/${cleanSlug}/pos/tables`,
       })
     }
 

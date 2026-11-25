@@ -5,9 +5,12 @@ export const Route = createFileRoute('/$tenant/pos/')({
   beforeLoad: async ({ params, context }) => {
     const cleanSlug = params.tenant.toLowerCase()
     const { bootResult } = context as {
-      bootResult?: { kind: string; db?: unknown; device?: { register_id: string } }
+      bootResult?: { kind: string; db?: unknown; device?: { register_id: string; register_type?: string } }
     }
     if (bootResult?.kind === 'READY' && bootResult.db && bootResult.device) {
+      if (bootResult.device.register_type === 'WAITER') {
+        throw redirect({ href: `/${cleanSlug}/pos/tables` })
+      }
       const { getOpenShiftForRegister } = await import('~/pos/data/shift.repo')
       const open = await getOpenShiftForRegister(
         bootResult.db as Parameters<typeof getOpenShiftForRegister>[0],

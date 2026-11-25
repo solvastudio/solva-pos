@@ -214,9 +214,13 @@ export function LoginRouteScreen({
           locked_at: null,
         })
         setPin('')
+        const cleanSlug = tenant.toLowerCase()
+        if (device.register_type === 'WAITER') {
+          void navigate({ href: `/${cleanSlug}/pos/tables` })
+          return
+        }
         const { getOpenShiftForRegister } = await import('~/pos/data/shift.repo')
         const existingShift = await getOpenShiftForRegister(db, device.register_id)
-        const cleanSlug = tenant.toLowerCase()
         void navigate({
           href: existingShift ? `/${cleanSlug}/pos/sell` : `/${cleanSlug}/pos/shift/open`,
         })

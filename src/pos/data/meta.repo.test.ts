@@ -41,6 +41,10 @@ describe('pos/data/meta.repo', () => {
         as_of_server_time: '2026-11-20T01:00:00.000Z',
         acked_device_seq: 7,
       },
+      bills_snapshot_meta: {
+        etag: '0123456789abcdef',
+        as_of_server_time: '2026-11-20T01:00:00.000Z',
+      },
       locale: 'en-US',
       idle_lock: {
         locked: false,

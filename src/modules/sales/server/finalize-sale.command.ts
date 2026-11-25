@@ -14,10 +14,11 @@ import {
   CommandRejected,
   createAttentionItem,
   createDataFlag,
+  publishBillsChanged,
   type CommandContext,
   type CommandHandler,
 } from '~/modules/sync/public'
-import type { TenantTx } from '~/server/db'
+import { registerAfterCommit, type TenantTx } from '~/server/db'
 import { createLogger } from '~/server/log'
 import { getBillPort } from './bill-port'
 import { registerReceivedNumber } from './invoice-series.service'
@@ -286,6 +287,7 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
 
     if (lockedBillId !== null) {
       await getBillPort().markBillPaid(tx, tenantId, lockedBillId, ctx.receivedAtIso)
+      registerAfterCommit(tx, () => publishBillsChanged(tenantId, ctx.device.outletId))
     }
 
     // 3b. Authoritative stock and COGS: SALE movement and cost_snapshot within this transaction (BR-HPP-004).

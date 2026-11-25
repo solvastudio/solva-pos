@@ -12,6 +12,7 @@ import { applyStockSnapshot } from '../data/stock.repo'
 import { clearPullStageCycle, stagePullRows } from '../data/pull-stage.repo'
 import type { SolvaDb } from '../db/solva-db'
 import { applyPullCycle, LARGE_INCREMENTAL_THRESHOLD } from './applier'
+import { applyPulledBillsBlock } from './bills-block'
 import type { SyncClock } from './clock'
 import { applyCommandUpdates } from './command-updates'
 import { logDevice } from '../maintenance/device-log'
@@ -114,8 +115,14 @@ export async function runIncrementalPull(
   let lastServerTimeMs: number | undefined
   let stagedRowCount = 0
 
-  // Etag of the last stock snapshot; the server only sends the `stock` block when it changes.
-  const stockEtag = (await getMeta(opts.db, 'stock_snapshot_meta'))?.etag ?? null
+  // Etags of stock and open-bills snapshots; server sends `unchanged` when unmodified.
+  const [stockMeta, billsMeta, deviceMeta] = await Promise.all([
+    getMeta(opts.db, 'stock_snapshot_meta'),
+    getMeta(opts.db, 'bills_snapshot_meta'),
+    getMeta(opts.db, 'device'),
+  ])
+  const stockEtag = stockMeta?.etag ?? null
+  const billsEtag = billsMeta?.etag ?? null
 
   while (true) {
     const res = await deviceFetch<unknown>('/api/pos/v1/pull', {
@@ -131,6 +138,7 @@ export async function runIncrementalPull(
         page_size: DEFAULT_PULL_PAGE_SIZE,
         attention_ids: queue.attentionIds,
         stock_etag: stockEtag,
+        bills_etag: billsEtag,
         // Included cleanly so whichever page finishes (`has_more: false`) persists DeviceReport.
         report,
       },
@@ -215,13 +223,22 @@ export async function runIncrementalPull(
         immediate: opts.immediateApply,
       })
 
-      // Stock snapshot: an error must not fail the pull cycle (logged only).
+      // Stock and bills snapshots: errors must not fail the pull cycle (logged only).
       if (parsed.stock && parsed.stock !== 'unchanged') {
         await applyStockSnapshot(opts.db, parsed.stock).catch(() =>
           logDevice(opts.db, {
             level: 'warn',
             code: 'SYNC_FAILED',
             ctx: { reason: 'stock_snapshot_apply' },
+          }).catch(() => {}),
+        )
+      }
+      if (parsed.bills && parsed.bills !== 'unchanged') {
+        await applyPulledBillsBlock(opts.db, parsed.bills, deviceMeta?.device_id).catch(() =>
+          logDevice(opts.db, {
+            level: 'warn',
+            code: 'SYNC_FAILED',
+            ctx: { reason: 'bills_snapshot_apply' },
           }).catch(() => {}),
         )
       }

@@ -38,6 +38,14 @@ export const META_SCHEMAS = {
       acked_device_seq: z.number().int().nonnegative(),
     })
     .nullable(),
+  /** Last open-bills snapshot metadata: etag and timestamp for incremental pull. */
+  bills_snapshot_meta: z
+    .object({
+      etag: z.string().regex(/^[0-9a-f]{16}$/),
+      as_of_server_time: z.string().min(1),
+    })
+    .nullable()
+    .optional(),
   locale: z.enum(['id-ID', 'en-US']),
   idle_lock: z.object({
     locked: z.boolean(),
@@ -521,7 +529,7 @@ export interface PrintJobRecord {
     | 'TEST'
   status: 'QUEUED' | 'PRINTING' | 'DONE' | 'FAILED'
   entity_id: string
-  entity_type?: 'SALE' | 'CREDIT_NOTE' | 'SHIFT' | 'DEVICE' | null
+  entity_type?: 'SALE' | 'CREDIT_NOTE' | 'SHIFT' | 'DEVICE' | 'BILL' | null
   printer_id?: string | null
   payload?: Record<string, unknown> | null
   receipt_locale: 'id-ID' | 'en-US'
@@ -680,4 +688,188 @@ export interface FeatureFlagRecord extends IdRecord {
   enabled: boolean
   params?: Record<string, unknown> | null
   deleted_at?: string | null
+}
+
+export interface FnbTableRecord extends IdRecord {
+  outlet_id: string
+  code: string
+  area: string | null
+  capacity: number | null
+  sort_order: number
+  is_active: boolean
+  deleted_at?: string | null
+}
+
+export interface ModifierGroupRecord extends IdRecord {
+  name: string
+  selection_type: 'SINGLE' | 'MULTI'
+  min_select: number
+  max_select: number | null
+  is_active: boolean
+  deleted_at?: string | null
+}
+
+export interface ModifierGroupProductRecord extends IdRecord {
+  product_id: string
+  modifier_group_id: string
+  sort_order: number
+  deleted_at?: string | null
+}
+
+export interface ModifierRecord extends IdRecord {
+  modifier_group_id: string
+  name: string
+  price_delta: number
+  is_active: boolean
+  sort_order: number
+  deleted_at?: string | null
+}
+
+export interface BillRecord extends IdRecord {
+  tenant_id: string
+  outlet_id: string
+  register_id: string
+  device_id: string
+  table_id: string
+  bill_ref: string
+  status: 'OPEN' | 'PAID' | 'CANCELED' | 'SPLIT' | 'CLOSED_BY_SPLIT' | 'MERGED'
+  lease_device_id: string
+  lease_register_id: string
+  handover_status: 'NONE' | 'PENDING'
+  handover_target_register_id: string | null
+  handover_event_id: string | null
+  handover_requested_at: string | null
+  prebill_seq: number | null
+  prebill_printed_at: string | null
+  last_content_seq: number
+  is_awaiting_payment: boolean
+  split_mode: 'ITEM' | 'QTY' | 'EQUAL' | null
+  parent_bill_id: string | null
+  share_index: number | null
+  share_count: number | null
+  merged_into_bill_id?: string | null
+  bill_discount_type: 'PERCENT' | 'NOMINAL' | null
+  bill_discount_pct: string | null
+  bill_discount_input: number | null
+  bill_discount_approved_by: string | null
+  customer_name: string | null
+  customer_phone: string | null
+  last_event_seq: number
+  last_event_at: string | null
+  created_by: string
+  created_at_device: string
+  occurred_at: string
+  business_date: string
+  closed_at: string | null
+  sync_status?: 'PENDING' | 'SYNCED'
+}
+
+export interface BillItemRecord extends IdRecord {
+  bill_id: string
+  line_no: number
+  product_id?: string | null
+  sku_id: string
+  uom_id: string
+  sku_code: string
+  item_name: string
+  uom_code: string
+  qty: string
+  conversion_factor: string
+  unit_price: number
+  price_source: 'OUTLET' | 'TENANT_DEFAULT' | 'OPEN_PRICE'
+  is_open_price: boolean
+  taxable: boolean
+  discount_type: 'PERCENT' | 'NOMINAL' | null
+  discount_pct: string | null
+  discount_input: number | null
+  discount_approved_by: string | null
+  note: string | null
+  status: 'ACTIVE' | 'VOIDED' | 'MOVED'
+  void_reason_code?: string | null
+  void_reason_text?: string | null
+  created_event_id: string
+}
+
+export interface BillItemModifierRecord extends IdRecord {
+  bill_item_id: string
+  modifier_id: string
+  name: string
+  price_delta: number
+  qty: number
+}
+
+export interface BillEventRecord extends IdRecord {
+  bill_id: string
+  bill_seq: number
+  device_id: string
+  register_id: string
+  device_seq: number
+  staff_id: string
+  event_type: string
+  payload: Record<string, unknown>
+  reason_code?: string | null
+  reason_text?: string | null
+  created_at_device: string
+  clock_offset_ms: number
+  occurred_at: string
+  business_date: string
+  schema_version: number
+  app_version?: string | null
+}
+
+export interface BillSnapshotModifierRecord {
+  modifier_id: string
+  name: string
+  price_delta: number
+  qty: number
+}
+
+export interface BillSnapshotItemRecord {
+  id: string
+  line_no: number
+  product_id?: string | null
+  sku_id: string
+  uom_id: string
+  sku_code: string
+  item_name: string
+  uom_code: string
+  qty: string
+  conversion_factor: string
+  unit_price: number
+  price_source: 'OUTLET' | 'TENANT_DEFAULT' | 'OPEN_PRICE'
+  is_open_price: boolean
+  taxable: boolean
+  discount_type: 'PERCENT' | 'NOMINAL' | null
+  discount_pct: string | null
+  discount_input: number | null
+  discount_approved_by: string | null
+  note: string | null
+  status: 'ACTIVE' | 'VOIDED' | 'MOVED'
+  void_reason_text?: string | null
+  created_event_id?: string
+  modifiers: BillSnapshotModifierRecord[]
+}
+
+export interface BillSnapshotRecord {
+  bill_id: string
+  table_id: string
+  bill_ref: string
+  status: 'OPEN' | 'PAID' | 'CANCELED' | 'SPLIT' | 'CLOSED_BY_SPLIT' | 'MERGED'
+  lease_device_id: string
+  lease_register_id: string
+  is_awaiting_payment: boolean
+  handover_status: 'NONE' | 'PENDING'
+  handover_target_register_id: string | null
+  last_event_seq: number
+  last_event_at: string | null
+  bill_discount_type: 'PERCENT' | 'NOMINAL' | null
+  bill_discount_pct: string | null
+  bill_discount_input: number | null
+  bill_discount_approved_by: string | null
+  customer_name: string | null
+  split_mode?: 'ITEM' | 'QTY' | 'EQUAL' | null
+  parent_bill_id?: string | null
+  share_index?: number | null
+  share_count?: number | null
+  items: BillSnapshotItemRecord[]
 }

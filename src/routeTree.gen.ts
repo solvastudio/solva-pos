@@ -26,6 +26,7 @@ import { Route as TenantApiJoinRouteImport } from './routes/$tenant/api/join'
 import { Route as TenantApiResetRouteImport } from './routes/$tenant/api/reset'
 import { Route as TenantPosIndexRouteImport } from './routes/$tenant/pos/index'
 import { Route as TenantPosSplatRouteImport } from './routes/$tenant/pos/$'
+import { Route as TenantPosBillsRouteImport } from './routes/$tenant/pos/bills'
 import { Route as TenantPosCashRouteImport } from './routes/$tenant/pos/cash'
 import { Route as TenantPosLoginRouteImport } from './routes/$tenant/pos/login'
 import { Route as TenantPosManifestDotwebmanifestRouteImport } from './routes/$tenant/pos/manifest[.]webmanifest'
@@ -36,6 +37,7 @@ import { Route as TenantPosQueueRouteImport } from './routes/$tenant/pos/queue'
 import { Route as TenantPosSellRouteImport } from './routes/$tenant/pos/sell'
 import { Route as TenantPosSettingsRouteImport } from './routes/$tenant/pos/settings'
 import { Route as TenantPosSystemRouteImport } from './routes/$tenant/pos/system'
+import { Route as TenantPosTablesRouteImport } from './routes/$tenant/pos/tables'
 import { Route as PlatformApiSplatRouteImport } from './routes/platform/api/$'
 import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants.$tenantId'
 import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants.new'
@@ -49,6 +51,7 @@ import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/
 import { Route as TenantAdminAuthedTablesRouteImport } from './routes/$tenant/admin/_authed/tables'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as TenantPosDevArgonBenchRouteImport } from './routes/$tenant/pos/_dev/argon-bench'
+import { Route as TenantPosBillBillIdRouteImport } from './routes/$tenant/pos/bill.$billId'
 import { Route as TenantPosDoneSaleIdRouteImport } from './routes/$tenant/pos/done.$saleId'
 import { Route as TenantPosHistoryIndexRouteImport } from './routes/$tenant/pos/history.index'
 import { Route as TenantPosHistorySaleIdRouteImport } from './routes/$tenant/pos/history.$saleId'
@@ -74,6 +77,7 @@ import { Route as TenantAdminAuthedReportsShiftsRouteImport } from './routes/$te
 import { Route as TenantAdminAuthedStockIndexRouteImport } from './routes/$tenant/admin/_authed/stock/index'
 import { Route as TenantAdminAuthedStockDocumentsRouteImport } from './routes/$tenant/admin/_authed/stock/documents'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
+import { Route as ApiPosV1BillsIdRouteImport } from './routes/api/pos/v1/bills/$id'
 import { Route as ApiPosV1BillsAcceptRouteImport } from './routes/api/pos/v1/bills/accept'
 import { Route as ApiPosV1BillsHandoverRouteImport } from './routes/api/pos/v1/bills/handover'
 import { Route as ApiPosV1AssetsLogoOutletIdRouteImport } from './routes/api/pos/v1/assets.logo.$outletId'
@@ -166,6 +170,11 @@ const TenantPosSplatRoute = TenantPosSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => TenantPosRoute,
 } as any)
+const TenantPosBillsRoute = TenantPosBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => TenantPosRoute,
+} as any)
 const TenantPosCashRoute = TenantPosCashRouteImport.update({
   id: '/cash',
   path: '/cash',
@@ -215,6 +224,11 @@ const TenantPosSettingsRoute = TenantPosSettingsRouteImport.update({
 const TenantPosSystemRoute = TenantPosSystemRouteImport.update({
   id: '/system',
   path: '/system',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosTablesRoute = TenantPosTablesRouteImport.update({
+  id: '/tables',
+  path: '/tables',
   getParentRoute: () => TenantPosRoute,
 } as any)
 const PlatformApiSplatRoute = PlatformApiSplatRouteImport.update({
@@ -285,6 +299,11 @@ const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
 const TenantPosDevArgonBenchRoute = TenantPosDevArgonBenchRouteImport.update({
   id: '/_dev/argon-bench',
   path: '/argon-bench',
+  getParentRoute: () => TenantPosRoute,
+} as any)
+const TenantPosBillBillIdRoute = TenantPosBillBillIdRouteImport.update({
+  id: '/bill/$billId',
+  path: '/bill/$billId',
   getParentRoute: () => TenantPosRoute,
 } as any)
 const TenantPosDoneSaleIdRoute = TenantPosDoneSaleIdRouteImport.update({
@@ -421,6 +440,11 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   path: '/admin/api/auth/$',
   getParentRoute: () => TenantRoute,
 } as any)
+const ApiPosV1BillsIdRoute = ApiPosV1BillsIdRouteImport.update({
+  id: '/api/pos/v1/bills/$id',
+  path: '/api/pos/v1/bills/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPosV1BillsAcceptRoute = ApiPosV1BillsAcceptRouteImport.update({
   id: '/api/pos/v1/bills/accept',
   path: '/api/pos/v1/bills/accept',
@@ -471,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/bills': typeof TenantPosBillsRoute
   '/$tenant/pos/cash': typeof TenantPosCashRoute
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
@@ -481,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
+  '/$tenant/pos/tables': typeof TenantPosTablesRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -494,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/bill/$billId': typeof TenantPosBillBillIdRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
   '/$tenant/pos/history/$saleId': typeof TenantPosHistorySaleIdRoute
   '/$tenant/pos/return/$saleId': typeof TenantPosReturnSaleIdRoute
@@ -518,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
@@ -541,6 +569,7 @@ export interface FileRoutesByTo {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/bills': typeof TenantPosBillsRoute
   '/$tenant/pos/cash': typeof TenantPosCashRoute
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
@@ -551,6 +580,7 @@ export interface FileRoutesByTo {
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
+  '/$tenant/pos/tables': typeof TenantPosTablesRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -564,6 +594,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/bill/$billId': typeof TenantPosBillBillIdRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
   '/$tenant/pos/history/$saleId': typeof TenantPosHistorySaleIdRoute
   '/$tenant/pos/return/$saleId': typeof TenantPosReturnSaleIdRoute
@@ -588,6 +619,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/catalog': typeof TenantAdminAuthedCatalogIndexRoute
@@ -615,6 +647,7 @@ export interface FileRoutesById {
   '/$tenant/api/join': typeof TenantApiJoinRoute
   '/$tenant/api/reset': typeof TenantApiResetRoute
   '/$tenant/pos/$': typeof TenantPosSplatRoute
+  '/$tenant/pos/bills': typeof TenantPosBillsRoute
   '/$tenant/pos/cash': typeof TenantPosCashRoute
   '/$tenant/pos/login': typeof TenantPosLoginRoute
   '/$tenant/pos/manifest.webmanifest': typeof TenantPosManifestDotwebmanifestRoute
@@ -625,6 +658,7 @@ export interface FileRoutesById {
   '/$tenant/pos/sell': typeof TenantPosSellRoute
   '/$tenant/pos/settings': typeof TenantPosSettingsRoute
   '/$tenant/pos/system': typeof TenantPosSystemRoute
+  '/$tenant/pos/tables': typeof TenantPosTablesRoute
   '/platform/api/$': typeof PlatformApiSplatRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRoute
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
@@ -638,6 +672,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/_dev/argon-bench': typeof TenantPosDevArgonBenchRoute
+  '/$tenant/pos/bill/$billId': typeof TenantPosBillBillIdRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
   '/$tenant/pos/history/$saleId': typeof TenantPosHistorySaleIdRoute
   '/$tenant/pos/return/$saleId': typeof TenantPosReturnSaleIdRoute
@@ -662,6 +697,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/_authed/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
   '/$tenant/admin/_authed/catalog/': typeof TenantAdminAuthedCatalogIndexRoute
@@ -690,6 +726,7 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/bills'
     | '/$tenant/pos/cash'
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
@@ -700,6 +737,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
+    | '/$tenant/pos/tables'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -713,6 +751,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/tables'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
+    | '/$tenant/pos/bill/$billId'
     | '/$tenant/pos/done/$saleId'
     | '/$tenant/pos/history/$saleId'
     | '/$tenant/pos/return/$saleId'
@@ -737,6 +776,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/catalog/'
@@ -760,6 +800,7 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/bills'
     | '/$tenant/pos/cash'
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
@@ -770,6 +811,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
+    | '/$tenant/pos/tables'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -783,6 +825,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/tables'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
+    | '/$tenant/pos/bill/$billId'
     | '/$tenant/pos/done/$saleId'
     | '/$tenant/pos/history/$saleId'
     | '/$tenant/pos/return/$saleId'
@@ -807,6 +850,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/catalog'
@@ -833,6 +877,7 @@ export interface FileRouteTypes {
     | '/$tenant/api/join'
     | '/$tenant/api/reset'
     | '/$tenant/pos/$'
+    | '/$tenant/pos/bills'
     | '/$tenant/pos/cash'
     | '/$tenant/pos/login'
     | '/$tenant/pos/manifest.webmanifest'
@@ -843,6 +888,7 @@ export interface FileRouteTypes {
     | '/$tenant/pos/sell'
     | '/$tenant/pos/settings'
     | '/$tenant/pos/system'
+    | '/$tenant/pos/tables'
     | '/platform/api/$'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
@@ -856,6 +902,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/tables'
     | '/$tenant/admin/_authed/users'
     | '/$tenant/pos/_dev/argon-bench'
+    | '/$tenant/pos/bill/$billId'
     | '/$tenant/pos/done/$saleId'
     | '/$tenant/pos/history/$saleId'
     | '/$tenant/pos/return/$saleId'
@@ -880,6 +927,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/reports/shifts'
     | '/$tenant/admin/_authed/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
     | '/$tenant/admin/_authed/catalog/'
@@ -909,6 +957,7 @@ export interface RootRouteChildren {
   ApiPosV1PushRoute: typeof ApiPosV1PushRoute
   ApiPosV1ReleaseRoute: typeof ApiPosV1ReleaseRoute
   ApiPosV1SignalsRoute: typeof ApiPosV1SignalsRoute
+  ApiPosV1BillsIdRoute: typeof ApiPosV1BillsIdRoute
   ApiPosV1BillsAcceptRoute: typeof ApiPosV1BillsAcceptRoute
   ApiPosV1BillsHandoverRoute: typeof ApiPosV1BillsHandoverRouteWithChildren
   ApiPosV1AssetsLogoOutletIdRoute: typeof ApiPosV1AssetsLogoOutletIdRoute
@@ -1035,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantPosSplatRouteImport
       parentRoute: typeof TenantPosRoute
     }
+    '/$tenant/pos/bills': {
+      id: '/$tenant/pos/bills'
+      path: '/bills'
+      fullPath: '/$tenant/pos/bills'
+      preLoaderRoute: typeof TenantPosBillsRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
     '/$tenant/pos/cash': {
       id: '/$tenant/pos/cash'
       path: '/cash'
@@ -1103,6 +1159,13 @@ declare module '@tanstack/react-router' {
       path: '/system'
       fullPath: '/$tenant/pos/system'
       preLoaderRoute: typeof TenantPosSystemRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/tables': {
+      id: '/$tenant/pos/tables'
+      path: '/tables'
+      fullPath: '/$tenant/pos/tables'
+      preLoaderRoute: typeof TenantPosTablesRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/platform/api/$': {
@@ -1194,6 +1257,13 @@ declare module '@tanstack/react-router' {
       path: '/argon-bench'
       fullPath: '/$tenant/pos/argon-bench'
       preLoaderRoute: typeof TenantPosDevArgonBenchRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/bill/$billId': {
+      id: '/$tenant/pos/bill/$billId'
+      path: '/bill/$billId'
+      fullPath: '/$tenant/pos/bill/$billId'
+      preLoaderRoute: typeof TenantPosBillBillIdRouteImport
       parentRoute: typeof TenantPosRoute
     }
     '/$tenant/pos/done/$saleId': {
@@ -1371,6 +1441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/api/pos/v1/bills/$id': {
+      id: '/api/pos/v1/bills/$id'
+      path: '/api/pos/v1/bills/$id'
+      fullPath: '/api/pos/v1/bills/$id'
+      preLoaderRoute: typeof ApiPosV1BillsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pos/v1/bills/accept': {
       id: '/api/pos/v1/bills/accept'
       path: '/api/pos/v1/bills/accept'
@@ -1418,6 +1495,7 @@ declare module '@tanstack/react-router' {
 
 interface TenantPosRouteChildren {
   TenantPosSplatRoute: typeof TenantPosSplatRoute
+  TenantPosBillsRoute: typeof TenantPosBillsRoute
   TenantPosCashRoute: typeof TenantPosCashRoute
   TenantPosLoginRoute: typeof TenantPosLoginRoute
   TenantPosManifestDotwebmanifestRoute: typeof TenantPosManifestDotwebmanifestRoute
@@ -1428,8 +1506,10 @@ interface TenantPosRouteChildren {
   TenantPosSellRoute: typeof TenantPosSellRoute
   TenantPosSettingsRoute: typeof TenantPosSettingsRoute
   TenantPosSystemRoute: typeof TenantPosSystemRoute
+  TenantPosTablesRoute: typeof TenantPosTablesRoute
   TenantPosIndexRoute: typeof TenantPosIndexRoute
   TenantPosDevArgonBenchRoute: typeof TenantPosDevArgonBenchRoute
+  TenantPosBillBillIdRoute: typeof TenantPosBillBillIdRoute
   TenantPosDoneSaleIdRoute: typeof TenantPosDoneSaleIdRoute
   TenantPosHistorySaleIdRoute: typeof TenantPosHistorySaleIdRoute
   TenantPosReturnSaleIdRoute: typeof TenantPosReturnSaleIdRoute
@@ -1441,6 +1521,7 @@ interface TenantPosRouteChildren {
 
 const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosSplatRoute: TenantPosSplatRoute,
+  TenantPosBillsRoute: TenantPosBillsRoute,
   TenantPosCashRoute: TenantPosCashRoute,
   TenantPosLoginRoute: TenantPosLoginRoute,
   TenantPosManifestDotwebmanifestRoute: TenantPosManifestDotwebmanifestRoute,
@@ -1451,8 +1532,10 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosSellRoute: TenantPosSellRoute,
   TenantPosSettingsRoute: TenantPosSettingsRoute,
   TenantPosSystemRoute: TenantPosSystemRoute,
+  TenantPosTablesRoute: TenantPosTablesRoute,
   TenantPosIndexRoute: TenantPosIndexRoute,
   TenantPosDevArgonBenchRoute: TenantPosDevArgonBenchRoute,
+  TenantPosBillBillIdRoute: TenantPosBillBillIdRoute,
   TenantPosDoneSaleIdRoute: TenantPosDoneSaleIdRoute,
   TenantPosHistorySaleIdRoute: TenantPosHistorySaleIdRoute,
   TenantPosReturnSaleIdRoute: TenantPosReturnSaleIdRoute,
@@ -1586,6 +1669,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPosV1PushRoute: ApiPosV1PushRoute,
   ApiPosV1ReleaseRoute: ApiPosV1ReleaseRoute,
   ApiPosV1SignalsRoute: ApiPosV1SignalsRoute,
+  ApiPosV1BillsIdRoute: ApiPosV1BillsIdRoute,
   ApiPosV1BillsAcceptRoute: ApiPosV1BillsAcceptRoute,
   ApiPosV1BillsHandoverRoute: ApiPosV1BillsHandoverRouteWithChildren,
   ApiPosV1AssetsLogoOutletIdRoute: ApiPosV1AssetsLogoOutletIdRoute,

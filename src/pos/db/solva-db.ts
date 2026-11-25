@@ -4,6 +4,11 @@ import { STORES_V1 } from './schema-v1'
 import type {
   AssetCacheRecord,
   AppUserRecord,
+  BillEventRecord,
+  BillItemModifierRecord,
+  BillItemRecord,
+  BillRecord,
+  BillSnapshotRecord,
   CartDraftRecord,
   CashMasterRecord,
   CashMovementRecord,
@@ -13,11 +18,15 @@ import type {
   CreditNoteRefundRecord,
   DeviceLogRow,
   FeatureFlagRecord,
+  FnbTableRecord,
   IdRecord,
   ItemOutletAvailabilityRecord,
   LegalEntityRecord,
   LocalCounterRow,
   MetaRow,
+  ModifierGroupProductRecord,
+  ModifierGroupRecord,
+  ModifierRecord,
   OutboxCommandRow,
   OutletReceiptSettingRecord,
   OutletRecord,
@@ -76,10 +85,10 @@ export class SolvaDb extends Dexie {
   sku_uom!: Table<SkuUomRecord, string>
   price_entry!: Table<PriceEntryRecord, string>
   item_outlet_availability!: Table<ItemOutletAvailabilityRecord, string>
-  modifier_group!: Table<IdRecord, string>
-  modifier_group_product!: Table<IdRecord, string>
-  modifier!: Table<IdRecord, string>
-  fnb_table!: Table<IdRecord, string>
+  modifier_group!: Table<ModifierGroupRecord, string>
+  modifier_group_product!: Table<ModifierGroupProductRecord, string>
+  modifier!: Table<ModifierRecord, string>
+  fnb_table!: Table<FnbTableRecord, string>
 
   // Transaction stores
   sale!: Table<SaleRecord, string>
@@ -91,10 +100,10 @@ export class SolvaDb extends Dexie {
   credit_note_refund!: Table<CreditNoteRefundRecord, string>
   shift!: Table<ShiftRecord, string>
   cash_movement!: Table<CashMovementRecord, string>
-  bill!: Table<IdRecord, string>
-  bill_item!: Table<IdRecord, string>
-  bill_item_modifier!: Table<IdRecord, string>
-  bill_event!: Table<IdRecord, string>
+  bill!: Table<BillRecord, string>
+  bill_item!: Table<BillItemRecord, string>
+  bill_item_modifier!: Table<BillItemModifierRecord, string>
+  bill_event!: Table<BillEventRecord, string>
   staff_pin_state!: Table<StaffPinStateRecord, [string, string]>
 
   // Infrastructure stores
@@ -103,7 +112,7 @@ export class SolvaDb extends Dexie {
   print_job!: Table<PrintJobRecord, string>
   device_log!: Table<DeviceLogRow, number>
   stock_snapshot!: Table<StockSnapshotRecord, string>
-  bill_snapshot!: Table<Record<string, unknown>, string>
+  bill_snapshot!: Table<BillSnapshotRecord, string>
   cart_draft!: Table<CartDraftRecord, string>
   asset_cache!: Table<AssetCacheRecord, string>
   pull_stage!: Table<PullStageRow, number>

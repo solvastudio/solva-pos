@@ -99,7 +99,11 @@ export function DoneRouteScreen({ tenant, saleId, bootResult }: DoneRouteScreenP
               }
             : undefined
         }
-        onNewSale={() => void navigate({ href: `/${cleanSlug}/pos/sell` })}
+        onNewSale={() =>
+          void navigate({
+            href: sale?.bill_id ? `/${cleanSlug}/pos/tables` : `/${cleanSlug}/pos/sell`,
+          })
+        }
       />
     </PosWorkspaceShell>
   )

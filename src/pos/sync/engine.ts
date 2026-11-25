@@ -220,7 +220,7 @@ export async function startSyncEngine(
     db: opts.db,
     fetch: opts.fetch,
     onSignal: (msg) => {
-      if (msg.t === 'pull' || msg.t === 'release') {
+      if (msg.t === 'pull' || msg.t === 'release' || msg.t === 'bills') {
         schedulerRef?.kick('signal')
       }
     },

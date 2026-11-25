@@ -40,6 +40,7 @@ export const handleSignals = deviceRoute(
         unregister = getSignalsHub().register({
           deviceId: device.deviceId,
           tenantId: device.tenantId,
+          outletId: device.outletId,
           sendEvent: (msg: SignalMessage) => {
             enqueueText(`data: ${JSON.stringify(msg)}\n\n`)
           },

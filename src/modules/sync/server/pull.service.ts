@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import {
   SCHEMA_VERSION,
   SUPPORTED_SCHEMA_VERSIONS,
+  type BillsSnapshotBlock,
   type FullPageRequest,
   type FullPageResponse,
   type FullStartRequest,
@@ -18,6 +19,7 @@ import { createLogger } from '~/server/log'
 import type { SyncDeviceIdentity } from '../domain/command-types'
 import type { FeedScope } from '../domain/feed-types'
 import { FULL_RESYNC_ENTITY_ORDER } from '../shared'
+import { buildBillsSnapshot } from './bills-snapshot.service'
 import { getDeviceStatusPort } from './device-status-port'
 import { getFeedSources } from './feed-registry'
 import { findCommandStatusesForDevice } from './idempotency.repo'
@@ -153,6 +155,7 @@ export async function handlePull(
   let commandUpdates: Array<{ id: string; status: string }> | undefined
   let manifestCounts: Record<string, number> | undefined
   let stockPayload: StockSnapshotBlock | 'unchanged' | undefined
+  let billsPayload: BillsSnapshotBlock | 'unchanged' | undefined
 
   if (isLastPage) {
     const sources = getFeedSources()
@@ -166,23 +169,36 @@ export async function handlePull(
           async (source) => [source.entity, await source.count(tx, { upper: page.upper, scope })] as const,
         ),
       )
-      // Stock snapshot, read in the same DB snapshot as the manifest.
-      const stock = await buildStockSnapshot(tx, {
-        tenantId: device.tenantId,
-        outletId: device.outletId,
-        deviceId: device.deviceId,
-        nowIso,
-      })
+      // Stock and open-bills snapshots, read in the same DB snapshot as the manifest.
+      const [stock, bills] = await Promise.all([
+        buildStockSnapshot(tx, {
+          tenantId: device.tenantId,
+          outletId: device.outletId,
+          deviceId: device.deviceId,
+          nowIso,
+        }),
+        buildBillsSnapshot(tx, {
+          tenantId: device.tenantId,
+          outletId: device.outletId,
+          deviceId: device.deviceId,
+          registerId: device.registerId,
+          nowIso,
+        }),
+      ])
       return {
         updates,
         counts: Object.fromEntries(countEntries) as Record<string, number>,
         stock,
+        bills,
       }
     })
     commandUpdates = summary.updates
     manifestCounts = summary.counts
     if (summary.stock) {
       stockPayload = req.stock_etag === summary.stock.etag ? 'unchanged' : summary.stock.block
+    }
+    if (summary.bills) {
+      billsPayload = req.bills_etag === summary.bills.etag ? 'unchanged' : summary.bills.block
     }
   }
 
@@ -225,6 +241,7 @@ export async function handlePull(
           command_updates: commandUpdates,
           manifest: { counts: manifestCounts ?? {} },
           ...(stockPayload !== undefined ? { stock: stockPayload } : {}),
+          ...(billsPayload !== undefined ? { bills: billsPayload } : {}),
         }
       : {}),
   }

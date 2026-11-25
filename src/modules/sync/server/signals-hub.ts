@@ -1,10 +1,11 @@
 import '@tanstack/react-start/server-only'
 import type { SignalMessage } from '~/lib/contracts'
-import { subscribeMasterChanged } from './signals'
+import { subscribeBillsChanged, subscribeMasterChanged } from './signals'
 
 export interface SignalConnection {
   deviceId: string
   tenantId: string
+  outletId?: string
   sendEvent: (msg: SignalMessage) => void
   sendComment: (comment: string) => void
   close: () => void
@@ -30,13 +31,17 @@ export const DEFAULT_SIGNAL_PING_MS = 25_000
 interface TenantSignalState {
   deviceIds: Set<string>
   unsubscribeMaster: () => void
+  unsubscribeBills: () => void
   pendingVersion: number | null
   coalesceTimer: unknown
+  pendingBillOutlets: Set<string>
+  billCoalesceTimer: unknown
 }
 
 export interface SignalsHub {
   register(conn: SignalConnection): () => void
   broadcastTenant(tenantId: string, msg: SignalMessage): void
+  broadcastOutlet(tenantId: string, outletId: string, msg: SignalMessage): void
   activeConnectionCount(): number
   resetForTests(): void
 }
@@ -46,11 +51,13 @@ export function createSignalsHub(options?: {
   pingIntervalMs?: number
   timers?: SignalTimers
   subscribeMaster?: typeof subscribeMasterChanged
+  subscribeBills?: typeof subscribeBillsChanged
 }): SignalsHub {
   const coalesceMs = options?.coalesceMs ?? DEFAULT_SIGNAL_COALESCE_MS
   const pingIntervalMs = options?.pingIntervalMs ?? DEFAULT_SIGNAL_PING_MS
   const timers = options?.timers ?? defaultTimers
   const subscribeMaster = options?.subscribeMaster ?? subscribeMasterChanged
+  const subscribeBills = options?.subscribeBills ?? subscribeBillsChanged
 
   const byDevice = new Map<string, { conn: SignalConnection; pingTimer: unknown }>()
   const byTenant = new Map<string, TenantSignalState>()
@@ -70,6 +77,24 @@ export function createSignalsHub(options?: {
     }
   }
 
+  function broadcastOutlet(tenantId: string, outletId: string, msg: SignalMessage): void {
+    const tKey = tenantId.toLowerCase()
+    const oKey = outletId.toLowerCase()
+    const tState = byTenant.get(tKey)
+    if (!tState) return
+    for (const devId of [...tState.deviceIds]) {
+      const active = byDevice.get(devId)
+      if (!active) continue
+      const connOutlet = active.conn.outletId?.toLowerCase()
+      if (connOutlet && connOutlet !== oKey) continue
+      try {
+        active.conn.sendEvent(msg)
+      } catch {
+        // Ignore broken streams waiting for cancel().
+      }
+    }
+  }
+
   function ensureTenantWatcher(tenantId: string): TenantSignalState {
     const tKey = tenantId.toLowerCase()
     const existing = byTenant.get(tKey)
@@ -79,7 +104,10 @@ export function createSignalsHub(options?: {
       deviceIds: new Set<string>(),
       pendingVersion: null,
       coalesceTimer: null,
+      pendingBillOutlets: new Set<string>(),
+      billCoalesceTimer: null,
       unsubscribeMaster: () => {},
+      unsubscribeBills: () => {},
     }
 
     state.unsubscribeMaster = subscribeMaster(tKey, (version) => {
@@ -92,6 +120,19 @@ export function createSignalsHub(options?: {
         state.pendingVersion = null
         if (latest !== null) {
           broadcastTenant(tKey, { t: 'pull', v: latest })
+        }
+      }, coalesceMs)
+    })
+
+    state.unsubscribeBills = subscribeBills(tKey, (outletId) => {
+      state.pendingBillOutlets.add(outletId.toLowerCase())
+      if (state.billCoalesceTimer !== null) return
+      state.billCoalesceTimer = timers.setTimeout(() => {
+        state.billCoalesceTimer = null
+        const outlets = [...state.pendingBillOutlets]
+        state.pendingBillOutlets.clear()
+        for (const oid of outlets) {
+          broadcastOutlet(tKey, oid, { t: 'bills' })
         }
       }, coalesceMs)
     })
@@ -117,7 +158,12 @@ export function createSignalsHub(options?: {
           timers.clearTimeout(tState.coalesceTimer)
           tState.coalesceTimer = null
         }
+        if (tState.billCoalesceTimer !== null) {
+          timers.clearTimeout(tState.billCoalesceTimer)
+          tState.billCoalesceTimer = null
+        }
         tState.unsubscribeMaster()
+        tState.unsubscribeBills()
         byTenant.delete(tKey)
       }
     }
@@ -167,7 +213,11 @@ export function createSignalsHub(options?: {
       if (tState.coalesceTimer !== null) {
         timers.clearTimeout(tState.coalesceTimer)
       }
+      if (tState.billCoalesceTimer !== null) {
+        timers.clearTimeout(tState.billCoalesceTimer)
+      }
       tState.unsubscribeMaster()
+      tState.unsubscribeBills()
     }
     byTenant.clear()
   }
@@ -175,6 +225,7 @@ export function createSignalsHub(options?: {
   return {
     register,
     broadcastTenant,
+    broadcastOutlet,
     activeConnectionCount: () => byDevice.size,
     resetForTests,
   }

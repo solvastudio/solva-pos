@@ -19,6 +19,7 @@ export {
 } from './server/table.service'
 export { appendBillEventsCommandHandler } from './server/append-bill-events.command'
 export { getBillForPayment, markBillPaid } from './server/bill.repo'
+export { getBillDetail, getBillsSnapshot } from './server/bills-snapshot.service'
 export { flagDoubleTableBillsIfNeeded } from './server/bill-flags.service'
 export {
   acceptBill,

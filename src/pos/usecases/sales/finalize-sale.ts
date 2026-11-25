@@ -40,6 +40,7 @@ import { kickActiveSync } from '../../sync'
 
 export type FinalizeSaleErrorCode =
   | 'DEVICE_NOT_PAIRED'
+  | 'WAITER_FORBIDDEN'
   | 'SHIFT_REQUIRED'
   | 'EMPTY_CART'
   | 'OUTLET_NOT_FOUND'
@@ -124,6 +125,9 @@ export async function finalizeSale(
   const device = await getMeta(db, 'device')
   if (!device) {
     throw new FinalizeSaleError('DEVICE_NOT_PAIRED', 'Device is not paired')
+  }
+  if (device.register_type === 'WAITER') {
+    throw new FinalizeSaleError('WAITER_FORBIDDEN', 'WAITER register cannot finalize sales')
   }
 
   return withResourceLock({

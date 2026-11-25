@@ -8,6 +8,8 @@ import { TenantBadge } from '~/components/layout/TenantBadge'
 import { Button } from '~/components/ui/Button'
 import {
   Clock,
+  Layers,
+  LayoutGrid,
   Lock,
   LogOut,
   Menu,
@@ -17,8 +19,9 @@ import {
 } from '~/components/ui/icons'
 import { cn } from '~/lib/cn'
 import { useSyncState } from '~/pos/hooks/use-sync-state'
+import { buildPosNavSpecs, type PosNavKey } from '~/pos/session/nav'
 
-export type PosNavKey = 'sell' | 'history' | 'shift' | 'more'
+export type { PosNavKey }
 
 export interface PosWorkspaceShellProps {
   tenantName: string
@@ -26,6 +29,7 @@ export interface PosWorkspaceShellProps {
   outletLabel?: string
   staffName?: string
   shiftOpen?: boolean
+  registerType?: 'CASHIER' | 'WAITER'
   activeNav: PosNavKey
   onSyncNow?: () => void
   onLocaleChange?: (locale: 'id-ID' | 'en-US') => void | Promise<void>
@@ -35,12 +39,22 @@ export interface PosWorkspaceShellProps {
   children: ReactNode
 }
 
+const NAV_ICONS: Record<PosNavKey, typeof ShoppingCart> = {
+  sell: ShoppingCart,
+  tables: LayoutGrid,
+  bills: Layers,
+  history: ReceiptText,
+  shift: Clock,
+  more: Menu,
+}
+
 export function PosWorkspaceShell({
   tenantName,
   tenantSlug,
   outletLabel,
   staffName,
   shiftOpen = false,
+  registerType,
   activeNav,
   onSyncNow,
   onLocaleChange,
@@ -54,27 +68,17 @@ export function PosWorkspaceShell({
   const navigate = useNavigate()
   const cleanSlug = tenantSlug.toLowerCase()
 
-  const navItems: {
+  const navItems: Array<{
     key: PosNavKey
     label: string
     href: string
     icon: typeof ShoppingCart
-  }[] = [
-    { key: 'sell', label: t('pos.shellNav.sell'), href: `/${cleanSlug}/pos/sell`, icon: ShoppingCart },
-    {
-      key: 'history',
-      label: t('pos.shellNav.history'),
-      href: `/${cleanSlug}/pos/history`,
-      icon: ReceiptText,
-    },
-    {
-      key: 'shift',
-      label: t('pos.shellNav.shift'),
-      href: shiftOpen ? `/${cleanSlug}/pos/shift` : `/${cleanSlug}/pos/shift/open`,
-      icon: Clock,
-    },
-    { key: 'more', label: t('pos.shellNav.more'), href: `/${cleanSlug}/pos/more`, icon: Menu },
-  ]
+  }> = buildPosNavSpecs({ cleanSlug, registerType, shiftOpen }).map((spec) => ({
+    key: spec.key,
+    label: String(t(spec.labelKey as never)),
+    href: spec.href,
+    icon: NAV_ICONS[spec.key],
+  }))
 
   return (
     <div className="flex min-h-screen flex-col bg-app md:h-dvh md:overflow-hidden">
@@ -84,7 +88,7 @@ export function PosWorkspaceShell({
           <span className="truncate text-label font-semibold text-ink">
             {outletLabel ?? t('pos.shell.registerFallback')}
           </span>
-          {shiftOpen ? (
+          {registerType !== 'WAITER' && shiftOpen ? (
             <span className="hidden shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-caption font-medium text-success-ink sm:inline-flex">
               {t('pos.shellNav.shiftOpenBadge')}
             </span>

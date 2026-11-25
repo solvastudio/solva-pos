@@ -5,11 +5,16 @@ import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
 import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import { Button } from '~/components/ui/Button'
 import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
+import { createIdGenerator, businessDate, type OutletTimezone } from '~/lib/kernel'
 import type { BootResult } from '~/pos/boot/boot'
+import { getLocalBillWithItems } from '~/pos/data/bill.repo'
 import { getOutlet, listActivePaymentMethods, listActiveStaff, listRegisters } from '~/pos/data/master.repo'
 import { setMeta } from '~/pos/data/meta.repo'
 import type { PaymentMethodRecord } from '~/pos/db/types'
+import { buildCartFromBill } from '~/pos/domain/bill-payment'
 import type { DetailedPaymentEntry } from '~/pos/domain/build-finalize-payload'
+import type { CartState } from '~/pos/domain/cart'
+import { buildConfigSnapshot } from '~/pos/domain/config-snapshot'
 import { useCart } from '~/pos/hooks/use-cart'
 import { useShift } from '~/pos/hooks/use-shift'
 import { exportPending, triggerBlobDownload } from '~/pos/maintenance/export-pending'
@@ -18,12 +23,22 @@ import { posCartStore } from '~/pos/state/cart-store'
 import { finalizeSale, FinalizeSaleError } from '~/pos/usecases/sales/finalize-sale'
 import { PaymentScreen } from './PaymentScreen'
 
+const payIdGen = createIdGenerator({
+  nowMs: () => Date.now(),
+  nextUint32: () => {
+    const b = new Uint32Array(1)
+    globalThis.crypto.getRandomValues(b)
+    return b[0]!
+  },
+})
+
 export interface PayRouteScreenProps {
   tenant: string
+  billId?: string
   bootResult: BootResult
 }
 
-export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
+export function PayRouteScreen({ tenant, billId, bootResult }: PayRouteScreenProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const cleanSlug = tenant.toLowerCase()
@@ -34,9 +49,11 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
   const tenantName =
     bootResult.kind === 'READY' && bootResult.tenant?.name ? bootResult.tenant.name : tenant
 
-  const cart = useCart((s) => s.cart)
+  const retailCart = useCart((s) => s.cart)
   const { openShift } = useShift(db, device?.register_id ?? null)
 
+  const [billCart, setBillCart] = useState<CartState | null>(null)
+  const [billLoaded, setBillLoaded] = useState(!billId)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodRecord[]>([])
   const [staffName, setStaffName] = useState('')
   const [outletLabel, setOutletLabel] = useState<string | undefined>(undefined)
@@ -45,10 +62,64 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
   const [storageFull, setStorageFull] = useState(false)
 
   useEffect(() => {
-    if (cart.lines.length === 0) {
+    if (device?.register_type === 'WAITER') {
+      void navigate({ href: `/${cleanSlug}/pos/tables` })
+    }
+  }, [cleanSlug, device?.register_type, navigate])
+
+  useEffect(() => {
+    if (!billId) {
+      setBillCart(null)
+      setBillLoaded(true)
+      return
+    }
+    if (!db || !device) return
+    let cancelled = false
+    void Promise.all([getLocalBillWithItems(db, billId), getOutlet(db, device.outlet_id)]).then(
+      async ([billWithItems, outlet]) => {
+        if (cancelled) return
+        if (!billWithItems || billWithItems.bill.status !== 'OPEN' || !outlet) {
+          setBillLoaded(true)
+          void navigate({ href: `/${cleanSlug}/pos/tables` })
+          return
+        }
+        const nowIso = new Date().toISOString()
+        const bDate = businessDate(
+          nowIso,
+          outlet.timezone as OutletTimezone,
+          outlet.day_cutoff_time.slice(0, 5),
+        )
+        const cfg = await buildConfigSnapshot(db, { outletId: outlet.id, businessDate: bDate })
+        if (!cfg.ok || cancelled) {
+          setBillLoaded(true)
+          return
+        }
+        setBillCart(
+          buildCartFromBill({
+            billWithItems,
+            shiftId: openShift?.id ?? null,
+            finalizeId: payIdGen.newId(),
+            config: cfg.config,
+            cashRoundingUnit: cfg.cashRoundingUnit,
+            taxRateId: cfg.taxRateId,
+            nowIso,
+          }),
+        )
+        setBillLoaded(true)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [billId, cleanSlug, db, device, navigate, openShift?.id])
+
+  const activeCart = billId ? billCart : retailCart
+
+  useEffect(() => {
+    if (!billId && retailCart.lines.length === 0) {
       void navigate({ href: `/${cleanSlug}/pos/sell` })
     }
-  }, [cart.lines.length, cleanSlug, navigate])
+  }, [billId, cleanSlug, navigate, retailCart.lines.length])
 
   useEffect(() => {
     if (!db || !device || !sessionStaff) return
@@ -72,17 +143,19 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
   }, [db, device, sessionStaff])
 
   async function handleComplete(payments: readonly DetailedPaymentEntry[]) {
-    if (!db || !sessionStaff) return
+    if (!db || !sessionStaff || !activeCart) return
     setSubmitting(true)
     setErrorMessage(null)
     setStorageFull(false)
     try {
       const res = await finalizeSale(db, {
-        cart,
+        cart: activeCart,
         payments,
         staffId: sessionStaff.staffId,
       })
-      await posCartStore.getState().clearCart()
+      if (!billId) {
+        await posCartStore.getState().clearCart()
+      }
       void navigate({ href: `/${cleanSlug}/pos/done/${res.saleId}` })
     } catch (err) {
       if (err instanceof FinalizeSaleError) {
@@ -111,7 +184,8 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
       outletLabel={outletLabel}
       staffName={staffName || sessionStaff?.staffId}
       shiftOpen={Boolean(openShift)}
-      activeNav="sell"
+      registerType={device?.register_type}
+      activeNav={billId ? 'tables' : 'sell'}
       onLocaleChange={(next) => {
         if (db) void setMeta(db, 'locale', next)
       }}
@@ -151,14 +225,20 @@ export function PayRouteScreen({ tenant, bootResult }: PayRouteScreenProps) {
           </div>
         </div>
       ) : null}
-      <PaymentScreen
-        cart={cart}
-        paymentMethods={paymentMethods}
-        submitting={submitting}
-        errorMessage={errorMessage}
-        onBack={() => void navigate({ href: `/${cleanSlug}/pos/sell` })}
-        onComplete={handleComplete}
-      />
+      {billLoaded && activeCart ? (
+        <PaymentScreen
+          cart={activeCart}
+          paymentMethods={paymentMethods}
+          submitting={submitting}
+          errorMessage={errorMessage}
+          onBack={() =>
+            void navigate({
+              href: billId ? `/${cleanSlug}/pos/bill/${billId}` : `/${cleanSlug}/pos/sell`,
+            })
+          }
+          onComplete={handleComplete}
+        />
+      ) : null}
     </PosWorkspaceShell>
   )
 }

@@ -16,7 +16,8 @@ import {
   getRegisterHandoverTarget,
   isDeviceActiveInTenant,
 } from '~/modules/identity/public'
-import { executeOnlineCommand, type SyncDeviceIdentity } from '~/modules/sync/public'
+import { executeOnlineCommand, publishBillsChanged, type SyncDeviceIdentity } from '~/modules/sync/public'
+import { registerAfterCommit } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import {
   insertBillEvents,
@@ -173,6 +174,8 @@ export async function handOverBill(
           nowIso,
         })
 
+        registerAfterCommit(tx, () => publishBillsChanged(device.tenantId, device.outletId))
+
         return {
           bill_id: locked.id,
           bill_seq: nextSeq,
@@ -285,6 +288,8 @@ export async function acceptBill(
           nowIso,
         })
 
+        registerAfterCommit(tx, () => publishBillsChanged(device.tenantId, device.outletId))
+
         return {
           bill_id: locked.id,
           bill_seq: nextSeq,
@@ -386,6 +391,8 @@ export async function cancelBillHandover(
           nextSeq,
           nowIso,
         })
+
+        registerAfterCommit(tx, () => publishBillsChanged(device.tenantId, device.outletId))
 
         return {
           bill_id: locked.id,
