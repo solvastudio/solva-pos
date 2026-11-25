@@ -42,7 +42,7 @@ test.describe('F5-K05 waiter handover -> cashier accept & pay', () => {
     await waiterCtx.setOffline(true)
     await wPage.getByRole('button', { name: /M05/ }).click()
     await wPage.getByRole('button', { name: 'Buka bill baru di meja ini' }).click()
-    await wPage.getByRole('button', { name: /Es Teh/ }).click()
+    await wPage.getByRole('region', { name: 'Katalog produk' }).getByRole('button', { name: /Es Teh/ }).click()
     await expect(wPage.getByText('Serah-terima membutuhkan internet')).toBeVisible()
     await expect(wPage.getByRole('button', { name: 'Serahkan ke kasir' })).toBeDisabled()
 

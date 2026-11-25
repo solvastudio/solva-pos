@@ -10,14 +10,18 @@ import {
   changeBillItemQty,
   getLocalBillWithItems,
   listBillEventsForBill,
+  listChildBillsByParent,
+  mergeBillsLocal,
   openBill,
   printPrebill,
   setBillCustomer,
   setBillDiscount,
   setBillItemModifiers,
   setBillTable,
+  splitBillLocal,
   voidBillItem,
 } from './bill.repo'
+import { buildCartFromBill } from '../domain/bill-payment'
 import type { ResolvedCartItem } from '../domain/cart'
 
 const T1 = '01950000-0000-7000-8000-00000000c101'
@@ -263,5 +267,92 @@ describe('pos/data/bill.repo (atomic Dexie actions)', () => {
       ),
       { numRuns: 10 },
     )
+  })
+
+  it('splits EQUAL and merges bills offline cleanly with local_counter and SHARE/STOCK_BASIS cart projection', async () => {
+    const db = await seedPosDb()
+    const b1 = await openBill(db, { tableId: TABLE1, staffId: STAFF1 })
+    const b2 = await openBill(db, { tableId: TABLE2, staffId: STAFF1 })
+
+    await addBillItem(db, { billId: b1.bill.id, item: SAMPLE_MENU_ITEM, isAvailable: true, staffId: STAFF1, qtyInput: '2' })
+    await addBillItem(db, { billId: b2.bill.id, item: SAMPLE_MENU_ITEM, isAvailable: true, staffId: STAFF1, qtyInput: '1' })
+
+    const merged = await mergeBillsLocal(db, {
+      targetBillId: b1.bill.id,
+      sourceBillIds: [b2.bill.id],
+      staffId: STAFF1,
+    })
+    expect(merged.target.status).toBe('OPEN')
+
+    const b1AfterMerge = await getLocalBillWithItems(db, b1.bill.id)
+    expect(b1AfterMerge!.items.filter((i) => i.status === 'ACTIVE')).toHaveLength(1)
+    expect(Number(b1AfterMerge!.items[0]!.qty)).toBe(3)
+    const b2AfterMerge = await getLocalBillWithItems(db, b2.bill.id)
+    expect(b2AfterMerge!.bill.status).toBe('MERGED')
+
+    const split = await splitBillLocal(db, {
+      parentBillId: b1.bill.id,
+      splitMode: 'EQUAL',
+      children: [
+        { shareIndex: 1, shareCount: 3, items: [] },
+        { shareIndex: 2, shareCount: 3, items: [] },
+        { shareIndex: 3, shareCount: 3, items: [] },
+      ],
+      staffId: STAFF1,
+    })
+    expect(split.parent.status).toBe('SPLIT')
+    expect(split.children).toHaveLength(3)
+
+    const kids = await listChildBillsByParent(db, b1.bill.id)
+    expect(kids).toHaveLength(3)
+    const share1WithItems = await getLocalBillWithItems(db, kids[0]!.id)
+    const parentWithItems = await getLocalBillWithItems(db, b1.bill.id)
+
+    // Share 1 while other siblings are still OPEN -> SHARE line only (no STOCK_BASIS)
+    const cart1 = buildCartFromBill({
+      billWithItems: share1WithItems!,
+      parentBillWithItems: parentWithItems!,
+      siblingBills: kids,
+      shiftId: 'shift-1',
+      finalizeId: 'fin-1',
+      config: {
+        priceTaxMode: 'EXCLUSIVE',
+        taxProfile: 'NONE',
+        taxRate: '0',
+        serviceChargeEnabled: false,
+        serviceChargeRate: '0',
+        serviceChargeTaxable: true,
+      },
+      cashRoundingUnit: 100,
+      taxRateId: null,
+      nowIso: '2026-11-25T10:00:00.000Z',
+    })
+    expect(cart1.lines).toHaveLength(1)
+    expect(cart1.lines[0]?.lineKind).toBe('SHARE')
+
+    // Mark siblings 1 & 2 PAID -> Share 3 gets SHARE + STOCK_BASIS
+    await db.bill.update(kids[0]!.id, { status: 'PAID' })
+    await db.bill.update(kids[1]!.id, { status: 'PAID' })
+    const kidsUpdated = await listChildBillsByParent(db, b1.bill.id)
+    const share3WithItems = await getLocalBillWithItems(db, kidsUpdated[2]!.id)
+    const cart3 = buildCartFromBill({
+      billWithItems: share3WithItems!,
+      parentBillWithItems: parentWithItems!,
+      siblingBills: kidsUpdated,
+      shiftId: 'shift-1',
+      finalizeId: 'fin-3',
+      config: {
+        priceTaxMode: 'EXCLUSIVE',
+        taxProfile: 'NONE',
+        taxRate: '0',
+        serviceChargeEnabled: false,
+        serviceChargeRate: '0',
+        serviceChargeTaxable: true,
+      },
+      cashRoundingUnit: 100,
+      taxRateId: null,
+      nowIso: '2026-11-25T10:00:00.000Z',
+    })
+    expect(cart3.lines.map((l) => l.lineKind)).toEqual(['SHARE', 'STOCK_BASIS'])
   })
 })

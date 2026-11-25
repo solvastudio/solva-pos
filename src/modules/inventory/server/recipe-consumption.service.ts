@@ -46,7 +46,7 @@ export function buildRecipeIntents(input: BuildRecipeIntentsInput): BuildRecipeI
 
   const sortedLines = [...input.lines].sort((a, b) => a.lineNo - b.lineNo)
   for (const line of sortedLines) {
-    if (line.lineKind !== 'ITEM' || !line.skuId) continue
+    if ((line.lineKind !== 'ITEM' && line.lineKind !== 'STOCK_BASIS') || !line.skuId) continue
     const meta = input.skuTypes.get(line.skuId)
     if (!meta || meta.productType !== 'MENU_FNB' || !meta.trackStock) continue
 

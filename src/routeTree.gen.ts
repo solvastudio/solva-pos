@@ -77,6 +77,8 @@ import { Route as TenantAdminAuthedReportsShiftsRouteImport } from './routes/$te
 import { Route as TenantAdminAuthedStockIndexRouteImport } from './routes/$tenant/admin/_authed/stock/index'
 import { Route as TenantAdminAuthedStockDocumentsRouteImport } from './routes/$tenant/admin/_authed/stock/documents'
 import { Route as TenantAdminApiAuthSplatRouteImport } from './routes/$tenant/admin/api/auth/$'
+import { Route as TenantPosBillBillIdMergeRouteImport } from './routes/$tenant/pos/bill.$billId_.merge'
+import { Route as TenantPosBillBillIdSplitRouteImport } from './routes/$tenant/pos/bill.$billId_.split'
 import { Route as ApiPosV1BillsIdRouteImport } from './routes/api/pos/v1/bills/$id'
 import { Route as ApiPosV1BillsAcceptRouteImport } from './routes/api/pos/v1/bills/accept'
 import { Route as ApiPosV1BillsHandoverRouteImport } from './routes/api/pos/v1/bills/handover'
@@ -440,6 +442,18 @@ const TenantAdminApiAuthSplatRoute = TenantAdminApiAuthSplatRouteImport.update({
   path: '/admin/api/auth/$',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantPosBillBillIdMergeRoute =
+  TenantPosBillBillIdMergeRouteImport.update({
+    id: '/bill/$billId_/merge',
+    path: '/bill/$billId/merge',
+    getParentRoute: () => TenantPosRoute,
+  } as any)
+const TenantPosBillBillIdSplitRoute =
+  TenantPosBillBillIdSplitRouteImport.update({
+    id: '/bill/$billId_/split',
+    path: '/bill/$billId/split',
+    getParentRoute: () => TenantPosRoute,
+  } as any)
 const ApiPosV1BillsIdRoute = ApiPosV1BillsIdRouteImport.update({
   id: '/api/pos/v1/bills/$id',
   path: '/api/pos/v1/bills/$id',
@@ -545,6 +559,8 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/pos/bill/$billId/merge': typeof TenantPosBillBillIdMergeRoute
+  '/$tenant/pos/bill/$billId/split': typeof TenantPosBillBillIdSplitRoute
   '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
@@ -619,6 +635,8 @@ export interface FileRoutesByTo {
   '/$tenant/admin/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/pos/bill/$billId/merge': typeof TenantPosBillBillIdMergeRoute
+  '/$tenant/pos/bill/$billId/split': typeof TenantPosBillBillIdSplitRoute
   '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
@@ -697,6 +715,8 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/reports/shifts': typeof TenantAdminAuthedReportsShiftsRoute
   '/$tenant/admin/_authed/stock/documents': typeof TenantAdminAuthedStockDocumentsRoute
   '/$tenant/admin/api/auth/$': typeof TenantAdminApiAuthSplatRoute
+  '/$tenant/pos/bill/$billId_/merge': typeof TenantPosBillBillIdMergeRoute
+  '/$tenant/pos/bill/$billId_/split': typeof TenantPosBillBillIdSplitRoute
   '/api/pos/v1/bills/$id': typeof ApiPosV1BillsIdRoute
   '/api/pos/v1/bills/accept': typeof ApiPosV1BillsAcceptRoute
   '/api/pos/v1/bills/handover': typeof ApiPosV1BillsHandoverRouteWithChildren
@@ -776,6 +796,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/pos/bill/$billId/merge'
+    | '/$tenant/pos/bill/$billId/split'
     | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
@@ -850,6 +872,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/reports/shifts'
     | '/$tenant/admin/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/pos/bill/$billId/merge'
+    | '/$tenant/pos/bill/$billId/split'
     | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
@@ -927,6 +951,8 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/reports/shifts'
     | '/$tenant/admin/_authed/stock/documents'
     | '/$tenant/admin/api/auth/$'
+    | '/$tenant/pos/bill/$billId_/merge'
+    | '/$tenant/pos/bill/$billId_/split'
     | '/api/pos/v1/bills/$id'
     | '/api/pos/v1/bills/accept'
     | '/api/pos/v1/bills/handover'
@@ -1441,6 +1467,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminApiAuthSplatRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/$tenant/pos/bill/$billId_/merge': {
+      id: '/$tenant/pos/bill/$billId_/merge'
+      path: '/bill/$billId/merge'
+      fullPath: '/$tenant/pos/bill/$billId/merge'
+      preLoaderRoute: typeof TenantPosBillBillIdMergeRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
+    '/$tenant/pos/bill/$billId_/split': {
+      id: '/$tenant/pos/bill/$billId_/split'
+      path: '/bill/$billId/split'
+      fullPath: '/$tenant/pos/bill/$billId/split'
+      preLoaderRoute: typeof TenantPosBillBillIdSplitRouteImport
+      parentRoute: typeof TenantPosRoute
+    }
     '/api/pos/v1/bills/$id': {
       id: '/api/pos/v1/bills/$id'
       path: '/api/pos/v1/bills/$id'
@@ -1517,6 +1557,8 @@ interface TenantPosRouteChildren {
   TenantPosShiftOpenRoute: typeof TenantPosShiftOpenRoute
   TenantPosHistoryIndexRoute: typeof TenantPosHistoryIndexRoute
   TenantPosShiftIndexRoute: typeof TenantPosShiftIndexRoute
+  TenantPosBillBillIdMergeRoute: typeof TenantPosBillBillIdMergeRoute
+  TenantPosBillBillIdSplitRoute: typeof TenantPosBillBillIdSplitRoute
 }
 
 const TenantPosRouteChildren: TenantPosRouteChildren = {
@@ -1543,6 +1585,8 @@ const TenantPosRouteChildren: TenantPosRouteChildren = {
   TenantPosShiftOpenRoute: TenantPosShiftOpenRoute,
   TenantPosHistoryIndexRoute: TenantPosHistoryIndexRoute,
   TenantPosShiftIndexRoute: TenantPosShiftIndexRoute,
+  TenantPosBillBillIdMergeRoute: TenantPosBillBillIdMergeRoute,
+  TenantPosBillBillIdSplitRoute: TenantPosBillBillIdSplitRoute,
 }
 
 const TenantPosRouteWithChildren = TenantPosRoute._addFileChildren(

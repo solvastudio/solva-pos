@@ -69,7 +69,9 @@ export async function applySaleStock(tx: TenantTx, input: SaleStockInput): Promi
     return noStock(input.lines)
   }
 
-  const itemLines = input.lines.filter((l) => l.lineKind === 'ITEM' && l.skuId)
+  const itemLines = input.lines.filter(
+    (l) => (l.lineKind === 'ITEM' || l.lineKind === 'STOCK_BASIS') && l.skuId,
+  )
   const skuIds = [...new Set(itemLines.map((l) => l.skuId!))]
   if (skuIds.length === 0) {
     return noStock(input.lines)

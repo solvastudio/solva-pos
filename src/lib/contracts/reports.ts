@@ -324,6 +324,36 @@ export interface OpsOpenPriceRow {
   readonly customerPhone: string | null
 }
 
+export interface OpsOrphanBillRow {
+  readonly billId: string
+  readonly outletId: string
+  readonly outletCode: string
+  readonly tableCode: string
+  readonly billRef: string
+  readonly status: 'OPEN' | 'SPLIT'
+  readonly leaseDeviceId: string
+  readonly leaseDeviceName: string
+  readonly deviceRevokedAt: string | null
+  readonly ageHours: number
+  readonly estimatedTotal: number
+  readonly itemCount: number
+  readonly lastEventAt: string
+}
+
+export interface OpsDuplicateBillRow {
+  readonly flagId: string
+  readonly outletId: string
+  readonly outletCode: string
+  readonly businessDate: string
+  readonly tableId: string | null
+  readonly tableCode: string | null
+  readonly billId: string
+  readonly billRef: string | null
+  readonly openCount: number
+  readonly billStatus: string | null
+  readonly leaseDeviceName: string | null
+}
+
 export interface OpsReportSections {
   readonly staleHarga: readonly OpsStaleHargaRow[]
   readonly itemNonaktifTarifBeda: readonly OpsFlagLineRow[]
@@ -333,6 +363,8 @@ export interface OpsReportSections {
   readonly attention: readonly OpsAttentionRow[]
   readonly itemTidakTersedia: readonly OpsItemUnavailableRow[]
   readonly openPrice: readonly OpsOpenPriceRow[]
+  readonly orphanBills: readonly OpsOrphanBillRow[]
+  readonly duplicateBills: readonly OpsDuplicateBillRow[]
 }
 
 export interface OpsReportResult {

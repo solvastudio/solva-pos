@@ -1,5 +1,5 @@
 import { parseQty, toMoney, type CashRoundingUnit } from '~/lib/kernel'
-import type { PaymentInput, SaleCalc, SaleCalcInput } from './types'
+import type { CartLineInput, PaymentInput, SaleCalc, SaleCalcInput } from './types'
 
 export interface SalesCalcVector {
   readonly id: string
@@ -32,6 +32,26 @@ export interface SalesCalcVector {
       readonly applied: readonly number[]
     }
   }
+}
+
+export interface SplitCalcVector {
+  readonly id: string
+  readonly description: string
+  readonly mode: 'ITEM' | 'EQUAL'
+  readonly input: SaleCalcInput
+  readonly itemGroups?: readonly (readonly CartLineInput[])[]
+  readonly shareCount?: number
+  readonly expectedChildren: readonly Partial<
+    Pick<
+      SaleCalc,
+      | 'netSubtotal'
+      | 'serviceCharge'
+      | 'taxBase'
+      | 'taxAmount'
+      | 'dpp'
+      | 'grandTotal'
+    >
+  >[]
 }
 
 const V04_LINES: SaleCalcInput['lines'] = [
@@ -300,5 +320,116 @@ export const SALES_CALC_VECTORS: readonly SalesCalcVector[] = [
       payments: [{ methodCode: 'CASH', kind: 'CASH', amount: toMoney(60000) }],
       expected: { rounding: -45, totalDue: 54900, changeTotal: 5100, applied: [54900] },
     },
+  },
+]
+
+export const SPLIT_CALC_VECTORS: readonly SplitCalcVector[] = [
+  {
+    id: 'V-19',
+    description: 'Split by item into 2 bills with Exclusive PB1 10% and taxable SC 5%',
+    mode: 'ITEM',
+    input: {
+      lines: V06_LINES,
+      config: {
+        priceTaxMode: 'EXCLUSIVE',
+        taxProfile: 'PB1',
+        taxRate: '10.0000',
+        serviceChargeEnabled: true,
+        serviceChargeRate: '5.0000',
+        serviceChargeTaxable: true,
+      },
+    },
+    itemGroups: [
+      [
+        {
+          lineNo: 1,
+          skuId: 'sku-nasgor',
+          uomId: 'uom-porsi',
+          qty: parseQty('2'),
+          unitPrice: toMoney(35000),
+          taxable: true,
+        },
+      ],
+      [
+        {
+          lineNo: 1,
+          skuId: 'sku-esteh',
+          uomId: 'uom-gelas',
+          qty: parseQty('2'),
+          unitPrice: toMoney(8000),
+          taxable: true,
+        },
+        {
+          lineNo: 2,
+          skuId: 'sku-ayam',
+          uomId: 'uom-porsi',
+          qty: parseQty('1'),
+          unitPrice: toMoney(44500),
+          taxable: true,
+        },
+      ],
+    ],
+    expectedChildren: [
+      {
+        netSubtotal: toMoney(70000),
+        serviceCharge: toMoney(3500),
+        taxBase: toMoney(73500),
+        taxAmount: toMoney(7350),
+        dpp: toMoney(73500),
+        grandTotal: toMoney(80850),
+      },
+      {
+        netSubtotal: toMoney(60500),
+        serviceCharge: toMoney(3025),
+        taxBase: toMoney(63525),
+        taxAmount: toMoney(6353),
+        dpp: toMoney(63525),
+        grandTotal: toMoney(69878),
+      },
+    ],
+  },
+  {
+    id: 'V-20',
+    description: 'Split equal 3 ways on V-08 Contoh 4 (Inclusive PB1 10%, taxable SC 5%, grandTotal 123323)',
+    mode: 'EQUAL',
+    input: {
+      lines: V06_LINES,
+      billDiscount: { kind: 'PERCENT', percent: '10.0000' },
+      config: {
+        priceTaxMode: 'INCLUSIVE',
+        taxProfile: 'PB1',
+        taxRate: '10.0000',
+        serviceChargeEnabled: true,
+        serviceChargeRate: '5.0000',
+        serviceChargeTaxable: true,
+      },
+    },
+    shareCount: 3,
+    expectedChildren: [
+      {
+        netSubtotal: toMoney(39150),
+        serviceCharge: toMoney(1958),
+        taxBase: toMoney(41108),
+        taxAmount: toMoney(3737),
+        dpp: toMoney(37371),
+        grandTotal: toMoney(41108),
+      },
+      {
+        netSubtotal: toMoney(39150),
+        serviceCharge: toMoney(1958),
+        taxBase: toMoney(41108),
+        taxAmount: toMoney(3737),
+        dpp: toMoney(37371),
+        grandTotal: toMoney(41108),
+      },
+      {
+        netSubtotal: toMoney(39150),
+        serviceCharge: toMoney(1957),
+        taxBase: toMoney(41107),
+        taxAmount: toMoney(3737),
+        dpp: toMoney(37370),
+        grandTotal: toMoney(41107),
+      },
+    ],
   },
 ]

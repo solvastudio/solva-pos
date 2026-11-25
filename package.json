@@ -35,7 +35,9 @@
     "gate:f1": "node scripts/ci/gate-f1.mjs",
     "gate:f2": "node scripts/ci/gate-f2.mjs",
     "gate:f3": "node scripts/ci/gate-f3.mjs",
-    "gate:f4": "node scripts/ci/gate-f4.mjs"
+    "gate:f4": "node scripts/ci/gate-f4.mjs",
+    "gate:f5": "node scripts/ci/gate-f5.mjs",
+    "gate:mvp": "node scripts/ci/gate-mvp.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "5.3.0",

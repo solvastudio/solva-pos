@@ -14,6 +14,10 @@ export interface BillPaymentRecord {
   readonly leaseRegisterId: string
   readonly handoverStatus: string
   readonly splitMode: string | null
+  readonly parentBillId?: string | null
+  readonly shareIndex?: number | null
+  readonly shareCount?: number | null
+  readonly siblingBillIds?: readonly string[]
 }
 
 export interface BillPort {

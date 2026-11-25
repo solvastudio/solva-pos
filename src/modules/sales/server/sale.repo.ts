@@ -386,3 +386,26 @@ export async function loadReturnedTotals(
   for (const r of res.rows) out.set(r.sale_line_id, { qty: r.qty, cost: Number(r.cost) })
   return out
 }
+
+/**
+ * Checks whether any sibling split bill has already finalized with `STOCK_BASIS` lines
+ * so stock/recipe consumption happens at most once per equal-split parent.
+ */
+export async function hasSiblingStockBasisConsumption(
+  tx: TenantTx,
+  tenantId: string,
+  siblingBillIds: readonly string[],
+): Promise<boolean> {
+  if (siblingBillIds.length === 0) return false
+  const res = await tx.execute<{ found: number }>(sql`
+    SELECT 1 AS found
+    FROM sale s
+    JOIN sale_line sl ON sl.tenant_id = s.tenant_id AND sl.sale_id = s.id
+    WHERE s.tenant_id = ${tenantId}::uuid
+      AND s.bill_id IN (${sql.join(siblingBillIds.map((id) => sql`${id}::uuid`), sql`, `)})
+      AND s.status = 'PAID'
+      AND sl.line_kind = 'STOCK_BASIS'
+    LIMIT 1
+  `)
+  return res.rows.length > 0
+}

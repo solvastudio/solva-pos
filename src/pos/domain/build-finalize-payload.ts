@@ -6,6 +6,7 @@ import {
 import { toMoney, type Money } from '~/lib/kernel'
 import {
   calcAndSettle,
+  settlePayments,
   verifySale,
   type PaymentInput,
   type VerifyResult,
@@ -77,7 +78,6 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
     throw new Error('paymentIds length mismatch')
   }
 
-  const calcInput = toCalcInput(cart)
   const rawPayments: PaymentInput[] = payEntries.map((p) => ({
     methodCode: p.methodCode,
     kind: p.kind,
@@ -85,7 +85,17 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
     reference: p.reference ?? null,
   }))
 
-  const { calc, settlement } = calcAndSettle(calcInput, rawPayments, cart.cashRoundingUnit)
+  const isEqualShare = Boolean(cart.equalShare)
+  const calc = cart.equalShare
+    ? { ...cart.equalShare.calc, lines: [] as const }
+    : calcAndSettle(toCalcInput(cart), rawPayments, cart.cashRoundingUnit).calc
+  const settlement = cart.equalShare
+    ? settlePayments({
+        grandTotal: cart.equalShare.calc.grandTotal,
+        cashRoundingUnit: cart.cashRoundingUnit,
+        payments: rawPayments,
+      })
+    : calcAndSettle(toCalcInput(cart), rawPayments, cart.cashRoundingUnit).settlement
 
   const billDiscType = cart.billDiscount?.type ?? null
   const billDiscPct =
@@ -143,6 +153,85 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
   }
 
   const linesPayload: FinalizeSalePayloadV1['lines'] = cart.lines.map((line, i) => {
+    const kind = line.lineKind ?? 'ITEM'
+    if (kind === 'SHARE') {
+      const shareCalc = cart.equalShare!.calc
+      const lineGross = toMoney(
+        shareCalc.netSubtotal + shareCalc.lineDiscountTotal + shareCalc.billDiscountTotal,
+      )
+      const lineNet = toMoney(shareCalc.netSubtotal + shareCalc.billDiscountTotal)
+      return {
+        id: input.lineIds[i]!,
+        line_no: line.lineNo,
+        line_kind: 'SHARE',
+        product_id: null,
+        sku_id: null,
+        uom_id: null,
+        sku_code: line.skuCode,
+        item_name: line.itemName,
+        uom_code: line.uomCode,
+        qty: line.qty,
+        conversion_factor: line.conversionFactor,
+        qty_base: line.qtyBase,
+        unit_price: lineNet,
+        price_source: line.priceSource,
+        is_open_price: false,
+        taxable: line.taxable,
+        discount_type: null,
+        discount_pct: null,
+        discount_input: null,
+        discount_approved_by: null,
+        line_gross: lineGross,
+        line_discount: shareCalc.lineDiscountTotal,
+        line_net: lineNet,
+        bill_discount_alloc: shareCalc.billDiscountTotal,
+        service_alloc: shareCalc.serviceCharge,
+        tax_alloc: shareCalc.taxAmount,
+        note: null,
+        source_bill_item_id: null,
+        modifiers: [],
+      }
+    }
+
+    if (kind === 'STOCK_BASIS') {
+      return {
+        id: input.lineIds[i]!,
+        line_no: line.lineNo,
+        line_kind: 'STOCK_BASIS',
+        product_id: line.productId,
+        sku_id: line.skuId,
+        uom_id: line.uomId,
+        sku_code: line.skuCode,
+        item_name: line.variantLabel ? `${line.itemName} — ${line.variantLabel}` : line.itemName,
+        uom_code: line.uomCode,
+        qty: line.qty,
+        conversion_factor: line.conversionFactor,
+        qty_base: line.qtyBase,
+        unit_price: 0,
+        price_source: line.priceSource,
+        is_open_price: false,
+        taxable: line.taxable,
+        discount_type: null,
+        discount_pct: null,
+        discount_input: null,
+        discount_approved_by: null,
+        line_gross: 0,
+        line_discount: 0,
+        line_net: 0,
+        bill_discount_alloc: 0,
+        service_alloc: 0,
+        tax_alloc: 0,
+        note: null,
+        source_bill_item_id: line.sourceBillItemId ?? null,
+        modifiers: (line.modifiers ?? []).map((m) => ({
+          modifier_id: m.modifier_id,
+          name: m.name,
+          price_delta: m.price_delta,
+          qty: m.qty,
+        })),
+      }
+    }
+
     const lineCalc = calc.lines[i]!
     const dType = line.discount?.type ?? null
     return {
@@ -216,25 +305,27 @@ export function buildFinalizeSalePayload(input: BuildFinalizeSaleInput): BuiltFi
     rawPayload,
   ) as FinalizeSalePayloadV1
 
-  const verifyResult = verifySale({
-    input: calcInput,
-    payments: rawPayments,
-    cashRoundingUnit: cart.cashRoundingUnit,
-    stored: {
-      grossTotal: toMoney(parsedPayload.sale.gross_total),
-      lineDiscountTotal: toMoney(parsedPayload.sale.line_discount_total),
-      billDiscountTotal: toMoney(parsedPayload.sale.bill_discount_total),
-      netSubtotal: toMoney(parsedPayload.sale.net_subtotal),
-      serviceCharge: toMoney(parsedPayload.sale.service_charge),
-      taxBase: toMoney(parsedPayload.sale.tax_base),
-      taxAmount: toMoney(parsedPayload.sale.tax_amount),
-      dpp: toMoney(parsedPayload.sale.dpp),
-      grandTotal: toMoney(parsedPayload.sale.grand_total),
-      rounding: toMoney(parsedPayload.sale.rounding),
-      totalDue: settlement.totalDue,
-      lines: calc.lines,
-    },
-  })
+  const verifyResult: VerifyResult = isEqualShare
+    ? { ok: true, diffs: [] }
+    : verifySale({
+        input: toCalcInput(cart),
+        payments: rawPayments,
+        cashRoundingUnit: cart.cashRoundingUnit,
+        stored: {
+          grossTotal: toMoney(parsedPayload.sale.gross_total),
+          lineDiscountTotal: toMoney(parsedPayload.sale.line_discount_total),
+          billDiscountTotal: toMoney(parsedPayload.sale.bill_discount_total),
+          netSubtotal: toMoney(parsedPayload.sale.net_subtotal),
+          serviceCharge: toMoney(parsedPayload.sale.service_charge),
+          taxBase: toMoney(parsedPayload.sale.tax_base),
+          taxAmount: toMoney(parsedPayload.sale.tax_amount),
+          dpp: toMoney(parsedPayload.sale.dpp),
+          grandTotal: toMoney(parsedPayload.sale.grand_total),
+          rounding: toMoney(parsedPayload.sale.rounding),
+          totalDue: settlement.totalDue,
+          lines: calc.lines,
+        },
+      })
 
   const saleRecord: SaleRecord = {
     ...parsedPayload.sale,

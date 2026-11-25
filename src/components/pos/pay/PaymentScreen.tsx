@@ -7,7 +7,7 @@ import { Field } from '~/components/ui/Field'
 import { CircleAlert } from '~/components/ui/icons'
 import { Input } from '~/components/ui/Input'
 import { MoneyInput } from '~/components/ui/MoneyInput'
-import { formatMoney, toMoney, type Money } from '~/lib/kernel'
+import { formatMoney, roundToUnit, toMoney, type Money } from '~/lib/kernel'
 import type { DetailedPaymentEntry } from '~/pos/domain/build-finalize-payload'
 import { previewPayments } from '~/pos/domain/payment-preview'
 import type { CartState } from '~/pos/domain/cart'
@@ -77,7 +77,12 @@ export function PaymentScreen({
   )
 
   const calc = useMemo(
-    () => (cart.lines.length > 0 ? calcSale(toCalcInput(cart)) : null),
+    () =>
+      cart.equalShare
+        ? { ...cart.equalShare.calc, lines: [] as const }
+        : cart.lines.length > 0
+          ? calcSale(toCalcInput(cart))
+          : null,
     [cart],
   )
   const grandTotal: Money = calc ? calc.grandTotal : toMoney(0)
@@ -123,13 +128,18 @@ export function PaymentScreen({
     [cart.cashRoundingUnit, grandTotal, payments],
   )
 
+  const roundedCashRemaining =
+    preview.remaining > 0 ? roundToUnit(preview.remaining, cart.cashRoundingUnit) : toMoney(0)
+  const defaultAmount =
+    preview.remaining > 0
+      ? selectedMethod.kind === 'CASH'
+        ? roundedCashRemaining
+        : preview.remaining
+      : null
+
   useEffect(() => {
-    if (preview.remaining > 0) {
-      setAmountInput(preview.remaining)
-    } else {
-      setAmountInput(null)
-    }
-  }, [preview.remaining, selectedMethodId])
+    setAmountInput(defaultAmount)
+  }, [defaultAmount])
 
   const nonCashExceeds =
     selectedMethod.kind === 'NON_CASH' &&
@@ -234,7 +244,7 @@ export function PaymentScreen({
           {selectedMethod.kind === 'CASH' ? (
             <>
               <CashQuickAmounts
-                remaining={preview.remaining}
+                remaining={roundedCashRemaining}
                 disabled={submitting || preview.remaining <= 0}
                 onPickAmount={(amt) => {
                   addEntry(amt, selectedMethod)

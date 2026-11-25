@@ -5,11 +5,13 @@ import {
   maskCustomerPhone,
   type DashboardAttentionCounts,
   type OpsAttentionRow,
+  type OpsDuplicateBillRow,
   type OpsFlagLineRow,
   type OpsGapInvoiceRow,
   type OpsItemUnavailableRow,
   type OpsNomorKonflikRow,
   type OpsOpenPriceRow,
+  type OpsOrphanBillRow,
   type OpsReportResult,
   type OpsSelisihHitungRow,
   type OpsStaleHargaRow,
@@ -108,6 +110,8 @@ export async function queryOpsReport(
         attention: [],
         itemTidakTersedia: [],
         openPrice: [],
+        orphanBills: [],
+        duplicateBills: [],
       },
     }
   }
@@ -605,6 +609,126 @@ export async function queryOpsReport(
     customerPhone: maskCustomerPhone(r.customer_phone, input.canViewCustomerPhone),
   }))
 
+  // 9. orphanBills: OPEN/SPLIT bills stale > 24h OR leased by a revoked device (RSK-04)
+  const orphanRes = await tx.execute(sql`
+    SELECT
+      b.id AS bill_id,
+      b.outlet_id,
+      o.code AS outlet_code,
+      ft.code AS table_code,
+      b.bill_ref,
+      b.status,
+      b.lease_device_id,
+      d.name AS lease_device_name,
+      d.revoked_at::text AS device_revoked_at,
+      GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (now() - COALESCE(b.last_event_at, b.occurred_at))) / 3600))::int AS age_hours,
+      COALESCE(SUM(ROUND(bi.qty * bi.unit_price)) FILTER (WHERE bi.status = 'ACTIVE'), 0)::bigint AS estimated_total,
+      COUNT(bi.id) FILTER (WHERE bi.status = 'ACTIVE')::int AS item_count,
+      COALESCE(b.last_event_at, b.occurred_at)::text AS last_event_at
+    FROM bill b
+    JOIN outlet o ON o.tenant_id = b.tenant_id AND o.id = b.outlet_id
+    JOIN fnb_table ft ON ft.tenant_id = b.tenant_id AND ft.id = b.table_id
+    JOIN device d ON d.tenant_id = b.tenant_id AND d.id = b.lease_device_id
+    LEFT JOIN bill_item bi ON bi.tenant_id = b.tenant_id AND bi.bill_id = b.id
+    WHERE b.tenant_id = ${input.tenantId}::uuid
+      AND b.outlet_id IN (${outletIdSqlList})
+      AND b.status IN ('OPEN', 'SPLIT')
+      AND (
+        d.revoked_at IS NOT NULL
+        OR COALESCE(b.last_event_at, b.occurred_at) < now() - interval '24 hours'
+      )
+    GROUP BY b.id, o.code, ft.code, d.name, d.revoked_at
+    ORDER BY d.revoked_at DESC NULLS LAST, age_hours DESC, b.bill_ref ASC
+    LIMIT 1000
+  `)
+
+  const orphanBills: OpsOrphanBillRow[] = (
+    orphanRes.rows as Array<{
+      bill_id: string
+      outlet_id: string
+      outlet_code: string
+      table_code: string
+      bill_ref: string
+      status: string
+      lease_device_id: string
+      lease_device_name: string
+      device_revoked_at: string | null
+      age_hours: string | number
+      estimated_total: string | number
+      item_count: string | number
+      last_event_at: string
+    }>
+  ).map((r) => ({
+    billId: r.bill_id,
+    outletId: r.outlet_id,
+    outletCode: r.outlet_code,
+    tableCode: r.table_code,
+    billRef: r.bill_ref,
+    status: r.status === 'SPLIT' ? 'SPLIT' : 'OPEN',
+    leaseDeviceId: r.lease_device_id,
+    leaseDeviceName: r.lease_device_name,
+    deviceRevokedAt: r.device_revoked_at,
+    ageHours: Number(r.age_hours),
+    estimatedTotal: toSafeReportMoney(r.estimated_total),
+    itemCount: Number(r.item_count),
+    lastEventAt: r.last_event_at,
+  }))
+
+  // 10. duplicateBills (BILL_GANDA_MEJA flags raised when multiple independent open bills share a table)
+  const dupRes = await tx.execute(sql`
+    SELECT
+      df.id AS flag_id,
+      df.outlet_id,
+      o.code AS outlet_code,
+      to_char(df.business_date, 'YYYY-MM-DD') AS business_date,
+      df.entity_id AS bill_id,
+      df.detail,
+      b.bill_ref,
+      b.status AS bill_status,
+      b.table_id,
+      ft.code AS table_code,
+      d.name AS lease_device_name
+    FROM data_flag df
+    JOIN outlet o ON o.tenant_id = df.tenant_id AND o.id = df.outlet_id
+    LEFT JOIN bill b ON b.tenant_id = df.tenant_id AND b.id = df.entity_id
+    LEFT JOIN fnb_table ft ON ft.tenant_id = df.tenant_id AND ft.id = b.table_id
+    LEFT JOIN device d ON d.tenant_id = df.tenant_id AND d.id = b.lease_device_id
+    WHERE df.tenant_id = ${input.tenantId}::uuid
+      AND df.flag_code = 'BILL_GANDA_MEJA'
+      AND df.business_date BETWEEN ${input.from}::date AND ${input.to}::date
+      AND df.outlet_id IN (${outletIdSqlList})
+    ORDER BY df.business_date DESC, o.code ASC, b.bill_ref ASC
+    LIMIT 1000
+  `)
+
+  const duplicateBills: OpsDuplicateBillRow[] = (
+    dupRes.rows as Array<{
+      flag_id: string
+      outlet_id: string
+      outlet_code: string
+      business_date: string
+      bill_id: string
+      detail: unknown
+      bill_ref: string | null
+      bill_status: string | null
+      table_id: string | null
+      table_code: string | null
+      lease_device_name: string | null
+    }>
+  ).map((r) => ({
+    flagId: r.flag_id,
+    outletId: r.outlet_id,
+    outletCode: r.outlet_code,
+    businessDate: r.business_date,
+    tableId: r.table_id ?? readOptionalStringFromJson(r.detail, ['table_id']),
+    tableCode: r.table_code,
+    billId: r.bill_id,
+    billRef: r.bill_ref,
+    openCount: readOptionalMoneyFromJson(r.detail, ['open_count']) ?? 2,
+    billStatus: r.bill_status,
+    leaseDeviceName: r.lease_device_name,
+  }))
+
   return {
     sections: {
       staleHarga,
@@ -615,6 +739,8 @@ export async function queryOpsReport(
       attention,
       itemTidakTersedia,
       openPrice,
+      orphanBills,
+      duplicateBills,
     },
   }
 }

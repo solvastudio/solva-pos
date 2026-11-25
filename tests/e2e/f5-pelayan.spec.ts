@@ -29,8 +29,11 @@ test.describe('F5-K05 WAITER register mode', () => {
     await expect(nav.getByRole('link', { name: 'Shift' })).toHaveCount(0)
     await expect(nav.getByRole('link', { name: 'Riwayat' })).toHaveCount(0)
 
-    // Direct navigation to forbidden cashier route redirects back to tables
-    await page.goto(`/${t.slug}/pos/sell`)
+    // Client-side navigation to forbidden cashier route redirects back to tables while keeping active PIN session
+    await page.evaluate((slug) => {
+      window.history.pushState({}, '', `/${slug}/pos/sell`)
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }, t.slug)
     await expect(page).toHaveURL(/\/pos\/tables/, { timeout: 15_000 })
   })
 })

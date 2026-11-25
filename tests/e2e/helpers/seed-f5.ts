@@ -241,7 +241,7 @@ export async function createF5Tenant(prefix: string): Promise<F5Tenant> {
       `)
       await tx.execute(sql`
         INSERT INTO product (id, tenant_id, version, created_at, updated_at, created_by, updated_by, category_id, code, name, product_type, has_variants, base_uom_id, track_stock, sort_order)
-        VALUES (${ingProdId}::uuid, ${w.tenantId}::uuid, ${w.version}, ${nowIso}::timestamptz, ${nowIso}::timestamptz, ${w.actorUserId}::uuid, ${w.actorUserId}::uuid, ${catId}::uuid, 'ING-01', 'Beras', 'INGREDIENT', false, ${grId}::uuid, true, 99)
+        VALUES (${ingProdId}::uuid, ${w.tenantId}::uuid, ${w.version}, ${nowIso}::timestamptz, ${nowIso}::timestamptz, ${w.actorUserId}::uuid, ${w.actorUserId}::uuid, ${catId}::uuid, 'ING-01', 'Beras', 'RETAIL', false, ${grId}::uuid, true, 99)
       `)
       await tx.execute(sql`
         INSERT INTO sku (id, tenant_id, version, created_at, updated_at, created_by, updated_by, product_id, sku_code, variant_label, is_default, is_active, sort_order)

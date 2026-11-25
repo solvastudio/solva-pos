@@ -210,4 +210,72 @@ describe('contracts/commands/fnb (v1)', () => {
       }),
     ).toThrow(ZodError)
   })
+
+  it('validates BILL_SPLIT (EQUAL vs ITEM/QTY) and BILL_MERGED schemas strictly', () => {
+    const splitEqual = parseCommandPayload('AppendBillEvents', 1, {
+      bill_id: BILL_ID,
+      events: [
+        {
+          id: EV1,
+          bill_id: BILL_ID,
+          bill_seq: 3,
+          device_id: DEV_ID,
+          register_id: REG_ID,
+          device_seq: 15,
+          staff_id: STAFF_ID,
+          event_type: 'BILL_SPLIT',
+          payload: {
+            split_mode: 'EQUAL',
+            children: [
+              {
+                child_bill_id: '01950000-0000-7000-8000-000000000102',
+                child_bill_ref: 'M05-0003-1',
+                share_index: 1,
+                share_count: 2,
+                items: [],
+              },
+              {
+                child_bill_id: '01950000-0000-7000-8000-000000000103',
+                child_bill_ref: 'M05-0003-2',
+                share_index: 2,
+                share_count: 2,
+                items: [],
+              },
+            ],
+          },
+          created_at_device: '2026-11-24T12:45:00.000Z',
+          clock_offset_ms: 0,
+          occurred_at: '2026-11-24T12:45:00.000Z',
+          business_date: '2026-11-24',
+          schema_version: 1,
+        },
+      ],
+    }) as AppendBillEventsPayloadV1
+    expect(splitEqual.events[0]?.event_type).toBe('BILL_SPLIT')
+
+    const merged = parseCommandPayload('AppendBillEvents', 1, {
+      bill_id: BILL_ID,
+      events: [
+        {
+          id: EV2,
+          bill_id: BILL_ID,
+          bill_seq: 4,
+          device_id: DEV_ID,
+          register_id: REG_ID,
+          device_seq: 16,
+          staff_id: STAFF_ID,
+          event_type: 'BILL_MERGED',
+          payload: {
+            source_bill_ids: ['01950000-0000-7000-8000-000000000104'],
+          },
+          created_at_device: '2026-11-24T12:46:00.000Z',
+          clock_offset_ms: 0,
+          occurred_at: '2026-11-24T12:46:00.000Z',
+          business_date: '2026-11-24',
+          schema_version: 1,
+        },
+      ],
+    }) as AppendBillEventsPayloadV1
+    expect(merged.events[0]?.event_type).toBe('BILL_MERGED')
+  })
 })

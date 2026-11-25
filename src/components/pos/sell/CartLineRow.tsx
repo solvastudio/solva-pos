@@ -112,7 +112,7 @@ export function CartLineRow({
       <div className="flex flex-wrap items-center justify-between gap-1.5">
         <div className="flex min-w-0 flex-wrap items-center gap-1">
           <UomChip
-            currentUomId={line.uomId}
+            currentUomId={line.uomId ?? ''}
             currentUomCode={line.uomCode}
             options={uomOptions}
             onSelectUom={(opt) => {

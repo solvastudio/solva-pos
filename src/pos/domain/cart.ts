@@ -8,7 +8,7 @@ import {
   type Money,
   type Qty,
 } from '~/lib/kernel'
-import type { DiscountInput, SaleCalcInput, SaleConfigSnapshot } from '~/lib/sales-calc'
+import type { DiscountInput, SaleCalc, SaleCalcInput, SaleConfigSnapshot } from '~/lib/sales-calc'
 import type { PriceResolution } from '~/modules/catalog/shared'
 
 export type CartPriceSource = 'OUTLET' | 'TENANT_DEFAULT' | 'OPEN_PRICE'
@@ -24,9 +24,10 @@ export interface CartDiscount {
 export interface CartLine {
   readonly id: string
   readonly lineNo: number
-  readonly skuId: string
-  readonly productId: string
-  readonly uomId: string
+  readonly lineKind?: 'ITEM' | 'SHARE' | 'STOCK_BASIS'
+  readonly skuId: string | null
+  readonly productId: string | null
+  readonly uomId: string | null
   readonly skuCode: string
   readonly itemName: string
   readonly variantLabel?: string
@@ -55,6 +56,12 @@ export interface CartCustomer {
   readonly phone?: string
 }
 
+export interface EqualShareCartSnapshot {
+  readonly shareIndex: number
+  readonly shareCount: number
+  readonly calc: Omit<SaleCalc, 'lines'>
+}
+
 export interface CartState {
   readonly finalizeId: string
   readonly lines: readonly CartLine[]
@@ -67,6 +74,7 @@ export interface CartState {
   readonly shiftId: string | null
   readonly billId?: string | null
   readonly billRef?: string | null
+  readonly equalShare?: EqualShareCartSnapshot
 }
 
 export interface ResolvedCartItem {
@@ -430,8 +438,8 @@ function mapDiscountInput(d: CartDiscount | undefined): DiscountInput | undefine
 export function toCalcInput(cart: CartState): SaleCalcInput {
   const lines: SaleCalcInput['lines'] = cart.lines.map((l) => ({
     lineNo: l.lineNo,
-    skuId: l.skuId,
-    uomId: l.uomId,
+    skuId: l.skuId ?? '',
+    uomId: l.uomId ?? '',
     qty: l.qty,
     unitPrice: l.unitPrice,
     taxable: l.taxable,

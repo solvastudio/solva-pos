@@ -5,20 +5,25 @@ import {
   SCHEMA_VERSION,
   type AppendBillEventsPayloadV1,
   type BillItemModifierInput,
+  type BillSplitChildSpec,
 } from '~/lib/contracts'
 import {
+  allocateLR,
   businessDate,
   createIdGenerator,
   parseQty,
   qtyToBase,
   toMoney,
+  ZERO,
   type OutletTimezone,
 } from '~/lib/kernel'
+import { calcLineDiscount, calcLineGross } from '~/lib/sales-calc'
 import {
   applyBillEvent,
   computeModifierDeltaSum,
   emptyBill,
   isAwaitingPayment,
+  mergeSimilarItems,
   type BillEventEnvelopeV1,
   type BillProjectionItem,
   type BillProjectionState,
@@ -30,7 +35,9 @@ import type {
   BillItemRecord,
   BillRecord,
   FnbTableRecord,
+  LocalCounterRow,
   MetaValueMap,
+  OutboxCommandRow,
   OutletRecord,
   PrintJobRecord,
 } from '../db/types'
@@ -61,6 +68,7 @@ export type BillRepoErrorCode =
   | 'READ_ONLY_OTHER'
   | 'READ_ONLY_PENDING'
   | 'BILL_CLOSED'
+  | 'CANNOT_EDIT'
   | 'ITEM_UNAVAILABLE'
   | 'NO_PRICE'
   | 'INVALID_PRICE'
@@ -514,6 +522,18 @@ async function appendLocalEventsTx(
       bill_id: params.billId,
       events: built.events,
     }
+    let dependsOn: string[] | undefined
+    if (built.baseBill.parent_bill_id) {
+      const parentPending = await tx
+        .table<OutboxCommandRow, string>('outbox_command')
+        .where('dependency_key')
+        .equals(`bill:${built.baseBill.parent_bill_id}`)
+        .toArray()
+      const latestParent = parentPending
+        .filter((c) => c.status !== 'ACKED' && c.status !== 'DISMISSED')
+        .sort((a, b) => b.device_seq - a.device_seq)[0]
+      if (latestParent) dependsOn = [latestParent.id]
+    }
     await enqueueCommand(tx, {
       id: cmdId,
       type: 'AppendBillEvents',
@@ -521,6 +541,7 @@ async function appendLocalEventsTx(
       schemaVersion: SCHEMA_VERSION,
       registerId: env.device.register_id,
       dependencyKey: `bill:${params.billId}`,
+      ...(dependsOn ? { dependsOn } : {}),
       createdAtDevice: env.createdAtDevice,
     })
 
@@ -1135,6 +1156,18 @@ export async function cancelBill(
       return { events: [evt], baseBill }
     },
   })
+  if (res.bill.parent_bill_id) {
+    await db.transaction('rw', db.bill, async (tx) => {
+      const bt: Table<BillRecord, string> = tx.table('bill')
+      const siblings = await bt.where('parent_bill_id').equals(res.bill.parent_bill_id!).toArray()
+      if (!siblings.some((s) => s.status === 'OPEN')) {
+        const parent = await bt.get(res.bill.parent_bill_id!)
+        if (parent && parent.status === 'SPLIT') {
+          await bt.update(parent.id, { status: 'CLOSED_BY_SPLIT', closed_at: res.bill.closed_at })
+        }
+      }
+    })
+  }
   return { bill: res.bill, event: res.events[0]! }
 }
 
@@ -1174,4 +1207,696 @@ export async function nextStandaloneDeviceSeq(
   return db.transaction('rw', db.local_counter, (tx) =>
     nextSeq(tx, DEVICE_SEQ_KEY, { registerId, updatedAt }),
   )
+}
+
+export async function listChildBillsByParent(
+  db: SolvaDb,
+  parentBillId: string,
+): Promise<BillRecord[]> {
+  const rows = await db.bill.where('parent_bill_id').equals(parentBillId).toArray()
+  return rows.sort((a, b) => (a.share_index ?? 0) - (b.share_index ?? 0) || a.bill_ref.localeCompare(b.bill_ref))
+}
+
+export function observeChildBillsByParent(
+  db: SolvaDb,
+  parentBillId: string,
+): Observable<BillRecord[]> {
+  return liveQuery(() => listChildBillsByParent(db, parentBillId))
+}
+
+export interface LocalSplitChildRequest {
+  readonly childBillRef?: string
+  readonly tableId?: string
+  readonly shareIndex?: number | null
+  readonly shareCount?: number | null
+  readonly customerName?: string | null
+  readonly customerPhone?: string | null
+  readonly items: readonly {
+    readonly sourceBillItemId: string
+    readonly lineNo: number
+    readonly qty: string
+  }[]
+}
+
+/**
+ * Atomically splits an open local bill into 2..12 child bills in IndexedDB + queues `AppendBillEvents` (BILL_SPLIT).
+ */
+export async function splitBillLocal(
+  db: SolvaDb,
+  input: {
+    parentBillId: string
+    splitMode: 'ITEM' | 'QTY' | 'EQUAL'
+    children: readonly LocalSplitChildRequest[]
+    staffId: string
+  },
+  deps: BillMutationDeps = {},
+): Promise<{ parent: BillRecord; children: BillRecord[]; event: BillEventEnvelopeV1 }> {
+  if (input.children.length < 2) {
+    throw new BillRepoError('CANNOT_EDIT', 'Split requires at least 2 child bills')
+  }
+  const env = await readEnvForBillAction(db, deps)
+
+  return db.transaction(
+    'rw',
+    [db.bill, db.bill_item, db.bill_item_modifier, db.bill_event, db.outbox_command, db.local_counter],
+    async (tx) => {
+      const billTable: Table<BillRecord, string> = tx.table('bill')
+      const itemTable: Table<BillItemRecord, string> = tx.table('bill_item')
+      const modTable: Table<BillItemModifierRecord, string> = tx.table('bill_item_modifier')
+      const eventTable: Table<BillEventRecord, string> = tx.table('bill_event')
+      const counterTable: Table<LocalCounterRow, string> = tx.table('local_counter')
+
+      const parent = await billTable.get(input.parentBillId)
+      if (!parent) throw new BillRepoError('BILL_NOT_FOUND', 'Parent bill not found')
+      const edit = canEditBill(parent, env.device.device_id)
+      if (!edit.ok) throw new BillRepoError('CANNOT_EDIT', `Cannot split bill: ${edit.reason}`)
+      if (parent.split_mode === 'EQUAL') {
+        throw new BillRepoError('CANNOT_EDIT', 'Cannot split an equal-share bill again')
+      }
+
+      const parentItems = await itemTable.where('bill_id').equals(parent.id).toArray()
+      const activeItems = new Map(parentItems.filter((it) => it.status === 'ACTIVE').map((it) => [it.id, it]))
+      if (activeItems.size === 0) {
+        throw new BillRepoError('CANNOT_EDIT', 'Cannot split a bill with no active items')
+      }
+
+      const parentItemIds = parentItems.map((it) => it.id)
+      const parentMods = parentItemIds.length > 0 ? await modTable.where('bill_item_id').anyOf(parentItemIds).toArray() : []
+      const modsByParentItem = new Map<string, BillItemModifierRecord[]>()
+      for (const m of parentMods) {
+        const arr = modsByParentItem.get(m.bill_item_id) ?? []
+        arr.push(m)
+        modsByParentItem.set(m.bill_item_id, arr)
+      }
+
+      // Compute nominal item discount split & nominal bill discount split matching server executeBillSplit.
+      const specsBySource = new Map<string, { itemId: string; qty: string }[]>()
+      const builtSpecs: BillSplitChildSpec[] = []
+      const childInitMeta: {
+        childId: string
+        childEventId: string
+        childDeviceSeq: number
+        childRef: string
+        tableId: string
+      }[] = []
+
+      for (let idx = 0; idx < input.children.length; idx += 1) {
+        const c = input.children[idx]!
+        const childId = env.newId()
+        const childEventId = env.newId()
+        const childDeviceSeq = await nextSeq(tx, DEVICE_SEQ_KEY, {
+          registerId: env.device.register_id,
+          updatedAt: env.createdAtDevice,
+        })
+        const childRef = c.childBillRef ?? `${parent.bill_ref.slice(0, 24)}-${idx + 1}`
+        const childTableId = c.tableId ?? parent.table_id
+        childInitMeta.push({ childId, childEventId, childDeviceSeq, childRef, tableId: childTableId })
+
+        const mappedItems = c.items.map((it) => {
+          const itemId = env.newId()
+          const list = specsBySource.get(it.sourceBillItemId) ?? []
+          list.push({ itemId, qty: it.qty })
+          specsBySource.set(it.sourceBillItemId, list)
+          return {
+            item_id: itemId,
+            source_bill_item_id: it.sourceBillItemId,
+            line_no: it.lineNo,
+            qty: it.qty,
+          }
+        })
+
+        builtSpecs.push({
+          child_bill_id: childId,
+          child_event_id: childEventId,
+          child_device_seq: childDeviceSeq,
+          child_bill_ref: childRef,
+          ...(c.tableId ? { table_id: c.tableId } : {}),
+          share_index: input.splitMode === 'EQUAL' ? idx + 1 : null,
+          share_count: input.splitMode === 'EQUAL' ? input.children.length : null,
+          customer_name: c.customerName !== undefined ? c.customerName : parent.customer_name,
+          customer_phone: c.customerPhone !== undefined ? c.customerPhone : parent.customer_phone,
+          items: mappedItems,
+        })
+      }
+
+      const specLineDisc = new Map<string, number | null>()
+      if (input.splitMode !== 'EQUAL') {
+        for (const [srcId, src] of activeItems.entries()) {
+          const specs = specsBySource.get(srcId) ?? []
+          if (src.discount_type === 'NOMINAL' && src.discount_input !== null) {
+            if (specs.length === 1) {
+              specLineDisc.set(specs[0]!.itemId, src.discount_input)
+            } else {
+              const weights = specs.map((sp) => Math.max(1, calcLineGross(toMoney(src.unit_price), parseQty(sp.qty))))
+              const allocs = allocateLR(toMoney(src.discount_input), weights)
+              specs.forEach((sp, i) => specLineDisc.set(sp.itemId, allocs[i]!))
+            }
+          } else {
+            specs.forEach((sp) => specLineDisc.set(sp.itemId, null))
+          }
+        }
+      }
+
+      let childBillDiscounts: readonly (number | null)[] = builtSpecs.map(() => parent.bill_discount_input)
+      if (
+        input.splitMode !== 'EQUAL' &&
+        parent.bill_discount_type === 'NOMINAL' &&
+        parent.bill_discount_input !== null
+      ) {
+        const nets = builtSpecs.map((c) => {
+          let sum = 0
+          for (const sp of c.items) {
+            const src = activeItems.get(sp.source_bill_item_id)!
+            const gross = calcLineGross(toMoney(src.unit_price), parseQty(sp.qty))
+            const lineDiscAmt =
+              src.discount_type === 'PERCENT' && src.discount_pct
+                ? calcLineDiscount(gross, { kind: 'PERCENT', percent: src.discount_pct })
+                : src.discount_type === 'NOMINAL'
+                  ? calcLineDiscount(gross, { kind: 'NOMINAL', amount: toMoney(specLineDisc.get(sp.item_id) ?? 0) })
+                  : ZERO
+            sum += gross - lineDiscAmt
+          }
+          return sum
+        })
+        const totalNet = nets.reduce((a, b) => a + b, 0)
+        const capped = toMoney(Math.min(parent.bill_discount_input, totalNet))
+        childBillDiscounts = totalNet > 0 && capped > 0 ? allocateLR(capped, nets) : builtSpecs.map(() => 0)
+      }
+
+      const parentSeq = await nextSeq(tx, billSeqCounterKey(parent.id), {
+        registerId: env.device.register_id,
+        docType: 'BILL_SEQ',
+        updatedAt: env.createdAtDevice,
+      })
+      const parentDevSeq = await nextSeq(tx, DEVICE_SEQ_KEY, {
+        registerId: env.device.register_id,
+        updatedAt: env.createdAtDevice,
+      })
+      const splitEvt: BillEventEnvelopeV1 = {
+        id: env.newId(),
+        bill_id: parent.id,
+        bill_seq: parentSeq,
+        device_id: env.device.device_id,
+        register_id: env.device.register_id,
+        device_seq: parentDevSeq,
+        staff_id: input.staffId,
+        event_type: 'BILL_SPLIT',
+        payload: {
+          split_mode: input.splitMode,
+          children: builtSpecs,
+        },
+        created_at_device: env.createdAtDevice,
+        clock_offset_ms: env.offsetMs,
+        occurred_at: env.occurredAt,
+        business_date: env.businessDate,
+        schema_version: SCHEMA_VERSION,
+        app_version: env.appVersion,
+      }
+
+      await eventTable.add({
+        id: splitEvt.id,
+        bill_id: splitEvt.bill_id,
+        bill_seq: splitEvt.bill_seq,
+        device_id: splitEvt.device_id,
+        register_id: splitEvt.register_id,
+        device_seq: splitEvt.device_seq,
+        staff_id: splitEvt.staff_id,
+        event_type: splitEvt.event_type,
+        payload: splitEvt.payload,
+        reason_code: null,
+        reason_text: null,
+        created_at_device: splitEvt.created_at_device,
+        clock_offset_ms: splitEvt.clock_offset_ms,
+        occurred_at: splitEvt.occurred_at,
+        business_date: splitEvt.business_date,
+        schema_version: splitEvt.schema_version,
+        app_version: splitEvt.app_version ?? null,
+      })
+
+      const updatedParent: BillRecord = {
+        ...parent,
+        status: 'SPLIT',
+        handover_status: 'NONE',
+        handover_target_register_id: null,
+        handover_event_id: null,
+        handover_requested_at: null,
+        split_mode: input.splitMode === 'EQUAL' ? null : input.splitMode,
+        last_event_seq: parentSeq,
+        last_event_at: env.occurredAt,
+        sync_status: 'PENDING',
+      }
+      await billTable.put(updatedParent)
+
+      if (input.splitMode !== 'EQUAL') {
+        for (const id of activeItems.keys()) {
+          await itemTable.update(id, { status: 'MOVED' })
+        }
+      }
+
+      const createdChildren: BillRecord[] = []
+      for (let i = 0; i < builtSpecs.length; i += 1) {
+        const spec = builtSpecs[i]!
+        const meta = childInitMeta[i]!
+
+        await counterTable.put({
+          key: billSeqCounterKey(meta.childId),
+          register_id: env.device.register_id,
+          doc_type: 'BILL_SEQ',
+          period: null,
+          last_seq: 1,
+          updated_at: env.createdAtDevice,
+        })
+
+        const childRecord: BillRecord = {
+          id: meta.childId,
+          tenant_id: parent.tenant_id,
+          outlet_id: parent.outlet_id,
+          register_id: env.device.register_id,
+          device_id: env.device.device_id,
+          table_id: meta.tableId,
+          bill_ref: meta.childRef,
+          status: 'OPEN',
+          lease_device_id: env.device.device_id,
+          lease_register_id: env.device.register_id,
+          handover_status: 'NONE',
+          handover_target_register_id: null,
+          handover_event_id: null,
+          handover_requested_at: null,
+          prebill_seq: null,
+          prebill_printed_at: null,
+          last_content_seq: 1,
+          is_awaiting_payment: false,
+          split_mode: input.splitMode,
+          parent_bill_id: parent.id,
+          share_index: input.splitMode === 'EQUAL' ? i + 1 : null,
+          share_count: input.splitMode === 'EQUAL' ? builtSpecs.length : null,
+          bill_discount_type: parent.bill_discount_type,
+          bill_discount_pct: parent.bill_discount_pct,
+          bill_discount_input:
+            parent.bill_discount_type === 'NOMINAL' ? (childBillDiscounts[i] ?? 0) : null,
+          bill_discount_approved_by: parent.bill_discount_approved_by,
+          customer_name: spec.customer_name ?? null,
+          customer_phone: spec.customer_phone ?? null,
+          last_event_seq: 1,
+          last_event_at: env.occurredAt,
+          created_by: input.staffId,
+          created_at_device: env.createdAtDevice,
+          occurred_at: env.occurredAt,
+          business_date: env.businessDate,
+          closed_at: null,
+          sync_status: 'PENDING',
+        }
+        await billTable.put(childRecord)
+        createdChildren.push(childRecord)
+
+        await eventTable.add({
+          id: meta.childEventId,
+          bill_id: meta.childId,
+          bill_seq: 1,
+          device_id: env.device.device_id,
+          register_id: env.device.register_id,
+          device_seq: meta.childDeviceSeq,
+          staff_id: input.staffId,
+          event_type: 'BILL_OPENED',
+          payload: { table_id: meta.tableId, bill_ref: meta.childRef },
+          reason_code: null,
+          reason_text: null,
+          created_at_device: env.createdAtDevice,
+          clock_offset_ms: env.offsetMs,
+          occurred_at: env.occurredAt,
+          business_date: env.businessDate,
+          schema_version: SCHEMA_VERSION,
+          app_version: env.appVersion,
+        })
+
+        for (const sp of spec.items) {
+          const src = activeItems.get(sp.source_bill_item_id)!
+          const newItem: BillItemRecord = {
+            id: sp.item_id,
+            bill_id: meta.childId,
+            line_no: sp.line_no,
+            product_id: src.product_id ?? null,
+            sku_id: src.sku_id,
+            uom_id: src.uom_id,
+            sku_code: src.sku_code,
+            item_name: src.item_name,
+            uom_code: src.uom_code,
+            qty: sp.qty,
+            conversion_factor: src.conversion_factor,
+            unit_price: src.unit_price,
+            price_source: src.price_source,
+            is_open_price: src.is_open_price,
+            taxable: src.taxable,
+            discount_type: src.discount_type,
+            discount_pct: src.discount_pct,
+            discount_input: src.discount_type === 'NOMINAL' ? (specLineDisc.get(sp.item_id) ?? 0) : null,
+            discount_approved_by: src.discount_approved_by,
+            note: src.note,
+            status: 'ACTIVE',
+            void_reason_code: null,
+            void_reason_text: null,
+            created_event_id: meta.childEventId,
+          }
+          await itemTable.put(newItem)
+
+          const mods = modsByParentItem.get(src.id) ?? []
+          if (mods.length > 0) {
+            await modTable.bulkPut(
+              mods.map((m) => ({
+                id: `${sp.item_id}:${m.modifier_id}`,
+                bill_item_id: sp.item_id,
+                modifier_id: m.modifier_id,
+                name: m.name,
+                price_delta: m.price_delta,
+                qty: m.qty,
+              })),
+            )
+          }
+        }
+      }
+
+      const cmdId = env.newId()
+      const payload: AppendBillEventsPayloadV1 = {
+        bill_id: parent.id,
+        events: [splitEvt],
+      }
+      await enqueueCommand(tx, {
+        id: cmdId,
+        type: 'AppendBillEvents',
+        payload,
+        schemaVersion: SCHEMA_VERSION,
+        registerId: env.device.register_id,
+        dependencyKey: `bill:${parent.id}`,
+        createdAtDevice: env.createdAtDevice,
+      })
+
+      return { parent: updatedParent, children: createdChildren, event: splitEvt }
+    },
+  ).then((res) => {
+    kickActiveSync()
+    return res
+  })
+}
+
+/**
+ * Atomically merges one or more open bills held by this device into `targetBillId`,
+ * consolidating identical items via `mergeSimilarItems` and enqueuing `BILL_MERGED`.
+ */
+export async function mergeBillsLocal(
+  db: SolvaDb,
+  input: {
+    targetBillId: string
+    sourceBillIds: readonly string[]
+    staffId: string
+  },
+  deps: BillMutationDeps = {},
+): Promise<{ target: BillRecord; event: BillEventEnvelopeV1 }> {
+  const uniqueSources = [...new Set(input.sourceBillIds)].filter((id) => id !== input.targetBillId)
+  if (uniqueSources.length === 0) {
+    throw new BillRepoError('CANNOT_EDIT', 'Merge requires at least one source bill')
+  }
+  const env = await readEnvForBillAction(db, deps)
+
+  return db.transaction(
+    'rw',
+    [db.bill, db.bill_item, db.bill_item_modifier, db.bill_event, db.outbox_command, db.local_counter],
+    async (tx) => {
+      const billTable: Table<BillRecord, string> = tx.table('bill')
+      const itemTable: Table<BillItemRecord, string> = tx.table('bill_item')
+      const modTable: Table<BillItemModifierRecord, string> = tx.table('bill_item_modifier')
+      const eventTable: Table<BillEventRecord, string> = tx.table('bill_event')
+
+      const target = await billTable.get(input.targetBillId)
+      if (!target) throw new BillRepoError('BILL_NOT_FOUND', 'Target bill not found')
+      const editTarget = canEditBill(target, env.device.device_id)
+      if (!editTarget.ok || target.parent_bill_id !== null) {
+        throw new BillRepoError('CANNOT_EDIT', 'Target bill cannot be merged')
+      }
+
+      const targetItems = await itemTable.where('bill_id').equals(target.id).toArray()
+      const targetMods =
+        targetItems.length > 0
+          ? await modTable.where('bill_item_id').anyOf(targetItems.map((i) => i.id)).toArray()
+          : []
+      const modsByItem = new Map<string, BillItemModifierRecord[]>()
+      for (const m of targetMods) {
+        const arr = modsByItem.get(m.bill_item_id) ?? []
+        arr.push(m)
+        modsByItem.set(m.bill_item_id, arr)
+      }
+
+      const toProjItem = (
+        it: BillItemRecord,
+        mods: readonly BillItemModifierRecord[],
+      ): BillProjectionItem => ({
+        id: it.id,
+        lineNo: it.line_no,
+        skuId: it.sku_id,
+        uomId: it.uom_id,
+        skuCode: it.sku_code,
+        itemName: it.item_name,
+        uomCode: it.uom_code,
+        qty: it.qty,
+        conversionFactor: it.conversion_factor,
+        unitPrice: it.unit_price,
+        priceSource: it.price_source,
+        isOpenPrice: it.is_open_price,
+        taxable: it.taxable,
+        discountType: it.discount_type,
+        discountPct: it.discount_pct,
+        discountInput: it.discount_input,
+        discountApprovedBy: it.discount_approved_by,
+        note: it.note,
+        status: it.status,
+        voidReasonCode: it.void_reason_code ?? null,
+        voidReasonText: it.void_reason_text ?? null,
+        createdEventId: it.created_event_id,
+        modifiers: mods.map((m) => ({
+          modifierId: m.modifier_id,
+          name: m.name,
+          priceDelta: m.price_delta,
+          qty: m.qty,
+        })),
+      })
+
+      const incoming: {
+        originBillId: string
+        originItemId: string
+        newItemId: string
+        item: BillProjectionItem
+        productId: string | null
+      }[] = []
+      const movedItemTargets: Record<string, string> = {}
+      const sourceEventIds: Record<string, string> = {}
+      const sourceDeviceSeqs: Record<string, number> = {}
+      const dependsOnIds: string[] = []
+      const sourcesToClose: { bill: BillRecord; activeIds: string[]; seq: number }[] = []
+
+      for (const srcId of uniqueSources) {
+        const src = await billTable.get(srcId)
+        if (!src) throw new BillRepoError('BILL_NOT_FOUND', `Source bill ${srcId} not found`)
+        const editSrc = canEditBill(src, env.device.device_id)
+        if (!editSrc.ok || src.parent_bill_id !== null) {
+          throw new BillRepoError('CANNOT_EDIT', `Source bill ${src.bill_ref} cannot be merged`)
+        }
+
+        const srcItems = await itemTable.where('bill_id').equals(srcId).toArray()
+        const srcMods =
+          srcItems.length > 0
+            ? await modTable.where('bill_item_id').anyOf(srcItems.map((i) => i.id)).toArray()
+            : []
+        const srcModMap = new Map<string, BillItemModifierRecord[]>()
+        for (const m of srcMods) {
+          const arr = srcModMap.get(m.bill_item_id) ?? []
+          arr.push(m)
+          srcModMap.set(m.bill_item_id, arr)
+        }
+
+        const activeIds: string[] = []
+        for (const it of srcItems) {
+          if (it.status !== 'ACTIVE') continue
+          activeIds.push(it.id)
+          const newId = env.newId()
+          movedItemTargets[it.id] = newId
+          incoming.push({
+            originBillId: srcId,
+            originItemId: it.id,
+            newItemId: newId,
+            productId: it.product_id ?? null,
+            item: toProjItem(it, srcModMap.get(it.id) ?? []),
+          })
+        }
+
+        sourceEventIds[srcId] = env.newId()
+        sourceDeviceSeqs[srcId] = await nextSeq(tx, DEVICE_SEQ_KEY, {
+          registerId: env.device.register_id,
+          updatedAt: env.createdAtDevice,
+        })
+        const nextSrcSeq = await nextSeq(tx, billSeqCounterKey(srcId), {
+          registerId: env.device.register_id,
+          docType: 'BILL_SEQ',
+          updatedAt: env.createdAtDevice,
+        })
+        sourcesToClose.push({ bill: src, activeIds, seq: nextSrcSeq })
+
+        const srcPending = await tx
+          .table<OutboxCommandRow, string>('outbox_command')
+          .where('dependency_key')
+          .equals(`bill:${srcId}`)
+          .toArray()
+        const latestSrc = srcPending
+          .filter((c) => c.status !== 'ACKED' && c.status !== 'DISMISSED')
+          .sort((a, b) => b.device_seq - a.device_seq)[0]
+        if (latestSrc) dependsOnIds.push(latestSrc.id)
+      }
+
+      const targetSeq = await nextSeq(tx, billSeqCounterKey(target.id), {
+        registerId: env.device.register_id,
+        docType: 'BILL_SEQ',
+        updatedAt: env.createdAtDevice,
+      })
+      const targetDevSeq = await nextSeq(tx, DEVICE_SEQ_KEY, {
+        registerId: env.device.register_id,
+        updatedAt: env.createdAtDevice,
+      })
+      const mergeEvt: BillEventEnvelopeV1 = {
+        id: env.newId(),
+        bill_id: target.id,
+        bill_seq: targetSeq,
+        device_id: env.device.device_id,
+        register_id: env.device.register_id,
+        device_seq: targetDevSeq,
+        staff_id: input.staffId,
+        event_type: 'BILL_MERGED',
+        payload: {
+          source_bill_ids: uniqueSources,
+          source_event_ids: sourceEventIds,
+          source_device_seqs: sourceDeviceSeqs,
+          moved_item_targets: movedItemTargets,
+        },
+        created_at_device: env.createdAtDevice,
+        clock_offset_ms: env.offsetMs,
+        occurred_at: env.occurredAt,
+        business_date: env.businessDate,
+        schema_version: SCHEMA_VERSION,
+        app_version: env.appVersion,
+      }
+
+      await eventTable.add({
+        id: mergeEvt.id,
+        bill_id: mergeEvt.bill_id,
+        bill_seq: mergeEvt.bill_seq,
+        device_id: mergeEvt.device_id,
+        register_id: mergeEvt.register_id,
+        device_seq: mergeEvt.device_seq,
+        staff_id: mergeEvt.staff_id,
+        event_type: mergeEvt.event_type,
+        payload: mergeEvt.payload,
+        reason_code: null,
+        reason_text: null,
+        created_at_device: mergeEvt.created_at_device,
+        clock_offset_ms: mergeEvt.clock_offset_ms,
+        occurred_at: mergeEvt.occurred_at,
+        business_date: mergeEvt.business_date,
+        schema_version: mergeEvt.schema_version,
+        app_version: mergeEvt.app_version ?? null,
+      })
+
+      const targetProjItems = targetItems.map((it) => toProjItem(it, modsByItem.get(it.id) ?? []))
+      const merged = mergeSimilarItems(targetProjItems, incoming)
+      const incomingByNewId = new Map(incoming.map((inc) => [inc.newItemId, inc] as const))
+
+      for (const upd of merged.updatedExisting) {
+        await itemTable.update(upd.id, { qty: upd.nextQty })
+      }
+      for (const added of merged.insertedNew) {
+        const incMeta = incomingByNewId.get(added.id)
+        await itemTable.put({
+          id: added.id,
+          bill_id: target.id,
+          line_no: added.lineNo,
+          product_id: incMeta?.productId ?? null,
+          sku_id: added.skuId,
+          uom_id: added.uomId,
+          sku_code: added.skuCode,
+          item_name: added.itemName,
+          uom_code: added.uomCode,
+          qty: added.qty,
+          conversion_factor: added.conversionFactor,
+          unit_price: added.unitPrice,
+          price_source: added.priceSource,
+          is_open_price: added.isOpenPrice,
+          taxable: added.taxable,
+          discount_type: added.discountType,
+          discount_pct: added.discountPct,
+          discount_input: added.discountInput,
+          discount_approved_by: added.discountApprovedBy,
+          note: added.note,
+          status: 'ACTIVE',
+          void_reason_code: null,
+          void_reason_text: null,
+          created_event_id: mergeEvt.id,
+        })
+        if (added.modifiers.length > 0) {
+          await modTable.bulkPut(
+            added.modifiers.map((m) => ({
+              id: `${added.id}:${m.modifierId}`,
+              bill_item_id: added.id,
+              modifier_id: m.modifierId,
+              name: m.name,
+              price_delta: m.priceDelta,
+              qty: m.qty,
+            })),
+          )
+        }
+      }
+
+      for (const sc of sourcesToClose) {
+        for (const itemId of sc.activeIds) {
+          await itemTable.update(itemId, { status: 'MOVED' })
+        }
+        await billTable.update(sc.bill.id, {
+          status: 'MERGED',
+          handover_status: 'NONE',
+          handover_target_register_id: null,
+          handover_event_id: null,
+          handover_requested_at: null,
+          last_event_seq: sc.seq,
+          last_event_at: env.occurredAt,
+          closed_at: env.occurredAt,
+          sync_status: 'PENDING',
+        })
+      }
+
+      const updatedTarget: BillRecord = {
+        ...target,
+        last_content_seq: targetSeq,
+        last_event_seq: targetSeq,
+        last_event_at: env.occurredAt,
+        sync_status: 'PENDING',
+      }
+      await billTable.put(updatedTarget)
+
+      const cmdId = env.newId()
+      const payload: AppendBillEventsPayloadV1 = {
+        bill_id: target.id,
+        events: [mergeEvt],
+      }
+      await enqueueCommand(tx, {
+        id: cmdId,
+        type: 'AppendBillEvents',
+        payload,
+        schemaVersion: SCHEMA_VERSION,
+        registerId: env.device.register_id,
+        dependencyKey: `bill:${target.id}`,
+        ...(dependsOnIds.length > 0 ? { dependsOn: dependsOnIds } : {}),
+        createdAtDevice: env.createdAtDevice,
+      })
+
+      return { target: updatedTarget, event: mergeEvt }
+    },
+  ).then((res) => {
+    kickActiveSync()
+    return res
+  })
 }

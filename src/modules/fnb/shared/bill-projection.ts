@@ -1,3 +1,4 @@
+import { addQty, parseQty } from '~/lib/kernel'
 import type {
   BillHandoverStatus,
   BillItemStatus,
@@ -467,7 +468,20 @@ export function applyBillEvent(
       }
     }
 
-    case 'BILL_SPLIT':
+    case 'BILL_SPLIT': {
+      return {
+        ...state,
+        status: 'SPLIT',
+        handoverStatus: 'NONE',
+        handoverTargetRegisterId: null,
+        handoverEventId: null,
+        handoverRequestedAt: null,
+        lastEventSeq: evt.bill_seq,
+        lastEventAt: evt.occurred_at,
+        appliedEventIds: nextApplied,
+      }
+    }
+
     case 'BILL_MERGED': {
       return {
         ...state,
@@ -476,6 +490,103 @@ export function applyBillEvent(
         appliedEventIds: nextApplied,
       }
     }
+  }
+}
+
+export function similarBillItemKey(item: {
+  skuId: string
+  uomId: string
+  unitPrice: number
+  priceSource: PriceSource
+  isOpenPrice: boolean
+  taxable: boolean
+  discountType: DiscountType | null
+  discountPct: string | null
+  discountInput: number | null
+  note: string | null
+  modifiers: readonly BillProjectionItemModifier[]
+}): string {
+  const modsKey = [...item.modifiers]
+    .sort((a, b) => a.modifierId.localeCompare(b.modifierId))
+    .map((m) => `${m.modifierId}:${m.qty}:${m.priceDelta}`)
+    .join('|')
+  return [
+    item.skuId,
+    item.uomId,
+    item.unitPrice,
+    item.priceSource,
+    item.isOpenPrice ? '1' : '0',
+    item.taxable ? '1' : '0',
+    item.discountType ?? '',
+    item.discountPct ?? '',
+    item.discountInput ?? '',
+    item.note ?? '',
+    modsKey,
+  ].join('::')
+}
+
+export interface MergedTargetResult {
+  readonly nextTargetItems: readonly BillProjectionItem[]
+  readonly updatedExisting: readonly { readonly id: string; readonly nextQty: string }[]
+  readonly insertedNew: readonly BillProjectionItem[]
+}
+
+/**
+ * Pure line consolidation used by BILL_MERGED on both client and server:
+ * identical SKU, UOM, unit price, discount, note, and canonical modifiers fold by adding `qty`.
+ */
+export function mergeSimilarItems(
+  targetItems: readonly BillProjectionItem[],
+  incomingItems: readonly {
+    readonly originBillId: string
+    readonly originItemId: string
+    readonly newItemId: string
+    readonly item: BillProjectionItem
+  }[],
+): MergedTargetResult {
+  const byKey = new Map<string, BillProjectionItem>()
+  const nextList: BillProjectionItem[] = []
+  let maxLineNo = 0
+
+  for (const existing of targetItems) {
+    maxLineNo = Math.max(maxLineNo, existing.lineNo)
+    nextList.push(existing)
+    if (existing.status === 'ACTIVE') {
+      byKey.set(similarBillItemKey(existing), existing)
+    }
+  }
+
+  const updatedById = new Map<string, string>()
+  const insertedNew: BillProjectionItem[] = []
+
+  for (const inc of incomingItems) {
+    if (inc.item.status !== 'ACTIVE') continue
+    const key = similarBillItemKey(inc.item)
+    const match = byKey.get(key)
+    if (match) {
+      const mergedQty = addQty(parseQty(match.qty), parseQty(inc.item.qty))
+      const updatedMatch: BillProjectionItem = { ...match, qty: mergedQty }
+      byKey.set(key, updatedMatch)
+      updatedById.set(match.id, mergedQty)
+      const idx = nextList.findIndex((x) => x.id === match.id)
+      if (idx >= 0) nextList[idx] = updatedMatch
+    } else {
+      maxLineNo += 1
+      const added: BillProjectionItem = {
+        ...inc.item,
+        id: inc.newItemId,
+        lineNo: maxLineNo,
+      }
+      nextList.push(added)
+      insertedNew.push(added)
+      byKey.set(key, added)
+    }
+  }
+
+  return {
+    nextTargetItems: nextList,
+    updatedExisting: [...updatedById.entries()].map(([id, nextQty]) => ({ id, nextQty })),
+    insertedNew,
   }
 }
 

@@ -7,6 +7,8 @@ import {
   emptyBill,
   foldBillEvents,
   isAwaitingPayment,
+  mergeSimilarItems,
+  type BillProjectionItem,
 } from './bill-projection'
 
 const BILL_ID = '01950000-0000-7000-8000-000000000101'
@@ -226,5 +228,56 @@ describe('fnb/shared/bill-projection (BR-FNB-005/008/010/012)', () => {
       ),
       { numRuns: 100 },
     )
+  })
+
+  it('mergeSimilarItems folds identical SKU+price+modifiers+discount and keeps distinct lines separate', () => {
+    const baseItem = (over: Partial<BillProjectionItem>): BillProjectionItem => ({
+      id: 'i-base',
+      lineNo: 1,
+      skuId: SKU_NG,
+      uomId: UOM_ID,
+      skuCode: 'NASGOR',
+      itemName: 'Nasi Goreng',
+      uomCode: 'pcs',
+      qty: '1',
+      conversionFactor: '1',
+      unitPrice: 40000,
+      priceSource: 'TENANT_DEFAULT',
+      isOpenPrice: false,
+      taxable: true,
+      discountType: null,
+      discountPct: null,
+      discountInput: null,
+      discountApprovedBy: null,
+      note: null,
+      status: 'ACTIVE',
+      voidReasonCode: null,
+      voidReasonText: null,
+      createdEventId: 'e-1',
+      modifiers: [{ modifierId: MOD_1, name: 'Extra Telur', priceDelta: 5000, qty: 1 }],
+      ...over,
+    })
+
+    const target = [baseItem({ id: 't1', lineNo: 1, qty: '2' })]
+    const incoming = [
+      {
+        originBillId: 'b-src',
+        originItemId: 's1',
+        newItemId: 'n1',
+        item: baseItem({ id: 's1', lineNo: 1, qty: '1' }),
+      },
+      {
+        originBillId: 'b-src',
+        originItemId: 's2',
+        newItemId: 'n2',
+        item: baseItem({ id: 's2', lineNo: 2, qty: '1', note: 'Pedas' }),
+      },
+    ]
+
+    const res = mergeSimilarItems(target, incoming)
+    expect(res.updatedExisting).toEqual([{ id: 't1', nextQty: '3' }])
+    expect(res.insertedNew).toHaveLength(1)
+    expect(res.insertedNew[0]?.id).toBe('n2')
+    expect(res.insertedNew[0]?.lineNo).toBe(2)
   })
 })

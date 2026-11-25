@@ -440,6 +440,34 @@ export async function exportReportCsv(
       r.customerPhone,
     ])
   }
+  for (const r of res.sections.orphanBills) {
+    rows.push([
+      'ORPHAN_BILL',
+      r.outletCode,
+      r.lastEventAt.slice(0, 10),
+      r.billRef,
+      r.tableCode,
+      r.leaseDeviceName,
+      String(r.itemCount),
+      r.estimatedTotal,
+      r.deviceRevokedAt ? `revoked=${r.deviceRevokedAt.slice(0, 10)}` : `ageHours=${r.ageHours}`,
+      null,
+    ])
+  }
+  for (const r of res.sections.duplicateBills) {
+    rows.push([
+      'BILL_GANDA_MEJA',
+      r.outletCode,
+      r.businessDate,
+      r.billRef ?? r.billId,
+      r.tableCode ?? '',
+      r.leaseDeviceName ?? '',
+      String(r.openCount),
+      null,
+      r.billStatus ?? '',
+      null,
+    ])
+  }
 
   return {
     filename,

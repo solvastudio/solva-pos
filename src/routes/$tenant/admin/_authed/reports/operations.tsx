@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BillReportTable } from '~/components/admin/fnb/BillReportTable'
 import { DataTableCmp10 } from '~/components/admin/reports/DataTableCmp10'
 import { ReportBusy } from '~/components/admin/reports/ReportBusy'
 import { ReportFilters } from '~/components/admin/reports/ReportFilters'
@@ -471,6 +472,24 @@ function AdminOperationsReportPage() {
                 getRowKey={(r) => r.saleLineId}
                 emptyTitle={t('admin.report.ops.emptyTitle')}
               />
+            </div>
+          ),
+        },
+        {
+          value: 'orphanBills',
+          label: t('admin.report.ops.tabOrphanBills', { count: sec.orphanBills.length }),
+          content: (
+            <div className="mt-4">
+              <BillReportTable mode="ORPHAN" orphanRows={sec.orphanBills} />
+            </div>
+          ),
+        },
+        {
+          value: 'duplicateBills',
+          label: t('admin.report.ops.tabDuplicateBills', { count: sec.duplicateBills.length }),
+          content: (
+            <div className="mt-4">
+              <BillReportTable mode="DUPLICATE" duplicateRows={sec.duplicateBills} />
             </div>
           ),
         },

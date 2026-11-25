@@ -1,6 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { webcrypto } from 'node:crypto'
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type {
   BillHandoverStatus,
   BillItemStatus,
@@ -44,7 +44,11 @@ export interface BillRow {
   readonly prebillSeq: number | null
   readonly prebillPrintedAt: string | null
   readonly lastContentSeq: number
+  readonly parentBillId: string | null
   readonly splitMode: BillSplitMode | null
+  readonly shareIndex: number | null
+  readonly shareCount: number | null
+  readonly mergedIntoBillId: string | null
   readonly billDiscountType: DiscountType | null
   readonly billDiscountPct: string | null
   readonly billDiscountInput: number | null
@@ -73,7 +77,11 @@ function mapBillRow(r: typeof bill.$inferSelect): BillRow {
     prebillSeq: r.prebillSeq,
     prebillPrintedAt: r.prebillPrintedAt,
     lastContentSeq: r.lastContentSeq,
+    parentBillId: r.parentBillId,
     splitMode: (r.splitMode as BillSplitMode | null) ?? null,
+    shareIndex: r.shareIndex,
+    shareCount: r.shareCount,
+    mergedIntoBillId: r.mergedIntoBillId,
     billDiscountType: (r.billDiscountType as DiscountType | null) ?? null,
     billDiscountPct: r.billDiscountPct,
     billDiscountInput: r.billDiscountInput,
@@ -84,6 +92,10 @@ function mapBillRow(r: typeof bill.$inferSelect): BillRow {
     lastEventAt: r.lastEventAt,
     closedAt: r.closedAt,
   }
+}
+
+export function newBillRepoId(): string {
+  return billRepoIdGen.newId()
 }
 
 export async function lockBillForUpdate(
@@ -98,6 +110,29 @@ export async function lockBillForUpdate(
     .for('update')
     .limit(1)
   return rows[0] ? mapBillRow(rows[0]) : null
+}
+
+/**
+ * Locks multiple bills in deterministic ascending UUID order to avoid cross-transaction deadlocks.
+ */
+export async function lockBillsForUpdate(
+  tx: TenantTx,
+  tenantId: string,
+  billIds: readonly string[],
+): Promise<Map<string, BillRow>> {
+  const sorted = [...new Set(billIds)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  const out = new Map<string, BillRow>()
+  if (sorted.length === 0) return out
+  const rows = await tx
+    .select()
+    .from(bill)
+    .where(and(eq(bill.tenantId, tenantId), inArray(bill.id, sorted)))
+    .orderBy(asc(bill.id))
+    .for('update')
+  for (const r of rows) {
+    out.set(r.id, mapBillRow(r))
+  }
+  return out
 }
 
 export async function readBillLastEventSeq(
@@ -513,8 +548,9 @@ export async function countOpenBillsOnTable(
   outletId: string,
   tableId: string,
 ): Promise<number> {
+  // Siblings sharing the same parent_bill_id are split bills, not accidental duplicate bills.
   const res = await tx.execute<{ cnt: number }>(sql`
-    SELECT count(*)::int AS cnt
+    SELECT count(DISTINCT COALESCE(parent_bill_id, id))::int AS cnt
     FROM bill
     WHERE tenant_id = ${tenantId}::uuid
       AND outlet_id = ${outletId}::uuid
@@ -610,9 +646,21 @@ export async function getBillForPayment(
   readonly leaseRegisterId: string
   readonly handoverStatus: string
   readonly splitMode: string | null
+  readonly parentBillId: string | null
+  readonly shareIndex: number | null
+  readonly shareCount: number | null
+  readonly siblingBillIds: readonly string[]
 } | null> {
   const row = await lockBillForUpdate(tx, tenantId, billId)
   if (!row) return null
+  let siblingBillIds: string[] = []
+  if (row.parentBillId !== null) {
+    const siblings = await tx
+      .select({ id: bill.id })
+      .from(bill)
+      .where(and(eq(bill.tenantId, tenantId), eq(bill.parentBillId, row.parentBillId)))
+    siblingBillIds = siblings.map((s) => s.id)
+  }
   return {
     id: row.id,
     outletId: row.outletId,
@@ -622,6 +670,10 @@ export async function getBillForPayment(
     leaseRegisterId: row.leaseRegisterId,
     handoverStatus: row.handoverStatus,
     splitMode: row.splitMode,
+    parentBillId: row.parentBillId,
+    shareIndex: row.shareIndex,
+    shareCount: row.shareCount,
+    siblingBillIds,
   }
 }
 
@@ -631,7 +683,7 @@ export async function markBillPaid(
   billId: string,
   nowIso: string,
 ): Promise<void> {
-  await tx
+  const updated = await tx
     .update(bill)
     .set({
       status: 'PAID',
@@ -639,6 +691,44 @@ export async function markBillPaid(
       lastEventAt: nowIso,
     })
     .where(and(eq(bill.tenantId, tenantId), eq(bill.id, billId)))
+    .returning({ parentBillId: bill.parentBillId })
+
+  const parentBillId = updated[0]?.parentBillId ?? null
+  if (parentBillId !== null) {
+    await closeSplitParentIfAllChildrenSettled(tx, tenantId, parentBillId, nowIso)
+  }
+}
+
+export async function closeSplitParentIfAllChildrenSettled(
+  tx: TenantTx,
+  tenantId: string,
+  parentBillId: string,
+  nowIso: string,
+): Promise<boolean> {
+  const parentRow = await lockBillForUpdate(tx, tenantId, parentBillId)
+  if (!parentRow || parentRow.status !== 'SPLIT') {
+    return false
+  }
+  const openCountRes = await tx.execute<{ cnt: number }>(sql`
+    SELECT count(*)::int AS cnt
+    FROM bill
+    WHERE tenant_id = ${tenantId}::uuid
+      AND parent_bill_id = ${parentBillId}::uuid
+      AND status = 'OPEN'
+  `)
+  const remainingOpen = Number(openCountRes.rows[0]?.cnt ?? 0)
+  if (remainingOpen > 0) {
+    return false
+  }
+  await tx
+    .update(bill)
+    .set({
+      status: 'CLOSED_BY_SPLIT',
+      closedAt: nowIso,
+      lastEventAt: nowIso,
+    })
+    .where(and(eq(bill.tenantId, tenantId), eq(bill.id, parentBillId)))
+  return true
 }
 
 export function envelopeToInsertRow(

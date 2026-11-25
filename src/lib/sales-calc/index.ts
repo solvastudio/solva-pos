@@ -8,6 +8,13 @@ export {
 export { calcAndSettle, type CalcAndSettleResult } from './full-sale'
 export { calcLineDiscount, calcLineGross, parsePercentScaled4 } from './line'
 export { settlePayments, type SettlePaymentsInput } from './payment'
+export {
+  calcEqualSplit,
+  calcGroupSplit,
+  type EqualSplitResult,
+  type EqualSplitShare,
+  type GroupSplitResult,
+} from './split'
 export { calcCreditNote, calcReturnLine, isWithinReturnWindow } from './return'
 export { cashVariance, expectedCash } from './shift-cash'
 export { selectTaxRate } from './tax-rate'

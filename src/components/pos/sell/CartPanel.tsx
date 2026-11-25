@@ -112,7 +112,7 @@ export function CartPanel({
                 lineNet={lineCalc?.lineNet ?? line.unitPrice}
                 lineDiscount={toMoney(lineCalc?.lineDiscount ?? 0)}
                 selected={line.id === selectedLineId}
-                uomOptions={uomOptionsBySku.get(line.skuId) ?? []}
+                uomOptions={uomOptionsBySku.get(line.skuId ?? '') ?? []}
                 onSelect={() => onSelectLine(line.id)}
                 onIncrement={() => onIncrementLine(line.id)}
                 onDecrement={() => onDecrementLine(line.id)}

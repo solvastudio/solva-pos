@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BILL_EVENT_TYPE, DISCOUNT_TYPE, PRICE_SOURCE } from '../enums'
+import { BILL_EVENT_TYPE, BILL_SPLIT_MODE, DISCOUNT_TYPE, PRICE_SOURCE } from '../enums'
 import {
   zBusinessDate,
   zIso,
@@ -185,6 +185,147 @@ export const BillHandoverCanceledPayloadSchema = z
   })
   .strict()
 
+export const BillSplitChildItemSpecSchema = z
+  .object({
+    item_id: zUuid,
+    source_bill_item_id: zUuid,
+    line_no: zSafePosInt,
+    qty: zQtyPositive,
+  })
+  .strict()
+
+export const BillSplitChildSpecSchema = z
+  .object({
+    child_bill_id: zUuid,
+    child_event_id: zUuid.optional(),
+    child_device_seq: zSafePosInt.optional(),
+    child_bill_ref: z.string().min(1).max(30),
+    table_id: zUuid.optional(),
+    share_index: zSafePosInt.nullable().optional(),
+    share_count: zSafePosInt.nullable().optional(),
+    customer_name: z.string().max(80).nullable().optional(),
+    customer_phone: z.string().max(20).nullable().optional(),
+    items: z.array(BillSplitChildItemSpecSchema).default([]),
+    discount: BillItemDiscountInputSchema.nullable().optional(),
+  })
+  .strict()
+
+export const BillSplitPayloadSchema = z
+  .object({
+    split_mode: z.enum(BILL_SPLIT_MODE),
+    children: z.array(BillSplitChildSpecSchema).min(2).max(12),
+  })
+  .strict()
+  .superRefine((p, ctx) => {
+    const childIds = new Set<string>()
+    const childRefs = new Set<string>()
+    const itemSplitSourceIds = new Set<string>()
+    for (let i = 0; i < p.children.length; i += 1) {
+      const c = p.children[i]!
+      if (childIds.has(c.child_bill_id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['children', i, 'child_bill_id'],
+          message: 'Duplicate child_bill_id in BILL_SPLIT',
+        })
+      }
+      childIds.add(c.child_bill_id)
+
+      if (childRefs.has(c.child_bill_ref)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['children', i, 'child_bill_ref'],
+          message: 'Duplicate child_bill_ref in BILL_SPLIT',
+        })
+      }
+      childRefs.add(c.child_bill_ref)
+
+      if (p.split_mode === 'EQUAL') {
+        if (c.share_index !== i + 1 || c.share_count !== p.children.length) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['children', i, 'share_index'],
+            message: 'EQUAL split requires share_index = index + 1 and share_count = children.length',
+          })
+        }
+        if (c.items.length > 0) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['children', i, 'items'],
+            message: 'EQUAL split children cannot contain item partitions',
+          })
+        }
+      } else {
+        if (c.share_index !== null && c.share_index !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['children', i, 'share_index'],
+            message: 'Non-EQUAL split must leave share_index null',
+          })
+        }
+        if (c.share_count !== null && c.share_count !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['children', i, 'share_count'],
+            message: 'Non-EQUAL split must leave share_count null',
+          })
+        }
+        if (c.items.length === 0) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['children', i, 'items'],
+            message: 'ITEM/QTY split child must contain at least one item',
+          })
+        }
+        const seenChildSrc = new Set<string>()
+        for (let j = 0; j < c.items.length; j += 1) {
+          const it = c.items[j]!
+          if (seenChildSrc.has(it.source_bill_item_id)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['children', i, 'items', j, 'source_bill_item_id'],
+              message: 'Duplicate source_bill_item_id inside same child',
+            })
+          }
+          seenChildSrc.add(it.source_bill_item_id)
+          if (p.split_mode === 'ITEM') {
+            if (itemSplitSourceIds.has(it.source_bill_item_id)) {
+              ctx.addIssue({
+                code: 'custom',
+                path: ['children', i, 'items', j, 'source_bill_item_id'],
+                message: 'ITEM split cannot move same source_bill_item_id to multiple children',
+              })
+            }
+            itemSplitSourceIds.add(it.source_bill_item_id)
+          }
+        }
+      }
+    }
+  })
+
+export const BillMergedPayloadSchema = z
+  .object({
+    source_bill_ids: z.array(zUuid).min(1).max(10),
+    source_event_ids: z.record(zUuid, zUuid).optional(),
+    source_device_seqs: z.record(zUuid, zSafePosInt).optional(),
+    moved_item_targets: z.record(zUuid, zUuid).optional(),
+  })
+  .strict()
+  .superRefine((p, ctx) => {
+    const seen = new Set<string>()
+    for (let i = 0; i < p.source_bill_ids.length; i += 1) {
+      const id = p.source_bill_ids[i]!
+      if (seen.has(id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['source_bill_ids', i],
+          message: 'Duplicate source_bill_id in BILL_MERGED',
+        })
+      }
+      seen.add(id)
+    }
+  })
+
 export const BILL_EVENT_PAYLOAD_SCHEMAS = {
   BILL_OPENED: BillOpenedPayloadSchema,
   ITEM_ADDED: ItemAddedPayloadSchema,
@@ -199,9 +340,8 @@ export const BILL_EVENT_PAYLOAD_SCHEMAS = {
   BILL_HANDED_OVER: BillHandedOverPayloadSchema,
   BILL_ACCEPTED: BillAcceptedPayloadSchema,
   BILL_HANDOVER_CANCELED: BillHandoverCanceledPayloadSchema,
-  // Full split/merge payload schemas are introduced in Phase 58.
-  BILL_SPLIT: z.record(z.string(), z.unknown()),
-  BILL_MERGED: z.record(z.string(), z.unknown()),
+  BILL_SPLIT: BillSplitPayloadSchema,
+  BILL_MERGED: BillMergedPayloadSchema,
 } as const
 
 export const BillEventEnvelopeV1Schema = z
@@ -341,6 +481,10 @@ export type ModifierSetPayload = z.infer<typeof ModifierSetPayloadSchema>
 export type CustomerSetPayload = z.infer<typeof CustomerSetPayloadSchema>
 export type TableSetPayload = z.infer<typeof TableSetPayloadSchema>
 export type DiscountSetPayload = z.infer<typeof DiscountSetPayloadSchema>
+export type BillSplitChildItemSpec = z.infer<typeof BillSplitChildItemSpecSchema>
+export type BillSplitChildSpec = z.infer<typeof BillSplitChildSpecSchema>
+export type BillSplitPayload = z.infer<typeof BillSplitPayloadSchema>
+export type BillMergedPayload = z.infer<typeof BillMergedPayloadSchema>
 export type BillEventEnvelopeV1 = z.infer<typeof BillEventEnvelopeV1Schema>
 export type AppendBillEventsPayloadV1 = z.infer<typeof AppendBillEventsPayloadV1>
 export type HandOverBillPayloadV1 = z.infer<typeof HandOverBillPayloadV1>

@@ -6,11 +6,12 @@ import {
 } from '~/lib/contracts'
 import { createIdGenerator } from '~/lib/kernel'
 import {
+  getLocalBillWithItems,
   markLocalBillHandoverCanceled,
   markLocalBillHandoverPending,
   nextStandaloneDeviceSeq,
 } from '../data/bill.repo'
-import { materializeAcceptedBill } from '../data/bill-snapshot.repo'
+import { getBillSnapshotById, materializeAcceptedBill } from '../data/bill-snapshot.repo'
 import { getMeta } from '../data/meta.repo'
 import type { SolvaDb } from '../db/solva-db'
 import type { BillRecord } from '../db/types'
@@ -164,7 +165,7 @@ export async function handOverBillClient(
 
 export async function acceptBillClient(
   db: SolvaDb,
-  input: { billId: string; staffId: string; eventId?: string },
+  input: { billId: string; staffId: string; clientLastEventSeq?: number; eventId?: string },
   deps: HandoverClientDeps = {},
 ): Promise<HandoverClientResult> {
   if (deps.isOnline && !deps.isOnline()) {
@@ -174,9 +175,16 @@ export async function acceptBillClient(
     return { ok: false, code: 'OFFLINE' }
   }
 
-  const [device, clock] = await Promise.all([getMeta(db, 'device'), getMeta(db, 'clock')])
+  const [device, clock, snap, localBill] = await Promise.all([
+    getMeta(db, 'device'),
+    getMeta(db, 'clock'),
+    getBillSnapshotById(db, input.billId),
+    getLocalBillWithItems(db, input.billId),
+  ])
   if (!device) return { ok: false, code: 'DEVICE_NOT_PAIRED' }
 
+  const clientLastEventSeq =
+    input.clientLastEventSeq ?? snap?.last_event_seq ?? localBill?.bill.last_event_seq ?? 0
   const nowMs = (deps.nowMs ?? Date.now)()
   const createdAtDevice = new Date(nowMs).toISOString()
   const deviceSeq = await nextStandaloneDeviceSeq(db, device.register_id, createdAtDevice)
@@ -195,6 +203,7 @@ export async function acceptBillClient(
         event_id: eventId,
         device_seq: deviceSeq,
         staff_id: input.staffId,
+        client_last_event_seq: clientLastEventSeq,
         created_at_device: createdAtDevice,
         clock_offset_ms: clock?.offset_ms ?? 0,
         schema_version: SCHEMA_VERSION,
@@ -237,7 +246,7 @@ export async function acceptBillClient(
 
 export async function cancelBillHandoverClient(
   db: SolvaDb,
-  input: { billId: string; staffId: string; eventId?: string },
+  input: { billId: string; staffId: string; clientLastEventSeq?: number; eventId?: string },
   deps: HandoverClientDeps = {},
 ): Promise<HandoverClientResult> {
   if (deps.isOnline && !deps.isOnline()) {
@@ -247,9 +256,14 @@ export async function cancelBillHandoverClient(
     return { ok: false, code: 'OFFLINE' }
   }
 
-  const [device, clock] = await Promise.all([getMeta(db, 'device'), getMeta(db, 'clock')])
+  const [device, clock, localBill] = await Promise.all([
+    getMeta(db, 'device'),
+    getMeta(db, 'clock'),
+    getLocalBillWithItems(db, input.billId),
+  ])
   if (!device) return { ok: false, code: 'DEVICE_NOT_PAIRED' }
 
+  const clientLastEventSeq = input.clientLastEventSeq ?? localBill?.bill.last_event_seq ?? 0
   const nowMs = (deps.nowMs ?? Date.now)()
   const createdAtDevice = new Date(nowMs).toISOString()
   const deviceSeq = await nextStandaloneDeviceSeq(db, device.register_id, createdAtDevice)
@@ -268,6 +282,7 @@ export async function cancelBillHandoverClient(
         event_id: eventId,
         device_seq: deviceSeq,
         staff_id: input.staffId,
+        client_last_event_seq: clientLastEventSeq,
         created_at_device: createdAtDevice,
         clock_offset_ms: clock?.offset_ms ?? 0,
         schema_version: SCHEMA_VERSION,

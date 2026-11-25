@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { changeLocale } from '~/i18n'
 import { computeBillTotals } from '~/pos/domain/bill-totals'
 import { BillPanel } from './BillPanel'
+import { ChildBillList } from './ChildBillList'
 import { HandoverDialog } from './HandoverDialog'
 import { ModifierSheet } from './ModifierSheet'
 import { TableCard } from './TableCard'
@@ -214,5 +215,56 @@ describe('components/pos/fnb (accessibility & behavior)', () => {
 
     expect(screen.getByText('Kasir Utama')).toBeTruthy()
     await expectZeroAxeViolations(screen.getByRole('dialog'))
+  })
+
+  it('ChildBillList renders split sibling badges cleanly', () => {
+    render(
+      <ChildBillList
+        currentBillId="c1"
+        childrenBills={[
+          {
+            id: 'c1',
+            tenant_id: 't1',
+            outlet_id: 'o1',
+            register_id: 'r1',
+            device_id: 'd1',
+            table_id: 'tb1',
+            bill_ref: 'M05-1',
+            status: 'OPEN',
+            lease_device_id: 'd1',
+            lease_register_id: 'r1',
+            handover_status: 'NONE',
+            handover_target_register_id: null,
+            handover_event_id: null,
+            handover_requested_at: null,
+            prebill_seq: null,
+            prebill_printed_at: null,
+            last_content_seq: 1,
+            is_awaiting_payment: false,
+            split_mode: 'EQUAL',
+            parent_bill_id: 'p1',
+            share_index: 1,
+            share_count: 2,
+            bill_discount_type: null,
+            bill_discount_pct: null,
+            bill_discount_input: null,
+            bill_discount_approved_by: null,
+            customer_name: null,
+            customer_phone: null,
+            last_event_seq: 1,
+            last_event_at: null,
+            created_by: 'u1',
+            created_at_device: '2026-11-25T10:00:00.000Z',
+            occurred_at: '2026-11-25T10:00:00.000Z',
+            business_date: '2026-11-25',
+            closed_at: null,
+            sync_status: 'PENDING',
+          },
+        ]}
+        onSelectBill={() => {}}
+      />,
+    )
+    expect(screen.getByText('1/2')).toBeTruthy()
+    expect(screen.getByText('OPEN')).toBeTruthy()
   })
 })

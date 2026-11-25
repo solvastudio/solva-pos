@@ -30,7 +30,7 @@ function buildDiscount(
 export function verifyFinalizeSalePayload(payload: FinalizeSalePayloadV1): SaleVerifySummary {
   const hasNonItemLine = payload.lines.some((l) => l.line_kind !== 'ITEM')
   if (hasNonItemLine) {
-    return { skipped: true, ok: true, diffAmount: 0, paths: [] }
+    return verifyNonItemSplitPayload(payload)
   }
 
   const s = payload.sale
@@ -128,5 +128,70 @@ export function verifyFinalizeSalePayload(payload: FinalizeSalePayloadV1): SaleV
       diffAmount: 1,
       paths: [err instanceof Error ? err.message.slice(0, 120) : 'verify_error'],
     }
+  }
+}
+
+function verifyNonItemSplitPayload(payload: FinalizeSalePayloadV1): SaleVerifySummary {
+  const s = payload.sale
+  const paths: string[] = []
+  let diffAmount = 0
+
+  const expectedGrand =
+    s.net_subtotal + s.service_charge + (s.price_tax_mode === 'EXCLUSIVE' ? s.tax_amount : 0)
+  if (expectedGrand !== s.grand_total) {
+    paths.push('grandTotal')
+    diffAmount += Math.abs(s.grand_total - expectedGrand)
+  }
+
+  let shareNetAfterBillDisc = 0
+  let shareService = 0
+  let shareTax = 0
+  let shareCount = 0
+
+  for (let i = 0; i < payload.lines.length; i += 1) {
+    const l = payload.lines[i]!
+    if (l.line_kind === 'STOCK_BASIS') {
+      const nonZero =
+        l.line_gross !== 0 ||
+        l.line_discount !== 0 ||
+        l.line_net !== 0 ||
+        l.bill_discount_alloc !== 0 ||
+        l.service_alloc !== 0 ||
+        l.tax_alloc !== 0
+      if (nonZero) {
+        paths.push(`lines[${i}].stock_basis_nonzero`)
+        diffAmount += Math.abs(l.line_net)
+      }
+    } else if (l.line_kind === 'SHARE') {
+      shareCount += 1
+      shareNetAfterBillDisc += l.line_net - l.bill_discount_alloc
+      shareService += l.service_alloc
+      shareTax += l.tax_alloc
+    } else {
+      paths.push(`lines[${i}].mixed_item_kind`)
+    }
+  }
+
+  if (shareCount === 0) {
+    paths.push('share_lines_missing')
+  }
+  if (shareNetAfterBillDisc !== s.net_subtotal) {
+    paths.push('share.netSubtotal')
+    diffAmount += Math.abs(s.net_subtotal - shareNetAfterBillDisc)
+  }
+  if (shareService !== s.service_charge) {
+    paths.push('share.serviceCharge')
+    diffAmount += Math.abs(s.service_charge - shareService)
+  }
+  if (shareTax !== s.tax_amount) {
+    paths.push('share.taxAmount')
+    diffAmount += Math.abs(s.tax_amount - shareTax)
+  }
+
+  return {
+    skipped: false,
+    ok: paths.length === 0,
+    diffAmount,
+    paths,
   }
 }

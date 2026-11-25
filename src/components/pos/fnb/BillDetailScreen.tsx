@@ -1,9 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BillItemModifierInput } from '~/lib/contracts'
-import { businessDate, type OutletTimezone } from '~/lib/kernel'
+import { businessDate, roundToUnit, type OutletTimezone } from '~/lib/kernel'
+import { calcEqualSplit, type CartLineInput } from '~/lib/sales-calc'
 import { BillPanel } from '~/components/pos/fnb/BillPanel'
 import type { BillPanelItemView } from '~/components/pos/fnb/BillItemRow'
+import { ChildBillList } from '~/components/pos/fnb/ChildBillList'
 import { HandoverDialog } from '~/components/pos/fnb/HandoverDialog'
 import { ModifierSheet } from '~/components/pos/fnb/ModifierSheet'
 import { VoidItemDialog } from '~/components/pos/fnb/VoidItemDialog'
@@ -25,6 +27,7 @@ import {
   cancelBill,
   changeBillItemQty,
   getLocalBillWithItems,
+  observeChildBillsByParent,
   observeLocalBillWithItems,
   printPrebill,
   setBillCustomer,
@@ -59,6 +62,7 @@ import {
   type ProductModifierGroupWithOptions,
 } from '~/pos/data/table.repo'
 import type {
+  BillRecord,
   BillSnapshotRecord,
   CashMasterRecord,
   CategoryRecord,
@@ -107,6 +111,8 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
 
   const [localBill, setLocalBill] = useState<LocalBillWithItems | null>(null)
   const [snapshotBill, setSnapshotBill] = useState<BillSnapshotRecord | null>(null)
+  const [parentLocalBill, setParentLocalBill] = useState<LocalBillWithItems | null>(null)
+  const [siblingBills, setSiblingBills] = useState<BillRecord[]>([])
   const [loaded, setLoaded] = useState(false)
 
   const [tables, setTables] = useState<FnbTableRecord[]>([])
@@ -220,7 +226,7 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
           const uom = uomMap.get(su.uom_id)
           if (!uom) continue
           const arr = nextUomOpts.get(su.sku_id) ?? []
-          arr.push({ skuUom: su, uom, price: prices.get(`${su.sku_id}|${su.uom_id}`) ?? { kind: 'NO_PRICE' } })
+          arr.push({ skuUom: su, uom, price: prices.get(`${su.sku_id}::${su.uom_id}`) ?? { kind: 'NO_PRICE' } })
           nextUomOpts.set(su.sku_id, arr)
         }
 
@@ -234,7 +240,7 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
               name: 'pcs',
               allow_fraction: false,
             }
-            const price = prices.get(`${defSku.id}|${baseUom.id}`) ?? { kind: 'NO_PRICE' }
+            const price = prices.get(`${defSku.id}::${baseUom.id}`) ?? { kind: 'NO_PRICE' }
             return {
               product: entry.product,
               defaultSku: defSku,
@@ -275,6 +281,35 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
     void countPendingBillOutbox(db, billId).then(setPendingOutboxCount)
   }, [db, billId, syncState.queue.pending, localBill?.bill.last_event_seq])
 
+  const familyParentId =
+    localBill?.bill.parent_bill_id ??
+    (localBill?.bill.status === 'SPLIT' ? localBill.bill.id : null)
+
+  useEffect(() => {
+    if (!db || !familyParentId) {
+      setParentLocalBill(null)
+      setSiblingBills([])
+      return
+    }
+    let cancelled = false
+    if (localBill?.bill.parent_bill_id) {
+      void getLocalBillWithItems(db, localBill.bill.parent_bill_id).then((pb) => {
+        if (!cancelled) setParentLocalBill(pb)
+      })
+    } else {
+      setParentLocalBill(null)
+    }
+    const subSib = observeChildBillsByParent(db, familyParentId).subscribe({
+      next: (rows) => {
+        if (!cancelled) setSiblingBills(rows)
+      },
+    })
+    return () => {
+      cancelled = true
+      subSib.unsubscribe()
+    }
+  }, [db, familyParentId, localBill?.bill.parent_bill_id])
+
   const activeSource = useMemo(() => {
     if (localBill && (!snapshotBill || localBill.bill.last_event_seq >= snapshotBill.last_event_seq)) {
       return { kind: 'local' as const, data: localBill }
@@ -299,7 +334,34 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
     )
   }, [device, viewBill])
 
+  const isEqualShare =
+    viewBill?.split_mode === 'EQUAL' &&
+    Boolean(localBill?.bill.share_index) &&
+    Boolean(localBill?.bill.share_count)
+
   const panelItems: BillPanelItemView[] = useMemo(() => {
+    if (isEqualShare && parentLocalBill) {
+      return parentLocalBill.items.map((it) => ({
+        id: it.id,
+        lineNo: it.line_no,
+        itemName: it.item_name,
+        uomCode: it.uom_code,
+        qty: it.qty,
+        unitPrice: it.unit_price,
+        discountType: it.discount_type,
+        discountPct: it.discount_pct,
+        discountInput: it.discount_input,
+        note: it.note,
+        status: it.status,
+        voidReasonText: it.void_reason_text ?? null,
+        modifiers: it.modifiers.map((m) => ({
+          modifierId: m.modifier_id,
+          name: m.name,
+          priceDelta: m.price_delta,
+          qty: m.qty,
+        })),
+      }))
+    }
     if (!activeSource) return []
     if (activeSource.kind === 'local') {
       return activeSource.data.items.map((it) => ({
@@ -343,7 +405,7 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
         qty: m.qty,
       })),
     }))
-  }, [activeSource])
+  }, [activeSource, isEqualShare, parentLocalBill])
 
   const effectiveConfig = useMemo(() => {
     if (configState?.ok) {
@@ -363,6 +425,54 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
   }, [configState])
 
   const totals = useMemo(() => {
+    if (
+      isEqualShare &&
+      parentLocalBill &&
+      localBill?.bill.share_index &&
+      localBill?.bill.share_count
+    ) {
+      const activeParent = parentLocalBill.items.filter((i) => i.status === 'ACTIVE')
+      if (activeParent.length > 0) {
+        const lines: CartLineInput[] = activeParent.map((it, idx) => ({
+          lineNo: idx + 1,
+          skuId: it.sku_id,
+          uomId: it.uom_id,
+          qty: it.qty as CartLineInput['qty'],
+          unitPrice: it.unit_price as CartLineInput['unitPrice'],
+          taxable: it.taxable,
+          discount:
+            it.discount_type === 'PERCENT' && it.discount_pct
+              ? { kind: 'PERCENT', percent: it.discount_pct }
+              : it.discount_type === 'NOMINAL' && it.discount_input !== null
+                ? { kind: 'NOMINAL', amount: it.discount_input as CartLineInput['unitPrice'] }
+                : undefined,
+        }))
+        const pBill = parentLocalBill.bill
+        const eq = calcEqualSplit(
+          {
+            lines,
+            billDiscount:
+              pBill.bill_discount_type === 'PERCENT' && pBill.bill_discount_pct
+                ? { kind: 'PERCENT', percent: pBill.bill_discount_pct }
+                : pBill.bill_discount_type === 'NOMINAL' && pBill.bill_discount_input !== null
+                  ? { kind: 'NOMINAL', amount: pBill.bill_discount_input as CartLineInput['unitPrice'] }
+                  : undefined,
+            config: effectiveConfig.config,
+          },
+          localBill.bill.share_count,
+        )
+        const share = eq.shares[localBill.bill.share_index - 1]
+        if (share) {
+          const cashTotal = roundToUnit(share.calc.grandTotal, effectiveConfig.cashRoundingUnit)
+          return {
+            calc: { ...share.calc, lines: [] },
+            cashTotal,
+            roundingDelta: (cashTotal - share.calc.grandTotal) as typeof share.calc.grandTotal,
+            activeItemCount: activeParent.length,
+          }
+        }
+      }
+    }
     if (!viewBill) {
       return computeBillTotals({
         bill: { bill_discount_type: null, bill_discount_pct: null, bill_discount_input: null },
@@ -377,7 +487,15 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
       config: effectiveConfig.config,
       cashRoundingUnit: effectiveConfig.cashRoundingUnit,
     })
-  }, [activeSource, effectiveConfig, viewBill])
+  }, [
+    activeSource,
+    effectiveConfig,
+    isEqualShare,
+    localBill?.bill.share_count,
+    localBill?.bill.share_index,
+    parentLocalBill,
+    viewBill,
+  ])
 
   const cashierRegisters = useMemo(
     () =>
@@ -472,7 +590,7 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
         product: item.product,
         options: item.skus.map((s) => ({
           sku: s,
-          price: priceMap.get(`${s.id}|${uomId}`) ?? { kind: 'NO_PRICE' },
+          price: priceMap.get(`${s.id}::${uomId}`) ?? { kind: 'NO_PRICE' },
         })),
       })
       return
@@ -697,12 +815,34 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
             handoverStatus={viewBill.handover_status}
             handoverTargetLabel={targetRegObj?.name ?? targetRegObj?.code ?? null}
             editable={editCheck.ok}
+            itemsEditable={editCheck.ok && !isEqualShare}
             readOnlyReason={editCheck.ok ? null : editCheck.reason}
+            shareBadge={
+              isEqualShare && localBill?.bill.share_index && localBill?.bill.share_count
+                ? t('pos.bill.shareBadge', {
+                    index: localBill.bill.share_index,
+                    count: localBill.bill.share_count,
+                  })
+                : null
+            }
+            siblingListNode={
+              siblingBills.length > 0 ? (
+                <ChildBillList
+                  currentBillId={billId}
+                  childrenBills={siblingBills}
+                  onSelectBill={(id) =>
+                    void shell.navigate({ href: `/${shell.cleanSlug}/pos/bill/${id}` })
+                  }
+                />
+              ) : null
+            }
             updatedAt={viewBill.last_event_at}
             canCancelHandover={
               viewBill.handover_status === 'PENDING' &&
               viewBill.lease_device_id === device?.device_id
             }
+            canSplit={editCheck.ok && !isEqualShare && totals.activeItemCount > 0}
+            canMerge={editCheck.ok && !localBill?.bill.parent_bill_id && !isEqualShare}
             items={panelItems}
             totals={totals}
             taxProfile={effectiveConfig.config.taxProfile}
@@ -715,6 +855,12 @@ export function BillDetailScreen({ tenant, billId, bootResult }: BillDetailScree
             onOpenCustomer={() => setCustomerOpen(true)}
             onOpenBillDiscount={() => setDiscountModalTarget({ kind: 'BILL' })}
             onOpenChangeTable={() => setTableModalOpen(true)}
+            onOpenSplit={() =>
+              void shell.navigate({ href: `/${shell.cleanSlug}/pos/bill/${billId}/split` })
+            }
+            onOpenMerge={() =>
+              void shell.navigate({ href: `/${shell.cleanSlug}/pos/bill/${billId}/merge` })
+            }
             onChangeQty={(itemId, qty) => {
               if (!db || !sessionStaff) return
               void changeBillItemQty(db, {

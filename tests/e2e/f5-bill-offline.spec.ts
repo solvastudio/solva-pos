@@ -28,16 +28,18 @@ test.describe('F5-K04 offline bill flow & prebill awaiting status', () => {
     await page.getByRole('button', { name: 'Buka bill baru di meja ini' }).click()
     await expect(page).toHaveURL(/\/pos\/bill\//, { timeout: 15_000 })
 
+    const catalog = page.getByRole('region', { name: 'Katalog produk' })
+
     // Add Nasi Goreng + Extra Sambal modifier
-    await page.getByRole('button', { name: /Nasi Goreng/ }).click()
+    await catalog.getByRole('button', { name: /Nasi Goreng/ }).click()
     await page.getByText('Extra Sambal').click()
     await page.getByRole('button', { name: 'Tambah ke bill' }).click()
 
     // Add Es Teh
-    await page.getByRole('button', { name: /Es Teh/ }).click()
+    await catalog.getByRole('button', { name: /Es Teh/ }).click()
 
     // Add Ayam Bakar (without modifier)
-    await page.getByRole('button', { name: /Ayam Bakar/ }).click()
+    await catalog.getByRole('button', { name: /Ayam Bakar/ }).click()
     await page.getByRole('button', { name: 'Tambah ke bill' }).click()
 
     // Void Ayam Bakar with mandatory reason
@@ -52,7 +54,7 @@ test.describe('F5-K04 offline bill flow & prebill awaiting status', () => {
 
     // Re-open M05 and add another Es Teh -> status returns to "Terisi"
     await page.getByRole('button', { name: /M05/ }).click()
-    await page.getByRole('button', { name: /Es Teh/ }).click()
+    await catalog.getByRole('button', { name: /Es Teh/ }).click()
     await page.getByRole('button', { name: 'Kembali ke Meja' }).click()
     await expect(page.getByRole('button', { name: /M05/ })).toContainText('Terisi')
 

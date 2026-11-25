@@ -205,6 +205,22 @@ export async function commitAtomicSaleTransaction(
             handover_target_register_id: null,
             closed_at: finalSale.occurred_at,
           })
+          if (existingBill.parent_bill_id) {
+            const siblings = await billTable
+              .where('parent_bill_id')
+              .equals(existingBill.parent_bill_id)
+              .toArray()
+            const anyOpen = siblings.some((s) => s.id !== existingBill.id && s.status === 'OPEN')
+            if (!anyOpen) {
+              const parentBill = await billTable.get(existingBill.parent_bill_id)
+              if (parentBill && parentBill.status === 'SPLIT') {
+                await billTable.update(existingBill.parent_bill_id, {
+                  status: 'CLOSED_BY_SPLIT',
+                  closed_at: finalSale.occurred_at,
+                })
+              }
+            }
+          }
         }
         const pendingBillCmds = await tx
           .table<OutboxCommandRow, string>('outbox_command')
@@ -216,6 +232,18 @@ export async function commitAtomicSaleTransaction(
           .sort((a, b) => b.device_seq - a.device_seq)[0]
         if (latestPending) {
           billDependsOn = [latestPending.id]
+        } else if (existingBill?.parent_bill_id) {
+          const parentPending = await tx
+            .table<OutboxCommandRow, string>('outbox_command')
+            .where('dependency_key')
+            .equals(`bill:${existingBill.parent_bill_id}`)
+            .toArray()
+          const latestParent = parentPending
+            .filter((c) => c.status !== 'ACKED' && c.status !== 'DISMISSED')
+            .sort((a, b) => b.device_seq - a.device_seq)[0]
+          if (latestParent) {
+            billDependsOn = [latestParent.id]
+          }
         }
       }
 

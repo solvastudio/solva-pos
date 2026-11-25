@@ -13,8 +13,10 @@ import {
 import { registerAfterCommit, type TenantTx } from '~/server/db'
 import {
   applyBillEvent,
+  BillMergedPayloadSchema,
   BillOpenedPayloadSchema,
   BillProjectionError,
+  BillSplitPayloadSchema,
   emptyBill,
   ItemAddedPayloadSchema,
   ModifierSetPayloadSchema,
@@ -25,6 +27,7 @@ import {
 } from '../shared'
 import { flagDoubleTableBillsIfNeeded } from './bill-flags.service'
 import {
+  closeSplitParentIfAllChildrenSettled,
   envelopeToInsertRow,
   findBillEventSeqConflicts,
   findMissingTablesInOutlet,
@@ -32,17 +35,17 @@ import {
   insertInitialBillRow,
   loadBillProjectionState,
   loadExistingBillEventIds,
-  lockBillForUpdate,
+  lockBillsForUpdate,
   persistBillProjectionDiff,
   readBillLastEventSeq,
+  type BillRow,
 } from './bill.repo'
+import { executeBillMerge, executeBillSplit } from './split-merge.service'
 
 const SERVER_ONLY_EVENT_TYPES = new Set([
   'BILL_HANDED_OVER',
   'BILL_ACCEPTED',
   'BILL_HANDOVER_CANCELED',
-  'BILL_SPLIT',
-  'BILL_MERGED',
 ])
 
 /**
@@ -158,8 +161,26 @@ export const appendBillEventsCommandHandler: CommandHandler<AppendBillEventsPayl
       }
     }
 
-    // 3. Lock bill FOR UPDATE (or create initial row when first event is BILL_OPENED)
-    const lockedRow = await lockBillForUpdate(tx, tenantId, payload.bill_id)
+    // 3. Collect all referenced bill IDs and lock existing rows FOR UPDATE in deterministic ID order
+    const billIdsToLock = new Set<string>([payload.bill_id])
+    const mergeSourceIds = new Set<string>()
+    for (const evt of pendingEvents) {
+      if (evt.event_type === 'BILL_SPLIT') {
+        const sp = BillSplitPayloadSchema.parse(evt.payload)
+        for (const c of sp.children) {
+          billIdsToLock.add(c.child_bill_id)
+        }
+      } else if (evt.event_type === 'BILL_MERGED') {
+        const mg = BillMergedPayloadSchema.parse(evt.payload)
+        for (const srcId of mg.source_bill_ids) {
+          billIdsToLock.add(srcId)
+          mergeSourceIds.add(srcId)
+        }
+      }
+    }
+
+    const lockedBills = await lockBillsForUpdate(tx, tenantId, [...billIdsToLock])
+    const lockedRow = lockedBills.get(payload.bill_id) ?? null
     let prevState: BillProjectionState
 
     if (!lockedRow) {
@@ -261,12 +282,89 @@ export const appendBillEventsCommandHandler: CommandHandler<AppendBillEventsPayl
       expectedSeq += 1
     }
 
-    // 5. Apply pure projection reducer
+    // 5. Insert incoming bill_event rows BEFORE projection diff / split / merge
+    //    so fk_bill_item__created_event is satisfied (rollback on any subsequent error).
+    await insertBillEvents(
+      tx,
+      pendingEvents.map((evt) =>
+        envelopeToInsertRow(evt, {
+          tenantId,
+          outletId,
+          commandId: ctx.commandId,
+          receivedAtIso: ctx.receivedAtIso,
+          appVersion: ctx.appVersion,
+        }),
+      ),
+    )
+
+    // 6. Apply pure projection reducer and execute any server-atomic BILL_SPLIT / BILL_MERGED
+    const sourceStatesById = new Map<string, BillProjectionState>()
+    for (const srcId of mergeSourceIds) {
+      const srcRow: BillRow | undefined = lockedBills.get(srcId)
+      if (srcRow) {
+        sourceStatesById.set(srcId, await loadBillProjectionState(tx, tenantId, srcRow))
+      }
+    }
+
     let nextState = prevState
     let hasPrebillPrinted = false
     let tableChangeEvent: BillEventEnvelopeV1 | null = null
+    let handledSplitOrMerge = false
 
     for (const evt of pendingEvents) {
+      if (evt.event_type === 'BILL_SPLIT') {
+        if (nextState !== prevState) {
+          await persistBillProjectionDiff(tx, {
+            tenantId,
+            outletId,
+            prevState,
+            nextState,
+            receivedAtIso: ctx.receivedAtIso,
+            hasPrebillPrinted,
+          })
+          hasPrebillPrinted = false
+        }
+        await executeBillSplit(tx, ctx, {
+          parentState: nextState,
+          parentRow: lockedRow,
+          evt,
+          lockedBills,
+        })
+        nextState = applyBillEvent(nextState, evt)
+        prevState = nextState
+        handledSplitOrMerge = true
+        continue
+      }
+
+      if (evt.event_type === 'BILL_MERGED') {
+        if (nextState !== prevState) {
+          await persistBillProjectionDiff(tx, {
+            tenantId,
+            outletId,
+            prevState,
+            nextState,
+            receivedAtIso: ctx.receivedAtIso,
+            hasPrebillPrinted,
+          })
+          hasPrebillPrinted = false
+        }
+        await executeBillMerge(tx, ctx, {
+          targetState: nextState,
+          targetRow: lockedRow,
+          evt,
+          lockedBills,
+          sourceStates: sourceStatesById,
+        })
+        const refreshed = await lockBillsForUpdate(tx, tenantId, [payload.bill_id])
+        const refreshedTarget = refreshed.get(payload.bill_id)
+        nextState = refreshedTarget
+          ? await loadBillProjectionState(tx, tenantId, refreshedTarget)
+          : applyBillEvent(nextState, evt)
+        prevState = nextState
+        handledSplitOrMerge = true
+        continue
+      }
+
       try {
         nextState = applyBillEvent(nextState, evt)
       } catch (err) {
@@ -282,28 +380,25 @@ export const appendBillEventsCommandHandler: CommandHandler<AppendBillEventsPayl
       }
     }
 
-    // 6. Persist append-only events + projection diff
-    await insertBillEvents(
-      tx,
-      pendingEvents.map((evt) =>
-        envelopeToInsertRow(evt, {
-          tenantId,
-          outletId,
-          commandId: ctx.commandId,
-          receivedAtIso: ctx.receivedAtIso,
-          appVersion: ctx.appVersion,
-        }),
-      ),
-    )
+    if (!handledSplitOrMerge || nextState !== prevState || hasPrebillPrinted) {
+      await persistBillProjectionDiff(tx, {
+        tenantId,
+        outletId,
+        prevState,
+        nextState,
+        receivedAtIso: ctx.receivedAtIso,
+        hasPrebillPrinted,
+      })
+    }
 
-    await persistBillProjectionDiff(tx, {
-      tenantId,
-      outletId,
-      prevState,
-      nextState,
-      receivedAtIso: ctx.receivedAtIso,
-      hasPrebillPrinted,
-    })
+    if (nextState.status === 'CANCELED' && lockedRow?.parentBillId) {
+      await closeSplitParentIfAllChildrenSettled(
+        tx,
+        tenantId,
+        lockedRow.parentBillId,
+        ctx.receivedAtIso,
+      )
+    }
 
     // 7. Non-blocking unit_price modifier consistency verification (BR-PRC-006)
     for (const evt of pendingEvents) {

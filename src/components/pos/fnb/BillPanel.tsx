@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '~/components/ui/Button'
 import {
@@ -24,9 +24,14 @@ export interface BillPanelProps {
   handoverStatus: 'NONE' | 'PENDING'
   handoverTargetLabel?: string | null
   editable: boolean
+  itemsEditable?: boolean
   readOnlyReason: EditBillDeniedReason | null
+  shareBadge?: string | null
+  siblingListNode?: ReactNode
   updatedAt?: string | null
   canCancelHandover?: boolean
+  canSplit?: boolean
+  canMerge?: boolean
   items: readonly BillPanelItemView[]
   totals: BillTotalsView
   taxProfile: 'NONE' | 'PPN' | 'PB1'
@@ -39,6 +44,8 @@ export interface BillPanelProps {
   onOpenCustomer: () => void
   onOpenBillDiscount: () => void
   onOpenChangeTable: () => void
+  onOpenSplit?: () => void
+  onOpenMerge?: () => void
   onChangeQty: (itemId: string, nextQty: string) => void
   onEditModifiers?: (item: BillPanelItemView) => void
   onOpenLineDiscount: (item: BillPanelItemView) => void
@@ -58,9 +65,14 @@ export function BillPanel({
   handoverStatus,
   handoverTargetLabel,
   editable,
+  itemsEditable = editable,
   readOnlyReason,
+  shareBadge = null,
+  siblingListNode = null,
   updatedAt,
   canCancelHandover = false,
+  canSplit = false,
+  canMerge = false,
   items,
   totals,
   taxProfile,
@@ -73,6 +85,8 @@ export function BillPanel({
   onOpenCustomer,
   onOpenBillDiscount,
   onOpenChangeTable,
+  onOpenSplit,
+  onOpenMerge,
   onChangeQty,
   onEditModifiers,
   onOpenLineDiscount,
@@ -126,6 +140,11 @@ export function BillPanel({
                 {t('pos.bill.statusAwaitingPaymentBadge')}
               </span>
             ) : null}
+            {shareBadge ? (
+              <span className="mt-1 ml-1 inline-block rounded-pill bg-info-soft px-2 py-0.5 text-caption font-semibold text-info-ink">
+                {shareBadge}
+              </span>
+            ) : null}
           </div>
 
           <div
@@ -146,7 +165,7 @@ export function BillPanel({
           </div>
         </div>
 
-        {editable ? (
+        {itemsEditable ? (
           <div className="flex flex-wrap items-center gap-1.5">
             <Button type="button" variant="secondary" size="sm" onClick={onOpenCustomer}>
               <User className="size-3.5 shrink-0" aria-hidden="true" />
@@ -167,9 +186,21 @@ export function BillPanel({
             <Button type="button" variant="ghost" size="sm" onClick={onOpenChangeTable}>
               {t('pos.bill.changeTableButton')}
             </Button>
+            {canSplit && onOpenSplit ? (
+              <Button type="button" variant="ghost" size="sm" onClick={onOpenSplit}>
+                {t('pos.bill.splitButton')}
+              </Button>
+            ) : null}
+            {canMerge && onOpenMerge ? (
+              <Button type="button" variant="ghost" size="sm" onClick={onOpenMerge}>
+                {t('pos.bill.mergeButton')}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
+
+      {siblingListNode}
 
       <div role="list" className="flex min-h-40 flex-1 flex-col gap-1.5 overflow-y-auto p-2.5">
         {activeItems.length === 0 ? (
@@ -185,7 +216,7 @@ export function BillPanel({
                 item={item}
                 lineNet={lc?.lineNet ?? toMoney(item.unitPrice)}
                 lineDiscount={toMoney(lc?.lineDiscount ?? 0)}
-                editable={editable}
+                editable={itemsEditable}
                 onChangeQty={onChangeQty}
                 onEditModifiers={onEditModifiers}
                 onOpenDiscount={onOpenLineDiscount}
@@ -274,11 +305,11 @@ export function BillPanel({
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
               <PrebillButton
-                disabled={activeItems.length === 0 || busyAction}
+                disabled={(activeItems.length === 0 && !shareBadge) || busyAction}
                 onClick={onPrintPrebill}
               />
 
-              {activeItems.length === 0 ? (
+              {activeItems.length === 0 && !shareBadge ? (
                 <Button
                   type="button"
                   variant="danger-outline"

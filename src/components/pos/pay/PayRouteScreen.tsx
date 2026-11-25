@@ -7,7 +7,7 @@ import { Button } from '~/components/ui/Button'
 import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
 import { createIdGenerator, businessDate, type OutletTimezone } from '~/lib/kernel'
 import type { BootResult } from '~/pos/boot/boot'
-import { getLocalBillWithItems } from '~/pos/data/bill.repo'
+import { getLocalBillWithItems, listChildBillsByParent } from '~/pos/data/bill.repo'
 import { getOutlet, listActivePaymentMethods, listActiveStaff, listRegisters } from '~/pos/data/master.repo'
 import { setMeta } from '~/pos/data/meta.repo'
 import type { PaymentMethodRecord } from '~/pos/db/types'
@@ -94,9 +94,20 @@ export function PayRouteScreen({ tenant, billId, bootResult }: PayRouteScreenPro
           setBillLoaded(true)
           return
         }
+        const parentBillWithItems =
+          billWithItems.bill.split_mode === 'EQUAL' && billWithItems.bill.parent_bill_id
+            ? await getLocalBillWithItems(db, billWithItems.bill.parent_bill_id)
+            : null
+        const siblingBills =
+          billWithItems.bill.parent_bill_id
+            ? await listChildBillsByParent(db, billWithItems.bill.parent_bill_id)
+            : []
+
         setBillCart(
           buildCartFromBill({
             billWithItems,
+            parentBillWithItems,
+            siblingBills,
             shiftId: openShift?.id ?? null,
             finalizeId: payIdGen.newId(),
             config: cfg.config,

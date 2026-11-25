@@ -24,7 +24,7 @@ import { getBillPort } from './bill-port'
 import { registerReceivedNumber } from './invoice-series.service'
 import { evaluateSaleBusinessFlags } from './sale-flags.service'
 import { verifyFinalizeSalePayload } from './sale-verify.adapter'
-import { findSaleByBillId, insertSaleFacts, persistSaleCosts } from './sale.repo'
+import { findSaleByBillId, hasSiblingStockBasisConsumption, insertSaleFacts, persistSaleCosts } from './sale.repo'
 import { getSaleStockPort } from './stock-port'
 
 const log = createLogger('sales.finalize_sale')
@@ -237,11 +237,36 @@ export const finalizeSaleCommandHandler: CommandHandler<FinalizeSalePayloadV1, T
           `Bill ${s.bill_id} cannot be paid by register ${ctx.device.registerId} (status=${billRow.status}, handover=${billRow.handoverStatus})`,
         )
       }
-      if (billRow.splitMode !== null && payload.lines.some((l) => l.line_kind !== 'ITEM')) {
+      if (billRow.splitMode === 'EQUAL') {
+        const hasShare = payload.lines.some((l) => l.line_kind === 'SHARE')
+        const hasItem = payload.lines.some((l) => l.line_kind === 'ITEM')
+        if (!hasShare || hasItem) {
+          throw new CommandRejected(
+            'STRUCTURAL',
+            'VALIDATION_FAILED',
+            'EQUAL split child sale requires SHARE lines and cannot contain ITEM lines',
+          )
+        }
+        const hasStockBasis = payload.lines.some((l) => l.line_kind === 'STOCK_BASIS')
+        if (hasStockBasis && (billRow.siblingBillIds?.length ?? 0) > 0) {
+          const alreadyConsumed = await hasSiblingStockBasisConsumption(
+            tx,
+            tenantId,
+            billRow.siblingBillIds!,
+          )
+          if (alreadyConsumed) {
+            throw new CommandRejected(
+              'STRUCTURAL',
+              'VALIDATION_FAILED',
+              'STOCK_BASIS stock consumption was already finalized by a sibling split share',
+            )
+          }
+        }
+      } else if (payload.lines.some((l) => l.line_kind !== 'ITEM')) {
         throw new CommandRejected(
           'STRUCTURAL',
           'VALIDATION_FAILED',
-          'Non-ITEM split lines are not supported until Phase 58',
+          'SHARE and STOCK_BASIS lines are only valid on EQUAL split child bills',
         )
       }
       lockedBillId = billRow.id
