@@ -3,9 +3,12 @@ import { appendAudit, appendAuditCommandHandler } from '~/modules/audit/public'
 import {
   __clearHasTransactionsPortForTests,
   catalogFeedSources,
+  catalogFnbFeedSources,
   createDefaultAvailabilityForOutlet,
   registerHasTransactionsPort,
+  registerRecipeCostReaderPort,
 } from '~/modules/catalog/public'
+import { fnbFeedSources } from '~/modules/fnb/public'
 import {
   __clearEnrollmentCounterProviderForTests,
   __clearOutletCreatedHooksForTests,
@@ -26,7 +29,13 @@ import {
   registerSaleStockPort,
   voidSaleCommandHandler,
 } from '~/modules/sales/public'
-import { applyReturnStock, applySaleStock, applyVoidStock, readOutletStockForSnapshot } from '~/modules/inventory/public'
+import {
+  applyReturnStock,
+  applySaleStock,
+  applyVoidStock,
+  readOutletStockForSnapshot,
+  readTenantSkuAverageCosts,
+} from '~/modules/inventory/public'
 import {
   __clearShiftRecapSalesPortForTests,
   closeShiftCommandHandler,
@@ -58,6 +67,12 @@ export function composeServer(): void {
     registerFeedSource(source)
   }
   for (const source of catalogFeedSources()) {
+    registerFeedSource(source)
+  }
+  for (const source of catalogFnbFeedSources()) {
+    registerFeedSource(source)
+  }
+  for (const source of fnbFeedSources()) {
     registerFeedSource(source)
   }
   registerCommandHandler(appendAuditCommandHandler)
@@ -97,6 +112,9 @@ export function composeServer(): void {
   registerOutletStockReader({
     read: (tx, tenantId, outletId) => readOutletStockForSnapshot(tx, tenantId, outletId),
   })
+  registerRecipeCostReaderPort((tx, tenantId, skuIds) =>
+    readTenantSkuAverageCosts(tx, tenantId, skuIds),
+  )
   composed = true
 }
 
@@ -110,5 +128,6 @@ export function resetCompositionForTests(): void {
   __clearEnrollmentCounterProviderForTests()
   __clearSaleStockPortForTests()
   __clearOutletStockReaderForTests()
+  registerRecipeCostReaderPort(null)
   composed = false
 }

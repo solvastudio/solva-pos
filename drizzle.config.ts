@@ -4,6 +4,7 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: [
     './src/modules/*/server/schema.ts',
+    './src/modules/catalog/server/schema-fnb.ts',
     './src/modules/identity/server/auth-schema.ts',
     './src/modules/identity/server/device-schema.ts',
     './src/modules/identity/server/pin-schema.ts',

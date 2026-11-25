@@ -21,6 +21,10 @@ export const FULL_RESYNC_ENTITY_ORDER = [
   'sku_uom',
   'item_outlet_availability',
   'price_entry',
+  'fnb_table',
+  'modifier_group',
+  'modifier',
+  'modifier_group_product',
 ] as const
 
 export type FullResyncEntity = (typeof FULL_RESYNC_ENTITY_ORDER)[number]

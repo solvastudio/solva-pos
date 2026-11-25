@@ -267,6 +267,27 @@
       "when": 1795300935485,
       "tag": "0037_inventory_doc_number_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795537188849,
+      "tag": "0038_fnb_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795537216322,
+      "tag": "0039_fnb_constraints_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795539473504,
+      "tag": "0040_check_drift",
+      "breakpoints": true
     }
   ]
 }

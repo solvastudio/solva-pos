@@ -137,4 +137,107 @@ describe('pos/sync/applier (atomic master apply & full resync swap)', () => {
       id: '00000000-0000-0000-0000-000000000000',
     })
   })
+
+  it('applies upserts, tombstones, and full resync for fnb_table, modifier_group, modifier, modifier_group_product', async () => {
+    const db = await openTenantDb(T1)
+    const TBL_1 = '0192a000-0000-7000-8000-00000000f001'
+    const TBL_2 = '0192a000-0000-7000-8000-00000000f002'
+    const GRP_1 = '0192a000-0000-7000-8000-00000000f011'
+    const MOD_1 = '0192a000-0000-7000-8000-00000000f021'
+    const LINK_1 = '0192a000-0000-7000-8000-00000000f031'
+    const PROD_1 = '0192a000-0000-7000-8000-00000000f041'
+
+    await stagePullRows(db, [
+      {
+        cycle_id: 'fnb-1',
+        entity: 'fnb_table',
+        op: 'upsert',
+        id: TBL_1,
+        version: 1,
+        payload: { outlet_id: OUT_1, code: 'M01', area: 'Indoor', capacity: 4, is_active: true, sort_order: 1, deleted_at: null },
+      },
+      {
+        cycle_id: 'fnb-1',
+        entity: 'fnb_table',
+        op: 'upsert',
+        id: TBL_2,
+        version: 2,
+        payload: { outlet_id: OUT_1, code: 'M02', area: 'VIP', capacity: 6, is_active: true, sort_order: 2, deleted_at: null },
+      },
+      {
+        cycle_id: 'fnb-1',
+        entity: 'modifier_group',
+        op: 'upsert',
+        id: GRP_1,
+        version: 3,
+        payload: { name: 'Topping', selection_type: 'MULTI', min_select: 0, max_select: 3, is_active: true, deleted_at: null },
+      },
+      {
+        cycle_id: 'fnb-1',
+        entity: 'modifier',
+        op: 'upsert',
+        id: MOD_1,
+        version: 4,
+        payload: { modifier_group_id: GRP_1, name: 'Telur', price_delta: '4000', is_active: true, sort_order: 1, deleted_at: null },
+      },
+      {
+        cycle_id: 'fnb-1',
+        entity: 'modifier_group_product',
+        op: 'upsert',
+        id: LINK_1,
+        version: 5,
+        payload: { modifier_group_id: GRP_1, product_id: PROD_1, sort_order: 1, deleted_at: null },
+      },
+    ])
+
+    await applyPullCycle(db, {
+      cycleId: 'fnb-1',
+      finalCursor: { version: 5, id: LINK_1 },
+      catalogCursor: 5,
+      immediate: true,
+    })
+
+    expect(await db.fnb_table.count()).toBe(2)
+    expect((await db.modifier.get(MOD_1))?.price_delta).toBe(4000)
+    expect(await db.modifier_group.count()).toBe(1)
+    expect(await db.modifier_group_product.count()).toBe(1)
+
+    await stagePullRows(db, [
+      {
+        cycle_id: 'fnb-2',
+        entity: 'fnb_table',
+        op: 'delete',
+        id: TBL_1,
+        version: 6,
+        payload: {},
+      },
+    ])
+    await applyPullCycle(db, {
+      cycleId: 'fnb-2',
+      finalCursor: { version: 6, id: TBL_1 },
+      catalogCursor: 6,
+      immediate: true,
+    })
+    expect((await db.fnb_table.toArray()).map((t) => t.id)).toEqual([TBL_2])
+
+    await stagePullRows(db, [
+      {
+        cycle_id: 'fnb-resync',
+        entity: 'fnb_table',
+        op: 'upsert',
+        id: TBL_1,
+        version: 10,
+        payload: { outlet_id: OUT_1, code: 'M01', area: 'Indoor', capacity: 4, is_active: true, sort_order: 1, deleted_at: null },
+      },
+    ])
+    await applyFullResyncSnapshot(db, {
+      cycleId: 'fnb-resync',
+      snapshotVersion: 10,
+      immediate: true,
+    })
+    expect((await db.fnb_table.toArray()).map((t) => t.id)).toEqual([TBL_1])
+    expect(await db.modifier_group.count()).toBe(0)
+    expect(await db.modifier.count()).toBe(0)
+    expect(await db.modifier_group_product.count()).toBe(0)
+  })
 })

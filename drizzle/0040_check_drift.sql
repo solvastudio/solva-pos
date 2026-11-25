@@ -1,0 +1,4 @@
+ALTER TABLE "modifier_ingredient" DROP CONSTRAINT "ck_modifier_ingredient__adjust_qty";--> statement-breakpoint
+ALTER TABLE "bill" DROP CONSTRAINT "ck_bill__equal_share_fields";--> statement-breakpoint
+ALTER TABLE "modifier_ingredient" ADD CONSTRAINT "ck_modifier_ingredient__adjust_qty" CHECK (("modifier_ingredient"."adjust_type" = 'REMOVE' AND "modifier_ingredient"."qty" IS NULL) OR ("modifier_ingredient"."adjust_type" IN ('ADD', 'REDUCE') AND "modifier_ingredient"."qty" IS NOT NULL AND "modifier_ingredient"."qty" > 0));--> statement-breakpoint
+ALTER TABLE "bill" ADD CONSTRAINT "ck_bill__equal_share_fields" CHECK (("bill"."split_mode" IS NOT DISTINCT FROM 'EQUAL') = ("bill"."share_index" IS NOT NULL AND "bill"."share_count" IS NOT NULL));

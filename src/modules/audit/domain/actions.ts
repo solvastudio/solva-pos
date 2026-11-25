@@ -41,6 +41,9 @@ export const AUDIT_ACTIONS = [
   'tenant.created',
   'tenant.status_changed',
   'tenant.renamed',
+  'fnb_table.changed',
+  'modifier.changed',
+  'recipe.changed',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

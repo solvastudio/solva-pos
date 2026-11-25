@@ -33,6 +33,8 @@ import {
   type UomView,
 } from '~/modules/catalog/shared'
 import { qk } from '~/queries/keys'
+import { ModifierGroupsEditor } from '../fnb/ModifierGroupsEditor'
+import { RecipeEditor } from '../fnb/RecipeEditor'
 import { ProductAvailabilityTab } from './ProductAvailabilityTab'
 import { ProductPricesTab } from './ProductPricesTab'
 import { UomBarcodeTab } from './UomBarcodeTab'
@@ -614,6 +616,36 @@ export function ProductForm({
         </div>
       ),
     },
+    ...(detail.product.productType === 'MENU_FNB'
+      ? [
+          {
+            value: 'modifiers',
+            label: t('admin.catalog.tabModifiers'),
+            content: (
+              <div className="mt-6">
+                <ModifierGroupsEditor
+                  tenantSlug={tenantSlug}
+                  productId={detail.product.id}
+                  canEdit={canManageTenantWide}
+                />
+              </div>
+            ),
+          },
+          {
+            value: 'recipe',
+            label: t('admin.catalog.tabRecipe'),
+            content: (
+              <div className="mt-6">
+                <RecipeEditor
+                  tenantSlug={tenantSlug}
+                  detail={detail}
+                  canEdit={canManageTenantWide}
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
   ]
 
   return (

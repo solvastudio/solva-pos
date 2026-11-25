@@ -10,6 +10,14 @@ import {
   listUomsFn,
 } from '~/functions/catalog/catalog-read.fn'
 import {
+  listModifierGroupsFn,
+  listProductModifierGroupsFn,
+} from '~/functions/catalog/modifier.fn'
+import {
+  getRecipeForMenuSkuFn,
+  listIngredientOptionsFn,
+} from '~/functions/catalog/recipe.fn'
+import {
   qk,
   type AvailabilityMatrixQueryFilter,
   type PriceMatrixQueryFilter,
@@ -72,5 +80,33 @@ export function featureFlagsQueryOptions(tenantSlug: string) {
   return queryOptions({
     queryKey: qk.featureFlags(tenantSlug),
     queryFn: () => listFeatureFlagsFn(),
+  })
+}
+
+export function modifierGroupsQueryOptions(tenantSlug: string) {
+  return queryOptions({
+    queryKey: qk.modifierGroups(tenantSlug),
+    queryFn: () => listModifierGroupsFn(),
+  })
+}
+
+export function productModifierGroupsQueryOptions(tenantSlug: string, productId: string) {
+  return queryOptions({
+    queryKey: qk.productModifierGroups(tenantSlug, productId),
+    queryFn: () => listProductModifierGroupsFn({ data: { productId } }),
+  })
+}
+
+export function recipeForSkuQueryOptions(tenantSlug: string, menuSkuId: string) {
+  return queryOptions({
+    queryKey: qk.recipeForSku(tenantSlug, menuSkuId),
+    queryFn: () => getRecipeForMenuSkuFn({ data: { menuSkuId } }),
+  })
+}
+
+export function ingredientOptionsQueryOptions(tenantSlug: string, excludeMenuSkuId?: string) {
+  return queryOptions({
+    queryKey: qk.ingredientOptions(tenantSlug, excludeMenuSkuId),
+    queryFn: () => listIngredientOptionsFn({ data: { excludeMenuSkuId } }),
   })
 }

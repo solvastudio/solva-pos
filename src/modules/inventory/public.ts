@@ -41,7 +41,7 @@ export { enableOutletTracking } from './server/activation.service'
 export { nextDocNo, type DocKind } from './server/doc-no'
 export { reportR02, type R02Filter, type R02Result, type R02Row, type R02OutletTotal, type AvailabilityFilter } from './server/report-r02.service'
 export { listSuppliers, saveSupplier, deleteSupplier, type SupplierRow, type SupplierInput } from './server/supplier.service'
-export { listSkuOptions, type SkuOption } from './server/sku-options.service'
+export { listSkuOptions, readTenantSkuAverageCosts, type SkuOption } from './server/sku-options.service'
 export {
   listTransfers,
   getTransfer,

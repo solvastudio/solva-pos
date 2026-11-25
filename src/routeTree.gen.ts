@@ -46,6 +46,7 @@ import { Route as TenantAdminAuthedAvailabilityRouteImport } from './routes/$ten
 import { Route as TenantAdminAuthedFeaturesRouteImport } from './routes/$tenant/admin/_authed/features'
 import { Route as TenantAdminAuthedPricesRouteImport } from './routes/$tenant/admin/_authed/prices'
 import { Route as TenantAdminAuthedSettingsRouteImport } from './routes/$tenant/admin/_authed/settings'
+import { Route as TenantAdminAuthedTablesRouteImport } from './routes/$tenant/admin/_authed/tables'
 import { Route as TenantAdminAuthedUsersRouteImport } from './routes/$tenant/admin/_authed/users'
 import { Route as TenantPosDevArgonBenchRouteImport } from './routes/$tenant/pos/_dev/argon-bench'
 import { Route as TenantPosDoneSaleIdRouteImport } from './routes/$tenant/pos/done.$saleId'
@@ -268,6 +269,11 @@ const TenantAdminAuthedSettingsRoute =
     path: '/settings',
     getParentRoute: () => TenantAdminAuthedRoute,
   } as any)
+const TenantAdminAuthedTablesRoute = TenantAdminAuthedTablesRouteImport.update({
+  id: '/tables',
+  path: '/tables',
+  getParentRoute: () => TenantAdminAuthedRoute,
+} as any)
 const TenantAdminAuthedUsersRoute = TenantAdminAuthedUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -466,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
+  '/$tenant/admin/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
@@ -532,6 +539,7 @@ export interface FileRoutesByTo {
   '/$tenant/admin/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/settings': typeof TenantAdminAuthedSettingsRoute
+  '/$tenant/admin/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
@@ -602,6 +610,7 @@ export interface FileRoutesById {
   '/$tenant/admin/_authed/features': typeof TenantAdminAuthedFeaturesRoute
   '/$tenant/admin/_authed/prices': typeof TenantAdminAuthedPricesRoute
   '/$tenant/admin/_authed/settings': typeof TenantAdminAuthedSettingsRoute
+  '/$tenant/admin/_authed/tables': typeof TenantAdminAuthedTablesRoute
   '/$tenant/admin/_authed/users': typeof TenantAdminAuthedUsersRoute
   '/$tenant/pos/_dev/argon-bench': typeof TenantPosDevArgonBenchRoute
   '/$tenant/pos/done/$saleId': typeof TenantPosDoneSaleIdRoute
@@ -673,6 +682,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/features'
     | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
+    | '/$tenant/admin/tables'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
     | '/$tenant/pos/done/$saleId'
@@ -739,6 +749,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/features'
     | '/$tenant/admin/prices'
     | '/$tenant/admin/settings'
+    | '/$tenant/admin/tables'
     | '/$tenant/admin/users'
     | '/$tenant/pos/argon-bench'
     | '/$tenant/pos/done/$saleId'
@@ -808,6 +819,7 @@ export interface FileRouteTypes {
     | '/$tenant/admin/_authed/features'
     | '/$tenant/admin/_authed/prices'
     | '/$tenant/admin/_authed/settings'
+    | '/$tenant/admin/_authed/tables'
     | '/$tenant/admin/_authed/users'
     | '/$tenant/pos/_dev/argon-bench'
     | '/$tenant/pos/done/$saleId'
@@ -1124,6 +1136,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantAdminAuthedSettingsRouteImport
       parentRoute: typeof TenantAdminAuthedRoute
     }
+    '/$tenant/admin/_authed/tables': {
+      id: '/$tenant/admin/_authed/tables'
+      path: '/tables'
+      fullPath: '/$tenant/admin/tables'
+      preLoaderRoute: typeof TenantAdminAuthedTablesRouteImport
+      parentRoute: typeof TenantAdminAuthedRoute
+    }
     '/$tenant/admin/_authed/users': {
       id: '/$tenant/admin/_authed/users'
       path: '/users'
@@ -1394,6 +1413,7 @@ interface TenantAdminAuthedRouteChildren {
   TenantAdminAuthedFeaturesRoute: typeof TenantAdminAuthedFeaturesRoute
   TenantAdminAuthedPricesRoute: typeof TenantAdminAuthedPricesRoute
   TenantAdminAuthedSettingsRoute: typeof TenantAdminAuthedSettingsRoute
+  TenantAdminAuthedTablesRoute: typeof TenantAdminAuthedTablesRoute
   TenantAdminAuthedUsersRoute: typeof TenantAdminAuthedUsersRoute
   TenantAdminAuthedIndexRoute: typeof TenantAdminAuthedIndexRoute
   TenantAdminAuthedCatalogProductIdRoute: typeof TenantAdminAuthedCatalogProductIdRoute
@@ -1414,6 +1434,7 @@ const TenantAdminAuthedRouteChildren: TenantAdminAuthedRouteChildren = {
   TenantAdminAuthedFeaturesRoute: TenantAdminAuthedFeaturesRoute,
   TenantAdminAuthedPricesRoute: TenantAdminAuthedPricesRoute,
   TenantAdminAuthedSettingsRoute: TenantAdminAuthedSettingsRoute,
+  TenantAdminAuthedTablesRoute: TenantAdminAuthedTablesRoute,
   TenantAdminAuthedUsersRoute: TenantAdminAuthedUsersRoute,
   TenantAdminAuthedIndexRoute: TenantAdminAuthedIndexRoute,
   TenantAdminAuthedCatalogProductIdRoute:

@@ -9,6 +9,7 @@ export type AvailabilityStatus = (typeof AVAILABILITY_STATUSES)[number]
 export * from './domain/availability'
 export * from './domain/price'
 export * from './domain/price-adjust'
+export * from './domain/recipe'
 export * from './domain/search-tokens'
 export * from './domain/variants'
 
@@ -314,4 +315,92 @@ export interface FeatureFlagView {
   enabled: boolean
   params: Record<string, FeatureFlagJson> | null
   note: string | null
+}
+
+export interface ModifierIngredientView {
+  id: string
+  modifierId: string
+  ingredientSkuId: string
+  ingredientSkuCode: string
+  ingredientProductName: string
+  uomCode: string
+  adjustType: 'ADD' | 'REDUCE' | 'REMOVE'
+  qty: string | null
+}
+
+export interface ModifierView {
+  id: string
+  modifierGroupId: string
+  name: string
+  priceDelta: number
+  isActive: boolean
+  sortOrder: number
+  version: number
+  deletedAt: string | null
+  ingredients: ModifierIngredientView[]
+}
+
+export interface ModifierGroupView {
+  id: string
+  name: string
+  selectionType: 'SINGLE' | 'MULTI'
+  minSelect: number
+  maxSelect: number | null
+  isActive: boolean
+  version: number
+  deletedAt: string | null
+  modifiers: ModifierView[]
+  linkedProductCount: number
+}
+
+export interface ModifierGroupProductView {
+  id: string
+  modifierGroupId: string
+  productId: string
+  sortOrder: number
+  version: number
+  deletedAt: string | null
+}
+
+export interface ProductModifierGroupView {
+  linkId: string
+  modifierGroupId: string
+  name: string
+  selectionType: 'SINGLE' | 'MULTI'
+  minSelect: number
+  maxSelect: number | null
+  isActive: boolean
+  sortOrder: number
+  modifiers: ModifierView[]
+  negativeDeltaWarning: boolean
+}
+
+export interface RecipeItemView {
+  id: string
+  menuSkuId: string
+  ingredientSkuId: string
+  ingredientSkuCode: string
+  ingredientProductName: string
+  ingredientTrackStock: boolean
+  uomCode: string
+  qty: string
+  estimatedUnitCost: number | null
+  estimatedLineCost: number | null
+}
+
+export interface IngredientOptionView {
+  skuId: string
+  skuCode: string
+  productId: string
+  productName: string
+  productType: ProductType
+  trackStock: boolean
+  uomCode: string
+}
+
+export interface MenuRecipeResult {
+  menuSkuId: string
+  items: RecipeItemView[]
+  estimatedTotalCost: number | null
+  warnings: { code: 'INGREDIENT_NOT_TRACKED'; ingredientSkuId: string; message: string }[]
 }

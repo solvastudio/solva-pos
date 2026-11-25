@@ -11,6 +11,7 @@ import {
   Tag,
   User,
   Users,
+  Utensils,
 } from '~/components/ui/icons'
 import type { PermissionCode } from '~/modules/identity/shared'
 
@@ -23,6 +24,7 @@ export interface AdminNavItem {
     | 'catalog'
     | 'prices'
     | 'availability'
+    | 'tables'
     | 'stock'
     | 'features'
     | 'attention'
@@ -38,6 +40,7 @@ export interface AdminNavItem {
     | 'admin.nav.catalog'
     | 'admin.nav.prices'
     | 'admin.nav.availability'
+    | 'admin.nav.tables'
     | 'admin.nav.stock'
     | 'admin.nav.features'
     | 'admin.nav.attention'
@@ -46,7 +49,7 @@ export interface AdminNavItem {
     | 'admin.nav.account'
   icon: ComponentType<{ className?: string }>
   requiredPermission?: PermissionCode
-  phase?: 'F1' | 'F2' | 'F3' | 'F4'
+  phase?: 'F1' | 'F2' | 'F3' | 'F4' | 'F5'
 }
 
 export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
@@ -104,6 +107,14 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     icon: Store,
     requiredPermission: 'catalog.manage',
     phase: 'F2',
+  },
+  {
+    id: 'tables',
+    path: '/admin/tables',
+    labelKey: 'admin.nav.tables',
+    icon: Utensils,
+    requiredPermission: 'catalog.manage',
+    phase: 'F5',
   },
   {
     id: 'stock',

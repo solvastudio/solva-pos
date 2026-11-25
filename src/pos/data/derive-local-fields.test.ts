@@ -98,6 +98,22 @@ describe('pos/data/derive-local-fields', () => {
       barcode: ' 899123 ',
     })
     expect(skuUomVal.barcode).toBe('899123')
+
+    const mod = deriveLocalFields('modifier', {
+      id: 'mod1',
+      modifier_group_id: 'grp1',
+      name: 'Extra Keju',
+      price_delta: '5000',
+    })
+    expect(mod.price_delta).toBe(5000)
+
+    const negMod = deriveLocalFields('modifier', {
+      id: 'mod2',
+      modifier_group_id: 'grp1',
+      name: 'Tanpa Topping',
+      price_delta: '-2000',
+    })
+    expect(negMod.price_delta).toBe(-2000)
   })
 
   it('allows storing multiple sku_uom rows without barcodes under unique &barcode index', async () => {

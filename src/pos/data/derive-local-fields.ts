@@ -59,6 +59,13 @@ export function deriveLocalFields(
       return out
     }
 
+    case 'modifier': {
+      if (typeof out.price_delta === 'string' && INT_STRING_PATTERN.test(out.price_delta)) {
+        out.price_delta = Number(out.price_delta)
+      }
+      return out
+    }
+
     case 'register_invoice_prefix':
     case 'outlet_receipt_setting':
     default:

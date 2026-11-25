@@ -51,4 +51,13 @@ export const qk = {
   availabilityMatrix: (tenantSlug: string, filter?: AvailabilityMatrixQueryFilter) =>
     ['catalog', tenantSlug, 'availability-matrix', filter ?? {}] as const,
   featureFlags: (tenantSlug: string) => ['catalog', tenantSlug, 'feature-flags'] as const,
+  modifierGroups: (tenantSlug: string) => ['catalog', tenantSlug, 'modifier-groups'] as const,
+  productModifierGroups: (tenantSlug: string, productId: string) =>
+    ['catalog', tenantSlug, 'product-modifier-groups', productId] as const,
+  recipeForSku: (tenantSlug: string, menuSkuId: string) =>
+    ['catalog', tenantSlug, 'recipe', menuSkuId] as const,
+  ingredientOptions: (tenantSlug: string, excludeMenuSkuId?: string) =>
+    ['catalog', tenantSlug, 'ingredient-options', excludeMenuSkuId ?? ''] as const,
+  fnbTables: (tenantSlug: string, outletId?: string) =>
+    ['fnb', tenantSlug, 'tables', outletId ?? 'ALL'] as const,
 }

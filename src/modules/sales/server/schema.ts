@@ -255,6 +255,36 @@ export const saleLine = pgTable(
   ],
 )
 
+/**
+ * Snapshot modifier choices persisted on a finalized `sale_line` (Class TC). SCHEMA §4.5.5.
+ * Cross-module FK `modifier_id -> modifier` is added in custom migrations.
+ */
+export const saleLineModifier = pgTable(
+  'sale_line_modifier',
+  {
+    ...stdTCColumns(),
+    saleLineId: uuidId('sale_line_id').notNull(),
+    modifierId: uuidId('modifier_id'),
+    name: text('name').notNull(),
+    priceDelta: moneyBigint('price_delta').notNull(),
+    qty: smallint('qty').notNull().default(1),
+  },
+  (t) => [
+    unique('uq_sale_line_modifier__tenant_id_id').on(t.tenantId, t.id),
+    uniqueIndex('uq_sale_line_modifier__line_mod')
+      .on(t.saleLineId, t.modifierId)
+      .where(sql`${t.modifierId} IS NOT NULL`),
+    index('ix_sale_line_modifier__tenant_line').on(t.tenantId, t.saleLineId),
+    foreignKey({
+      columns: [t.tenantId, t.saleLineId],
+      foreignColumns: [saleLine.tenantId, saleLine.id],
+      name: 'fk_sale_line_modifier__sale_line',
+    }),
+    check('ck_sale_line_modifier__name_len', sql`char_length(${t.name}) BETWEEN 1 AND 60`),
+    check('ck_sale_line_modifier__qty', sql`${t.qty} >= 1`),
+  ],
+)
+
 export const salePayment = pgTable(
   'sale_payment',
   {

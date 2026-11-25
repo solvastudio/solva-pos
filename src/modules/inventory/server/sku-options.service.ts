@@ -1,7 +1,9 @@
 import '@tanstack/react-start/server-only'
-import { sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
+import { D } from '~/lib/kernel'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
-import { withTenant } from '~/server/db'
+import { withTenant, type TenantTx } from '~/server/db'
+import { stockBalance } from './schema'
 
 /** Active SKU options for stock document forms (GR, transfer, stocktake). UOM = the product's base UOM. */
 
@@ -41,4 +43,38 @@ export async function listSkuOptions(actor: IdentityAuthActor): Promise<SkuOptio
       baseUomCode: r.base_uom_code,
     }))
   })
+}
+
+/**
+ * Estimates per-SKU weighted average cost across positive stock balances in the tenant.
+ */
+export async function readTenantSkuAverageCosts(
+  tx: TenantTx,
+  tenantId: string,
+  skuIds: readonly string[],
+): Promise<ReadonlyMap<string, number>> {
+  const out = new Map<string, number>()
+  if (skuIds.length === 0) return out
+  const rows = await tx
+    .select({
+      skuId: stockBalance.skuId,
+      qty: stockBalance.qty,
+      inventoryValue: stockBalance.inventoryValue,
+    })
+    .from(stockBalance)
+    .where(and(eq(stockBalance.tenantId, tenantId), inArray(stockBalance.skuId, [...skuIds]), sql`${stockBalance.qty} > 0`))
+
+  const totals = new Map<string, { qty: ReturnType<typeof D>; value: ReturnType<typeof D> }>()
+  for (const r of rows) {
+    const cur = totals.get(r.skuId) ?? { qty: D(0), value: D(0) }
+    cur.qty = cur.qty.plus(D(r.qty))
+    cur.value = cur.value.plus(D(r.inventoryValue))
+    totals.set(r.skuId, cur)
+  }
+  for (const [skuId, t] of totals) {
+    if (t.qty.gt(0)) {
+      out.set(skuId, t.value.div(t.qty).round().toNumber())
+    }
+  }
+  return out
 }
