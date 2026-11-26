@@ -73,6 +73,9 @@ let composed = false
  */
 export function composeServer(): void {
   if (composed) return
+  // Dev HMR can re-evaluate this module (composed=false) while the registries it fills stay cached,
+  // so start from empty registries instead of registering on top of stale entries.
+  clearRegistries()
   for (const source of identityFeedSources()) {
     registerFeedSource(source)
   }
@@ -137,7 +140,7 @@ export function composeServer(): void {
   composed = true
 }
 
-export function resetCompositionForTests(): void {
+function clearRegistries(): void {
   __resetForTests()
   __clearCommandHandlersForTests()
   __clearDeviceStatusPortForTests()
@@ -150,5 +153,9 @@ export function resetCompositionForTests(): void {
   __clearOutletStockReaderForTests()
   __clearOutletBillsReaderForTests()
   registerRecipeCostReaderPort(null)
+}
+
+export function resetCompositionForTests(): void {
+  clearRegistries()
   composed = false
 }
