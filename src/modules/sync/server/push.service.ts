@@ -1,5 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { createHash, webcrypto } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { ZodError } from 'zod'
 import {
   ContractError,
@@ -12,7 +12,9 @@ import {
   type PushResponse,
   type PushResultItem,
 } from '~/lib/contracts'
-import { canonicalJson, createIdGenerator } from '~/lib/kernel'
+import { normalizeSemverAppVersion } from '~/lib/app-version'
+import { canonicalJson } from '~/lib/kernel'
+import { runtimeIdGenerator as syncIdGen } from '~/lib/runtime-id'
 import { withTenant, type TenantTx } from '~/server/db'
 import { getSyncPushMaxFailureAttempts, getSyncPushMaxTransientAttempts } from '~/server/env'
 import { createLogger } from '~/server/log'
@@ -35,6 +37,7 @@ import {
 } from './release.service'
 import {
   claimIdempotencyRow,
+  type ExistingIdempotencyRow,
   completeIdempotencyAck,
   deleteCommandFailureAttempt,
   findAttentionReasonByCommandId,
@@ -47,16 +50,6 @@ import {
 
 const log = createLogger('sync.push')
 
-const syncIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
-
-const SEMVER_APP_PATTERN = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const TRANSIENT_PG_CODES = new Set(['55P03', '40001', '40P01', '57P01', '53300', '57014'])
 const ONLINE_ONLY_COMMANDS = new Set(['HandOverBill', 'AcceptBill', 'CancelBillHandover'])
 
@@ -92,15 +85,6 @@ class HashMismatchReplayError extends Error {
 
 function sha256Hex(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex')
-}
-
-function normalizeSemverAppVersion(raw: string | null): string | null {
-  if (!raw) return null
-  const trimmed = raw.trim()
-  if (trimmed.length === 0 || trimmed.length > 30 || !SEMVER_APP_PATTERN.test(trimmed)) {
-    return null
-  }
-  return trimmed
 }
 
 function extractPgErrorCode(err: unknown): string | null {
@@ -144,6 +128,114 @@ function assertPayloadMatchesDeviceScope(payload: unknown, device: SyncDeviceIde
 function sanitizeDetail(text: string | undefined): string | null {
   if (!text) return null
   return text.slice(0, 500)
+}
+
+type ClaimParams = Parameters<typeof claimIdempotencyRow>[1]
+type AttentionRecordParams = Parameters<typeof insertAttentionRecord>[1]
+
+/** Claim parameters for a command that arrived through the outbox channel. */
+function outboxClaimParams(args: {
+  cmd: PushCommandEnvelope
+  device: SyncDeviceIdentity
+  payloadHash: string
+  payloadSize: number
+  requestRef: string
+  appVersion: string | null
+  receivedAtIso: string
+}): ClaimParams {
+  const { cmd, device } = args
+  return {
+    commandId: cmd.id,
+    tenantId: device.tenantId,
+    deviceId: device.deviceId,
+    registerId: device.registerId,
+    outletId: device.outletId,
+    commandType: cmd.type,
+    channel: 'OUTBOX',
+    schemaVersion: cmd.schema_version,
+    deviceSeq: cmd.device_seq,
+    payloadHash: args.payloadHash,
+    payloadSize: args.payloadSize,
+    requestRef: args.requestRef,
+    appVersion: args.appVersion,
+    receivedAtIso: args.receivedAtIso,
+  }
+}
+
+/**
+ * Claims the idempotency row for a command, or loads the row that already exists for it.
+ * A conflict without a visible row means the id belongs to another tenant (row-level security hides it).
+ */
+async function claimOrLoadExisting(
+  tx: TenantTx,
+  params: ClaimParams,
+): Promise<{ claimed: true } | { claimed: false; existing: ExistingIdempotencyRow }> {
+  if (await claimIdempotencyRow(tx, params)) {
+    return { claimed: true }
+  }
+  const existing = await findIdempotencyByCommandId(tx, params.tenantId, params.commandId)
+  if (!existing) {
+    throw new Error('Missing existing idempotency row after conflict')
+  }
+  return { claimed: false, existing }
+}
+
+/** Result replayed to the device for a command that was already parked in the attention queue. */
+async function attentionReplayItem(
+  tx: TenantTx,
+  tenantId: string,
+  commandId: string,
+  fallbackRef: string,
+): Promise<PushResultItem> {
+  const att = await findAttentionReasonByCommandId(tx, tenantId, commandId)
+  return {
+    id: commandId,
+    outcome: 'ATTENTION',
+    reason_class: att?.reasonClass === 'AUTHORIZATION' ? 'AUTHORIZATION' : 'STRUCTURAL',
+    reason_code: att?.reasonCode ?? 'VALIDATION_FAILED',
+    ref: att?.requestRef ?? fallbackRef,
+  }
+}
+
+/** Parameters for the `idempotency_command` + `attention_item` rows written when a command is rejected. */
+function attentionRecordParams(args: {
+  cmd: PushCommandEnvelope
+  device: SyncDeviceIdentity
+  payloadHash: string
+  payloadSize: number
+  reasonClass: 'STRUCTURAL' | 'AUTHORIZATION'
+  reasonCode: string
+  detail: string | null | undefined
+  requestRef: string
+  appVersion: string | null
+  receivedAtIso: string
+  durationMs: number
+  attemptCount?: number
+}): AttentionRecordParams {
+  const { cmd, device } = args
+  return {
+    attentionId: syncIdGen.newId(),
+    commandId: cmd.id,
+    tenantId: device.tenantId,
+    deviceId: device.deviceId,
+    registerId: device.registerId,
+    outletId: device.outletId,
+    commandType: cmd.type,
+    schemaVersion: cmd.schema_version,
+    deviceSeq: cmd.device_seq,
+    payloadHash: args.payloadHash,
+    payloadSize: args.payloadSize,
+    rawPayload: cmd.payload ?? {},
+    reasonClass: args.reasonClass,
+    reasonCode: args.reasonCode,
+    detail: sanitizeDetail(args.detail ?? undefined),
+    blockedByCommandId: null,
+    requestRef: args.requestRef,
+    appVersion: args.appVersion,
+    receivedAtIso: args.receivedAtIso,
+    durationMs: args.durationMs,
+    attemptCount: args.attemptCount,
+  }
 }
 
 
@@ -457,29 +549,23 @@ async function processSingleCommand(params: ProcessSingleCommandParams): Promise
         await withTenant(
           device.tenantId,
           async (tx) => {
-            await insertAttentionRecord(tx, {
-              attentionId: syncIdGen.newId(),
-              commandId: cmd.id,
-              tenantId: device.tenantId,
-              deviceId: device.deviceId,
-              registerId: device.registerId,
-              outletId: device.outletId,
-              commandType: cmd.type,
-              schemaVersion: cmd.schema_version,
-              deviceSeq: cmd.device_seq,
-              payloadHash,
-              payloadSize,
-              rawPayload: cmd.payload ?? {},
-              reasonClass,
-              reasonCode,
-              detail: sanitizeDetail(detail ?? undefined),
-              blockedByCommandId: null,
-              requestRef: meta.requestRef,
-              appVersion: meta.appVersion,
-              receivedAtIso,
-              durationMs,
-              attemptCount,
-            })
+            await insertAttentionRecord(
+              tx,
+              attentionRecordParams({
+                cmd,
+                device,
+                payloadHash,
+                payloadSize,
+                reasonClass,
+                reasonCode,
+                detail,
+                requestRef: meta.requestRef,
+                appVersion: meta.appVersion,
+                receivedAtIso,
+                durationMs,
+                attemptCount,
+              }),
+            )
             await deleteCommandFailureAttempt(tx, device.tenantId, cmd.id)
           },
           { statementTimeoutMs: 10_000, lockTimeoutMs },
@@ -539,50 +625,35 @@ async function processSingleCommand(params: ProcessSingleCommandParams): Promise
         const txResult = await withTenant(
           device.tenantId,
           async (tx): Promise<PushResultItem> => {
-            const claimed = await claimIdempotencyRow(tx, {
-              commandId: cmd.id,
-              tenantId: device.tenantId,
-              deviceId: device.deviceId,
-              registerId: device.registerId,
-              outletId: device.outletId,
-              commandType: cmd.type,
-              channel: 'OUTBOX',
-              schemaVersion: cmd.schema_version,
-              deviceSeq: cmd.device_seq,
-              payloadHash,
-              payloadSize,
-              requestRef: meta.requestRef,
-              appVersion: meta.appVersion,
-              receivedAtIso,
-            })
+            const claim = await claimOrLoadExisting(
+              tx,
+              outboxClaimParams({
+                cmd,
+                device,
+                payloadHash,
+                payloadSize,
+                requestRef: meta.requestRef,
+                appVersion: meta.appVersion,
+                receivedAtIso,
+              }),
+            )
 
-            if (!claimed) {
-              const existing = await findIdempotencyByCommandId(tx, device.tenantId, cmd.id)
-              if (!existing) {
-                throw new Error('Missing existing idempotency row after conflict')
-              }
-              if (existing.payloadHash !== payloadHash) {
+            if (!claim.claimed) {
+              if (claim.existing.payloadHash !== payloadHash) {
                 throw new HashMismatchReplayError()
               }
 
               await incrementAttemptCount(tx, device.tenantId, cmd.id)
 
-              if (existing.status === 'ACKED' || existing.status === 'ACCEPTED_MANUAL') {
+              if (claim.existing.status === 'ACKED' || claim.existing.status === 'ACCEPTED_MANUAL') {
                 return {
                   id: cmd.id,
                   outcome: 'ACK',
-                  result: existing.result,
+                  result: claim.existing.result,
                 }
               }
 
-              const att = await findAttentionReasonByCommandId(tx, device.tenantId, cmd.id)
-              return {
-                id: cmd.id,
-                outcome: 'ATTENTION',
-                reason_class: att?.reasonClass === 'AUTHORIZATION' ? 'AUTHORIZATION' : 'STRUCTURAL',
-                reason_code: att?.reasonCode ?? 'VALIDATION_FAILED',
-                ref: att?.requestRef ?? meta.requestRef,
-              }
+              return attentionReplayItem(tx, device.tenantId, cmd.id, meta.requestRef)
             }
 
             await assertDependenciesSatisfied(tx, device.tenantId, cmd.depends_on)
@@ -787,28 +858,21 @@ export async function processCommandAs(
   )
 
   const runInsideTx = async (tx: TenantTx): Promise<ProcessCommandAsResult> => {
-    const claimed = await claimIdempotencyRow(tx, {
-      commandId: cmd.id,
-      tenantId: identity.tenantId,
-      deviceId: identity.deviceId,
-      registerId: identity.registerId,
-      outletId: identity.outletId,
-      commandType: cmd.type,
-      channel: 'OUTBOX',
-      schemaVersion: cmd.schema_version,
-      deviceSeq: cmd.device_seq,
-      payloadHash,
-      payloadSize,
-      requestRef: opts.requestRef,
-      appVersion: safeAppVersion,
-      receivedAtIso,
-    })
+    const claim = await claimOrLoadExisting(
+      tx,
+      outboxClaimParams({
+        cmd,
+        device: identity,
+        payloadHash,
+        payloadSize,
+        requestRef: opts.requestRef,
+        appVersion: safeAppVersion,
+        receivedAtIso,
+      }),
+    )
 
-    if (!claimed) {
-      const existing = await findIdempotencyByCommandId(tx, identity.tenantId, cmd.id)
-      if (!existing) {
-        throw new Error('Missing existing idempotency row after conflict')
-      }
+    if (!claim.claimed) {
+      const { existing } = claim
       if (existing.payloadHash !== payloadHash && !(opts.allowReplaceAttention && existing.status === 'ATTENTION')) {
         throw new HashMismatchReplayError()
       }
@@ -821,16 +885,9 @@ export async function processCommandAs(
       }
 
       if (!opts.allowReplaceAttention) {
-        const att = await findAttentionReasonByCommandId(tx, identity.tenantId, cmd.id)
         return {
           replay: true,
-          item: {
-            id: cmd.id,
-            outcome: 'ATTENTION',
-            reason_class: att?.reasonClass === 'AUTHORIZATION' ? 'AUTHORIZATION' : 'STRUCTURAL',
-            reason_code: att?.reasonCode ?? 'VALIDATION_FAILED',
-            ref: att?.requestRef ?? opts.requestRef,
-          },
+          item: await attentionReplayItem(tx, identity.tenantId, cmd.id, opts.requestRef),
         }
       }
     }
@@ -898,28 +955,22 @@ export async function processCommandAs(
     if (err instanceof CommandRejected) {
       const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
       await withTenant(identity.tenantId, async (tx) => {
-        await insertAttentionRecord(tx, {
-          attentionId: syncIdGen.newId(),
-          commandId: cmd.id,
-          tenantId: identity.tenantId,
-          deviceId: identity.deviceId,
-          registerId: identity.registerId,
-          outletId: identity.outletId,
-          commandType: cmd.type,
-          schemaVersion: cmd.schema_version,
-          deviceSeq: cmd.device_seq,
-          payloadHash,
-          payloadSize,
-          rawPayload: cmd.payload ?? {},
-          reasonClass: err.reasonClass,
-          reasonCode: err.reasonCode,
-          detail: sanitizeDetail(err.detail),
-          blockedByCommandId: null,
-          requestRef: opts.requestRef,
-          appVersion: safeAppVersion,
-          receivedAtIso,
-          durationMs,
-        })
+        await insertAttentionRecord(
+          tx,
+          attentionRecordParams({
+            cmd,
+            device: identity,
+            payloadHash,
+            payloadSize,
+            reasonClass: err.reasonClass,
+            reasonCode: err.reasonCode,
+            detail: err.detail,
+            requestRef: opts.requestRef,
+            appVersion: safeAppVersion,
+            receivedAtIso,
+            durationMs,
+          }),
+        )
       })
       return {
         replay: false,
@@ -976,7 +1027,7 @@ export async function executeOnlineCommand<TResult extends Record<string, unknow
   return withTenant(
     params.device.tenantId,
     async (tx) => {
-      const claimed = await claimIdempotencyRow(tx, {
+      const claim = await claimOrLoadExisting(tx, {
         commandId: params.commandId,
         tenantId: params.device.tenantId,
         deviceId: params.device.deviceId,
@@ -993,18 +1044,14 @@ export async function executeOnlineCommand<TResult extends Record<string, unknow
         receivedAtIso,
       })
 
-      if (!claimed) {
-        const existing = await findIdempotencyByCommandId(tx, params.device.tenantId, params.commandId)
-        if (!existing) {
-          throw new Error('Missing existing idempotency row after conflict')
-        }
-        if (existing.payloadHash !== payloadHash) {
+      if (!claim.claimed) {
+        if (claim.existing.payloadHash !== payloadHash) {
           const err = new Error('Online idempotency key reused with mismatched payload')
           err.name = 'OnlineIdempotencyMismatchError'
           throw err
         }
         return {
-          result: existing.result as TResult,
+          result: claim.existing.result as TResult,
           replay: true,
           serverTime: receivedAtIso,
         }
