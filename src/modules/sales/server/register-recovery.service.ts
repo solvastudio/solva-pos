@@ -175,10 +175,8 @@ export async function previewRegisterRecovery(
     const period = invoicePeriod(bd)
     const prefix = await readPrefixForPreview(tx, actor.tenantId, reg.registerId, bd)
 
-    const [highInv, highCn] = await Promise.all([
-      readHighestSeq(tx, reg.registerId, 'INVOICE', period),
-      readHighestSeq(tx, reg.registerId, 'CREDIT_NOTE', period),
-    ])
+    const highInv = await readHighestSeq(tx, reg.registerId, 'INVOICE', period)
+    const highCn = await readHighestSeq(tx, reg.registerId, 'CREDIT_NOTE', period)
 
     return {
       registerId: reg.registerId,
@@ -249,10 +247,8 @@ export async function recoverRegister(
     )
     const period = invoicePeriod(bd)
 
-    const [highInv, highCn] = await Promise.all([
-      readHighestSeq(tx, reg.registerId, 'INVOICE', period),
-      readHighestSeq(tx, reg.registerId, 'CREDIT_NOTE', period),
-    ])
+    const highInv = await readHighestSeq(tx, reg.registerId, 'INVOICE', period)
+    const highCn = await readHighestSeq(tx, reg.registerId, 'CREDIT_NOTE', period)
 
     const plans = [
       buildSeriesPlan('INVOICE', null, period, highInv, input.declaredLastInvoiceSeq),

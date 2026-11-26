@@ -4,6 +4,7 @@ import {
   compareSemver,
   formatVersionFooter,
   isAppVersion,
+  normalizeSemverAppVersion,
   parseSemver,
 } from './index'
 
@@ -38,5 +39,15 @@ describe('app-version semver utilities', () => {
     expect(formatVersionFooter('v1.6.0', 8, { withContract: true })).toBe(
       'Solva POS v1.6.0 · kontrak 8',
     )
+  })
+
+  it('normalizes reported app versions: optional v prefix, trimmed, max 30 chars, otherwise null', () => {
+    expect(normalizeSemverAppVersion('v1.6.2')).toBe('v1.6.2')
+    expect(normalizeSemverAppVersion('1.6.2-rc.1')).toBe('1.6.2-rc.1')
+    expect(normalizeSemverAppVersion('  v1.6.2  ')).toBe('v1.6.2')
+    expect(normalizeSemverAppVersion(null)).toBeNull()
+    expect(normalizeSemverAppVersion('')).toBeNull()
+    expect(normalizeSemverAppVersion('dev')).toBeNull()
+    expect(normalizeSemverAppVersion(`v1.0.0-${'a'.repeat(30)}`)).toBeNull()
   })
 })

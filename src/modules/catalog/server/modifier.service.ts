@@ -142,10 +142,8 @@ export async function listModifierGroups(actor: CatalogActor): Promise<ModifierG
     const groups = await listModifierGroupsRows(tx, actor.tenantId)
     if (groups.length === 0) return []
     const groupIds = groups.map((g) => g.id)
-    const [mods, counts] = await Promise.all([
-      listModifiersByGroupIds(tx, actor.tenantId, groupIds),
-      countLinkedProductsByGroup(tx, actor.tenantId),
-    ])
+    const mods = await listModifiersByGroupIds(tx, actor.tenantId, groupIds)
+    const counts = await countLinkedProductsByGroup(tx, actor.tenantId)
     const ings = await listModifierIngredientsByModifierIds(
       tx,
       actor.tenantId,
@@ -529,10 +527,8 @@ export async function listProductModifierGroups(
     if (links.length === 0) return []
 
     const groupIds = links.map((l) => l.modifierGroupId)
-    const [mods, minBasePrice] = await Promise.all([
-      listModifiersByGroupIds(tx, actor.tenantId, groupIds),
-      getMinEffectiveBasePriceForProduct(tx, actor.tenantId, productId),
-    ])
+    const mods = await listModifiersByGroupIds(tx, actor.tenantId, groupIds)
+    const minBasePrice = await getMinEffectiveBasePriceForProduct(tx, actor.tenantId, productId)
     const ings = await listModifierIngredientsByModifierIds(
       tx,
       actor.tenantId,
@@ -579,10 +575,8 @@ export async function linkModifierGroupProduct(
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {
-    const [group, prod] = await Promise.all([
-      findModifierGroupById(tx, actor.tenantId, parsed.modifierGroupId),
-      findProductMetaForModifier(tx, actor.tenantId, parsed.productId),
-    ])
+    const group = await findModifierGroupById(tx, actor.tenantId, parsed.modifierGroupId)
+    const prod = await findProductMetaForModifier(tx, actor.tenantId, parsed.productId)
     if (!group) {
       throw new AppError('VALIDATION_FAILED', 'Modifier group not found')
     }

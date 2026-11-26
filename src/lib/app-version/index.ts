@@ -40,6 +40,26 @@ export function isAppVersion(value: string): boolean {
   return parseSemver(value) !== null
 }
 
+const REPORTED_APP_VERSION_PATTERN = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
+
+/**
+ * Normalizes an app version reported by a device (`X-App-Version` header, push/pull envelope) into a value
+ * that satisfies the app-version CHECK constraints in the database; anything else becomes `null`.
+ * Looser than `parseSemver`: the `v` prefix is optional here.
+ */
+export function normalizeSemverAppVersion(raw: string | null): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  if (
+    trimmed.length === 0 ||
+    trimmed.length > MAX_APP_VERSION_LEN ||
+    !REPORTED_APP_VERSION_PATTERN.test(trimmed)
+  ) {
+    return null
+  }
+  return trimmed
+}
+
 function compareIdentifiers(a: string, b: string): -1 | 0 | 1 {
   const aNum = /^\d+$/.test(a)
   const bNum = /^\d+$/.test(b)

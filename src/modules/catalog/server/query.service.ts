@@ -171,10 +171,8 @@ export async function listAdminProducts(
   const scopeIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
 
   return withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [categories, outlets] = await Promise.all([
-      listCategories(tx, actor.tenantId),
-      queryScopedOutlets(tx, actor.tenantId, scopeIds),
-    ])
+    const categories = await listCategories(tx, actor.tenantId)
+    const outlets = await queryScopedOutlets(tx, actor.tenantId, scopeIds)
     const { pathOf, subtreeIds } = buildCategoryPathHelpers(categories)
 
     const { total, rows } = await queryAdminProductList(tx, {
@@ -230,23 +228,19 @@ export async function getAdminProductDetail(
     const prod = await findProductById(tx, actor.tenantId, productId)
     if (!prod) return null
 
-    const [attrs, skus, outlets, rawAvail] = await Promise.all([
-      listProductAttributes(tx, actor.tenantId, prod.id),
-      listSkusByProduct(tx, actor.tenantId, prod.id),
-      queryScopedOutlets(tx, actor.tenantId, scopeIds),
-      listAvailabilityByProductIds(tx, actor.tenantId, [prod.id]),
-    ])
+    const attrs = await listProductAttributes(tx, actor.tenantId, prod.id)
+    const skus = await listSkusByProduct(tx, actor.tenantId, prod.id)
+    const outlets = await queryScopedOutlets(tx, actor.tenantId, scopeIds)
+    const rawAvail = await listAvailabilityByProductIds(tx, actor.tenantId, [prod.id])
     const skuIds = skus.map((s) => s.id)
-    const [attrValues, links, skuUoms, rawPrices] = await Promise.all([
-      listAttributeValuesByAttributes(
-        tx,
-        actor.tenantId,
-        attrs.map((a) => a.id),
-      ),
-      listSkuAttributeValueLinks(tx, actor.tenantId, skuIds),
-      listSkuUomsBySkuIds(tx, actor.tenantId, skuIds),
-      listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds),
-    ])
+    const attrValues = await listAttributeValuesByAttributes(
+      tx,
+      actor.tenantId,
+      attrs.map((a) => a.id),
+    )
+    const links = await listSkuAttributeValueLinks(tx, actor.tenantId, skuIds)
+    const skuUoms = await listSkuUomsBySkuIds(tx, actor.tenantId, skuIds)
+    const rawPrices = await listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds)
 
     const allowedSet = new Set(outlets.map((o) => o.id))
     const availability = rawAvail.filter((a) => allowedSet.has(a.outletId))
@@ -292,10 +286,8 @@ export async function getPriceMatrix(
   const scopeIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
 
   return withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [categories, outlets] = await Promise.all([
-      listCategories(tx, actor.tenantId),
-      queryScopedOutlets(tx, actor.tenantId, scopeIds),
-    ])
+    const categories = await listCategories(tx, actor.tenantId)
+    const outlets = await queryScopedOutlets(tx, actor.tenantId, scopeIds)
     const { pathOf, subtreeIds } = buildCategoryPathHelpers(categories)
 
     const { total, rows } = await queryPriceMatrixPairs(tx, {
@@ -372,10 +364,8 @@ export async function getAvailabilityMatrix(
   // Load all tenant outlets so matrix columns can display locked outlets for Managers,
   // while `scopedOutletIds` tells UI which columns are editable.
   return withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [categories, allOutlets] = await Promise.all([
-      listCategories(tx, actor.tenantId),
-      queryScopedOutlets(tx, actor.tenantId, null),
-    ])
+    const categories = await listCategories(tx, actor.tenantId)
+    const allOutlets = await queryScopedOutlets(tx, actor.tenantId, null)
     const { pathOf, subtreeIds } = buildCategoryPathHelpers(categories)
     const scopedOutletIds =
       actor.outletIds === null ? null : allOutlets.filter((o) => actor.outletIds?.includes(o.id)).map((o) => o.id)
@@ -392,10 +382,8 @@ export async function getAvailabilityMatrix(
     })
 
     const productIds = productRows.map((p) => p.productId)
-    const [allSkus, allAvail] = await Promise.all([
-      listSkusByProductIds(tx, actor.tenantId, productIds),
-      listAvailabilityByProductIds(tx, actor.tenantId, productIds),
-    ])
+    const allSkus = await listSkusByProductIds(tx, actor.tenantId, productIds)
+    const allAvail = await listAvailabilityByProductIds(tx, actor.tenantId, productIds)
 
     const skusByProd = new Map<string, SkuRow[]>()
     for (const s of allSkus) {

@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { sql } from 'drizzle-orm'
 import { parseSafeBigint, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
-import type { FeedCursor, FeedRow, FeedScope } from '../domain/feed-types'
+import type { FeedCursor, FeedKey, FeedRow, FeedScope } from '../domain/feed-types'
 import { kWayMerge } from '../domain/merge'
 import { getFeedSources } from './feed-registry'
 
@@ -88,16 +88,18 @@ export async function pullPage(args: {
       }
     }
 
-    const keyLists = await Promise.all(
-      sources.map((source) =>
-        source.selectKeys(tx, {
+    // Sequential on purpose: all queries share this transaction's single connection.
+    const keyLists: FeedKey[][] = []
+    for (const source of sources) {
+      keyLists.push(
+        await source.selectKeys(tx, {
           after: args.cursor,
           upper,
           scope: args.scope,
           limit: args.pageSize + 1,
         }),
-      ),
-    )
+      )
+    }
 
     const merged = kWayMerge(keyLists, args.pageSize + 1)
     const hasMore = merged.length > args.pageSize
@@ -125,15 +127,14 @@ export async function pullPage(args: {
     }
 
     const sourceByEntity = new Map(sources.map((s) => [s.entity, s]))
-    const hydratedLists = await Promise.all(
-      [...idsByEntity.entries()].map(([entity, ids]) => {
-        const source = sourceByEntity.get(entity)
-        if (!source) {
-          throw new AppError('INTERNAL_ERROR', `Missing registered feed source: ${entity}`)
-        }
-        return source.hydrate(tx, ids, args.scope)
-      }),
-    )
+    const hydratedLists: FeedRow[][] = []
+    for (const [entity, ids] of idsByEntity) {
+      const source = sourceByEntity.get(entity)
+      if (!source) {
+        throw new AppError('INTERNAL_ERROR', `Missing registered feed source: ${entity}`)
+      }
+      hydratedLists.push(await source.hydrate(tx, ids, args.scope))
+    }
 
     const rowMap = new Map<string, FeedRow>()
     for (const list of hydratedLists) {

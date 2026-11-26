@@ -126,16 +126,12 @@ export async function previewPriceImport(
 
   const skuCodes = Array.from(new Set(rows.map((r) => r.skuCode)))
   const dbState = await withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [skus, uoms, outlets] = await Promise.all([
-      listSkusByCodes(tx, actor.tenantId, skuCodes),
-      listUoms(tx, actor.tenantId),
-      listActiveOutletsWithCodes(tx, actor.tenantId),
-    ])
+    const skus = await listSkusByCodes(tx, actor.tenantId, skuCodes)
+    const uoms = await listUoms(tx, actor.tenantId)
+    const outlets = await listActiveOutletsWithCodes(tx, actor.tenantId)
     const skuIds = skus.map((s) => s.id)
-    const [skuUoms, prices] = await Promise.all([
-      listSkuUomsBySkuIds(tx, actor.tenantId, skuIds),
-      listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds),
-    ])
+    const skuUoms = await listSkuUomsBySkuIds(tx, actor.tenantId, skuIds)
+    const prices = await listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds)
     return { skus, uoms, outlets, skuUoms, prices }
   })
 

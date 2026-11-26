@@ -44,18 +44,16 @@ export async function lookupInvoiceForReturn(params: {
       return null
     }
 
-    const [lines, payments] = await Promise.all([
-      tx
-        .select()
-        .from(saleLine)
-        .where(and(eq(saleLine.tenantId, params.tenantId), eq(saleLine.saleId, saleRow.id)))
-        .orderBy(asc(saleLine.lineNo)),
-      tx
-        .select()
-        .from(salePayment)
-        .where(and(eq(salePayment.tenantId, params.tenantId), eq(salePayment.saleId, saleRow.id)))
-        .orderBy(asc(salePayment.seq)),
-    ])
+    const lines = await tx
+      .select()
+      .from(saleLine)
+      .where(and(eq(saleLine.tenantId, params.tenantId), eq(saleLine.saleId, saleRow.id)))
+      .orderBy(asc(saleLine.lineNo))
+    const payments = await tx
+      .select()
+      .from(salePayment)
+      .where(and(eq(salePayment.tenantId, params.tenantId), eq(salePayment.saleId, saleRow.id)))
+      .orderBy(asc(salePayment.seq))
 
     const priorReturns = await sumPriorCreditNoteReturns(
       tx,

@@ -56,18 +56,15 @@ export async function exportCatalogCsv(
       targetOutletId = matched.id
     }
 
-    const [categories, uoms, products, skus] = await Promise.all([
-      listCategories(tx, actor.tenantId),
-      listUoms(tx, actor.tenantId),
-      listProducts(tx, actor.tenantId),
-      listAllActiveSkus(tx, actor.tenantId, MAX_EXPORT_ROWS),
-    ])
+    // Sequential on purpose: all queries share this transaction's single connection.
+    const categories = await listCategories(tx, actor.tenantId)
+    const uoms = await listUoms(tx, actor.tenantId)
+    const products = await listProducts(tx, actor.tenantId)
+    const skus = await listAllActiveSkus(tx, actor.tenantId, MAX_EXPORT_ROWS)
 
     const skuIds = skus.map((s) => s.id)
-    const [skuUoms, prices] = await Promise.all([
-      listSkuUomsBySkuIds(tx, actor.tenantId, skuIds),
-      listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds),
-    ])
+    const skuUoms = await listSkuUomsBySkuIds(tx, actor.tenantId, skuIds)
+    const prices = await listActivePriceEntriesBySkuIds(tx, actor.tenantId, skuIds)
 
     const catById = new Map(categories.map((c) => [c.id, c]))
     const uomById = new Map(uoms.map((u) => [u.id, u]))

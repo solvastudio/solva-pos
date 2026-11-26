@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { sql } from 'drizzle-orm'
+import { normalizeSemverAppVersion } from '~/lib/app-version'
 import {
   SCHEMA_VERSION,
   SUPPORTED_SCHEMA_VERSIONS,
@@ -13,7 +14,7 @@ import {
   type StockSnapshotBlock,
 } from '~/lib/contracts'
 import { getLimiters } from '~/server/auth/rate-limit/limiters'
-import { parseSafeBigint, withTenant, withTenantReadOnly } from '~/server/db'
+import { parseSafeBigint, withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { createLogger } from '~/server/log'
 import type { SyncDeviceIdentity } from '../domain/command-types'
@@ -21,7 +22,12 @@ import type { FeedScope } from '../domain/feed-types'
 import { FULL_RESYNC_ENTITY_ORDER } from '../shared'
 import { buildBillsSnapshot } from './bills-snapshot.service'
 import { getDeviceStatusPort } from './device-status-port'
-import { getFeedSources } from './feed-registry'
+import { getFeedSources, type FeedSource } from './feed-registry'
+import {
+  getCachedManifestCounts,
+  manifestCountsKey,
+  setCachedManifestCounts,
+} from './manifest-cache'
 import { findCommandStatusesForDevice } from './idempotency.repo'
 import { buildStockSnapshot } from './stock-snapshot.service'
 import { pullPage } from './pull'
@@ -34,7 +40,6 @@ import {
 import { signSnapshotToken, verifySnapshotToken } from './snapshot-token'
 
 const log = createLogger('sync.pull')
-const SEMVER_APP_PATTERN = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 
 export class PullRateLimitedError extends Error {
   constructor(public readonly retryAfterMs: number) {
@@ -55,15 +60,6 @@ export interface PullServiceDeps {
   nowMs?: () => number
 }
 
-function normalizeSemverAppVersion(raw: string | null): string | null {
-  if (!raw) return null
-  const trimmed = raw.trim()
-  if (trimmed.length === 0 || trimmed.length > 30 || !SEMVER_APP_PATTERN.test(trimmed)) {
-    return null
-  }
-  return trimmed
-}
-
 function deviceScope(device: SyncDeviceIdentity): FeedScope {
   return {
     tenantId: device.tenantId,
@@ -71,6 +67,19 @@ function deviceScope(device: SyncDeviceIdentity): FeedScope {
     registerId: device.registerId,
     deviceId: device.deviceId,
   }
+}
+
+/** Counts live rows per feed entity. Sequential: every query shares the transaction's single connection. */
+async function countFeedEntities(
+  tx: TenantTx,
+  sources: readonly FeedSource[],
+  args: { upper: number; scope: FeedScope },
+): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {}
+  for (const source of sources) {
+    counts[source.entity] = await source.count(tx, args)
+  }
+  return counts
 }
 
 /**
@@ -159,39 +168,35 @@ export async function handlePull(
 
   if (isLastPage) {
     const sources = getFeedSources()
+    const countsKey = manifestCountsKey(scope, page.upper)
+    const cachedCounts = getCachedManifestCounts(countsKey)
     const summary = await withTenantReadOnly(device.tenantId, async (tx) => {
       const updates =
         req.attention_ids.length > 0
           ? await findCommandStatusesForDevice(tx, device.tenantId, device.deviceId, req.attention_ids)
           : []
-      const countEntries = await Promise.all(
-        sources.map(
-          async (source) => [source.entity, await source.count(tx, { upper: page.upper, scope })] as const,
-        ),
-      )
+      // Counts only change when the master version moves, so an unchanged `upper` reuses them.
+      const counts =
+        cachedCounts ?? (await countFeedEntities(tx, sources, { upper: page.upper, scope }))
       // Stock and open-bills snapshots, read in the same DB snapshot as the manifest.
-      const [stock, bills] = await Promise.all([
-        buildStockSnapshot(tx, {
-          tenantId: device.tenantId,
-          outletId: device.outletId,
-          deviceId: device.deviceId,
-          nowIso,
-        }),
-        buildBillsSnapshot(tx, {
-          tenantId: device.tenantId,
-          outletId: device.outletId,
-          deviceId: device.deviceId,
-          registerId: device.registerId,
-          nowIso,
-        }),
-      ])
-      return {
-        updates,
-        counts: Object.fromEntries(countEntries) as Record<string, number>,
-        stock,
-        bills,
-      }
+      const stock = await buildStockSnapshot(tx, {
+        tenantId: device.tenantId,
+        outletId: device.outletId,
+        deviceId: device.deviceId,
+        nowIso,
+      })
+      const bills = await buildBillsSnapshot(tx, {
+        tenantId: device.tenantId,
+        outletId: device.outletId,
+        deviceId: device.deviceId,
+        registerId: device.registerId,
+        nowIso,
+      })
+      return { updates, counts, stock, bills }
     })
+    if (!cachedCounts) {
+      setCachedManifestCounts(countsKey, summary.counts)
+    }
     commandUpdates = summary.updates
     manifestCounts = summary.counts
     if (summary.stock) {
@@ -297,17 +302,10 @@ export async function startFullResync(
     const snapshotVersion = parseSafeBigint(syncRow.version)
     const tombstoneFloor = parseSafeBigint(syncRow.tombstone_floor_version)
 
-    const countEntries = await Promise.all(
-      sources.map(
-        async (source) =>
-          [source.entity, await source.count(tx, { upper: snapshotVersion, scope })] as const,
-      ),
-    )
-
     return {
       snapshotVersion,
       tombstoneFloor,
-      counts: Object.fromEntries(countEntries) as Record<string, number>,
+      counts: await countFeedEntities(tx, sources, { upper: snapshotVersion, scope }),
     }
   })
 

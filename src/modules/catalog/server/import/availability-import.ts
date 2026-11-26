@@ -129,11 +129,9 @@ export async function previewAvailabilityImport(
   )
 
   const dbState = await withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [products, skus, outlets] = await Promise.all([
-      listProductsByCodes(tx, actor.tenantId, productCodes),
-      listSkusByCodes(tx, actor.tenantId, skuCodes),
-      listActiveOutletsWithCodes(tx, actor.tenantId),
-    ])
+    const products = await listProductsByCodes(tx, actor.tenantId, productCodes)
+    const skus = await listSkusByCodes(tx, actor.tenantId, skuCodes)
+    const outlets = await listActiveOutletsWithCodes(tx, actor.tenantId)
     const existingAvail = await listAvailabilityByProductIds(
       tx,
       actor.tenantId,

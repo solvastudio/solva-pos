@@ -527,15 +527,13 @@ export async function commitCatalogImport(
 
   const version = await withTenant(actor.tenantId, async (tx) => {
     // Fast re-validation against concurrent changes between preview and commit
-    const [concurrentProds, concurrentSkus, concurrentBarcodes] = await Promise.all([
-      listProductsByCodes(tx, actor.tenantId, plan.expectedNewProductCodes),
-      listSkusByCodes(tx, actor.tenantId, plan.expectedNewSkuCodes),
-      listActiveSkuUomsByBarcodes(
-        tx,
-        actor.tenantId,
-        plan.skuUomsToWrite.map((u) => u.barcode).filter((b): b is string => b !== null),
-      ),
-    ])
+    const concurrentProds = await listProductsByCodes(tx, actor.tenantId, plan.expectedNewProductCodes)
+    const concurrentSkus = await listSkusByCodes(tx, actor.tenantId, plan.expectedNewSkuCodes)
+    const concurrentBarcodes = await listActiveSkuUomsByBarcodes(
+      tx,
+      actor.tenantId,
+      plan.skuUomsToWrite.map((u) => u.barcode).filter((b): b is string => b !== null),
+    )
 
     if (concurrentProds.length > 0 || concurrentSkus.length > 0) {
       throw new AppError('VALIDATION_FAILED', 'Data changed since preview; please run preview again')
@@ -725,39 +723,26 @@ async function loadImportSnapshot(
   barcodes: string[],
 ) {
   return withTenantReadOnly(actor.tenantId, async (tx) => {
-    const [
-      existingCategories,
-      existingUoms,
-      existingProducts,
-      existingSkusByCode,
-      existingBarcodeRows,
-      activeOutletIds,
-    ] = await Promise.all([
-      listCategories(tx, actor.tenantId),
-      listUoms(tx, actor.tenantId),
-      listProductsByCodes(tx, actor.tenantId, productCodes),
-      listSkusByCodes(tx, actor.tenantId, skuCodes),
-      listActiveSkuUomsByBarcodes(tx, actor.tenantId, barcodes),
-      listActiveOutletIds(tx, actor.tenantId),
-    ])
+    const existingCategories = await listCategories(tx, actor.tenantId)
+    const existingUoms = await listUoms(tx, actor.tenantId)
+    const existingProducts = await listProductsByCodes(tx, actor.tenantId, productCodes)
+    const existingSkusByCode = await listSkusByCodes(tx, actor.tenantId, skuCodes)
+    const existingBarcodeRows = await listActiveSkuUomsByBarcodes(tx, actor.tenantId, barcodes)
+    const activeOutletIds = await listActiveOutletIds(tx, actor.tenantId)
 
     const prodIds = existingProducts.map((p) => p.id)
-    const [existingProductSkus, existingAttrs] = await Promise.all([
-      listSkusByProductIds(tx, actor.tenantId, prodIds),
-      listProductAttributesByProductIds(tx, actor.tenantId, prodIds),
-    ])
+    const existingProductSkus = await listSkusByProductIds(tx, actor.tenantId, prodIds)
+    const existingAttrs = await listProductAttributesByProductIds(tx, actor.tenantId, prodIds)
     const allKnownSkuIds = Array.from(
       new Set([...existingSkusByCode.map((s) => s.id), ...existingProductSkus.map((s) => s.id)]),
     )
-    const [existingAttrValues, existingSkuUoms, existingPrices] = await Promise.all([
-      listAttributeValuesByAttributes(
-        tx,
-        actor.tenantId,
-        existingAttrs.map((a) => a.id),
-      ),
-      listSkuUomsBySkuIds(tx, actor.tenantId, allKnownSkuIds),
-      listActivePriceEntriesBySkuIds(tx, actor.tenantId, allKnownSkuIds),
-    ])
+    const existingAttrValues = await listAttributeValuesByAttributes(
+      tx,
+      actor.tenantId,
+      existingAttrs.map((a) => a.id),
+    )
+    const existingSkuUoms = await listSkuUomsBySkuIds(tx, actor.tenantId, allKnownSkuIds)
+    const existingPrices = await listActivePriceEntriesBySkuIds(tx, actor.tenantId, allKnownSkuIds)
 
     // Validate baseUomId changes against HasTransactionsPort and non-base UOMs
     const uomByCode = new Map(existingUoms.map((u) => [u.code.toLowerCase(), u]))
