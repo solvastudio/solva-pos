@@ -4,6 +4,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import {
   changeInvoicePrefixSchema,
   createRegisterSchema,
@@ -38,10 +40,6 @@ import {
   type RegisterDbRow,
   type RegisterPrefixDbRow,
 } from './register.repo'
-
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
-}
 
 function buildRegisterView(
   row: RegisterDbRow,
@@ -122,14 +120,7 @@ export async function createRegister(
   rawInput: CreateRegisterInput,
   deps?: IdentityServiceDeps,
 ): Promise<RegisterView> {
-  const parsedRes = createRegisterSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid register input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createRegisterSchema, rawInput, 'Invalid register input')
   requireActorPermission(actor, 'user.manage', { outletId: parsed.outletId })
 
   const nowIso = nowIsoFrom(deps)
@@ -224,14 +215,7 @@ export async function updateRegister(
   rawInput: UpdateRegisterInput,
   deps?: IdentityServiceDeps,
 ): Promise<RegisterView> {
-  const parsedRes = updateRegisterSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid register input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateRegisterSchema, rawInput, 'Invalid register input')
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {
@@ -312,14 +296,7 @@ export async function changeInvoicePrefix(
   rawInput: ChangeInvoicePrefixInput,
   deps?: IdentityServiceDeps,
 ): Promise<RegisterView> {
-  const parsedRes = changeInvoicePrefixSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid invoice prefix',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(changeInvoicePrefixSchema, rawInput, 'Invalid invoice prefix')
   const newPrefix = parsed.newPrefix.trim()
   const nowIso = nowIsoFrom(deps)
 

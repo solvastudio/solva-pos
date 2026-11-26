@@ -1,5 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import { role, rolePermission } from './schema'
@@ -118,41 +118,46 @@ export async function syncRolePermissionsRows(
   const added: string[] = []
   const removed: string[] = []
 
+  const removeIds: string[] = []
+  const restoreIds: string[] = []
   for (const row of existing) {
     const isActive = row.deletedAt === null
     const shouldBeActive = params.desiredCodes.has(row.permissionCode)
     if (isActive && !shouldBeActive) {
-      await tx
-        .update(rolePermission)
-        .set({
-          deletedAt: params.nowIso,
-          version: writer.version,
-          updatedAt: params.nowIso,
-          updatedBy: writer.actorUserId,
-        })
-        .where(
-          and(eq(rolePermission.tenantId, writer.tenantId), eq(rolePermission.id, row.id)),
-        )
+      removeIds.push(row.id)
       removed.push(row.permissionCode)
     } else if (!isActive && shouldBeActive) {
-      await tx
-        .update(rolePermission)
-        .set({
-          deletedAt: null,
-          version: writer.version,
-          updatedAt: params.nowIso,
-          updatedBy: writer.actorUserId,
-        })
-        .where(
-          and(eq(rolePermission.tenantId, writer.tenantId), eq(rolePermission.id, row.id)),
-        )
+      restoreIds.push(row.id)
       added.push(row.permissionCode)
     }
   }
+  if (removeIds.length > 0) {
+    await tx
+      .update(rolePermission)
+      .set({
+        deletedAt: params.nowIso,
+        version: writer.version,
+        updatedAt: params.nowIso,
+        updatedBy: writer.actorUserId,
+      })
+      .where(and(eq(rolePermission.tenantId, writer.tenantId), inArray(rolePermission.id, removeIds)))
+  }
+  if (restoreIds.length > 0) {
+    await tx
+      .update(rolePermission)
+      .set({
+        deletedAt: null,
+        version: writer.version,
+        updatedAt: params.nowIso,
+        updatedBy: writer.actorUserId,
+      })
+      .where(and(eq(rolePermission.tenantId, writer.tenantId), inArray(rolePermission.id, restoreIds)))
+  }
 
+  const newRows: Array<typeof rolePermission.$inferInsert> = []
   for (const code of params.desiredCodes) {
     if (!byCode.has(code)) {
-      await tx.insert(rolePermission).values({
+      newRows.push({
         id: params.newId(),
         tenantId: writer.tenantId,
         roleId: params.roleId,
@@ -165,6 +170,9 @@ export async function syncRolePermissionsRows(
       })
       added.push(code)
     }
+  }
+  if (newRows.length > 0) {
+    await tx.insert(rolePermission).values(newRows)
   }
 
   return {

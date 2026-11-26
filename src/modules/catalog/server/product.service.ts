@@ -4,6 +4,7 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import { createLogger } from '~/server/log'
 import {
   createProductSchema,
@@ -23,13 +24,14 @@ import {
 } from './auth'
 import {
   listActiveOutletIds,
+  listAvailabilityByProductIds,
   tombstoneAvailabilityForProduct,
-  upsertAvailabilityRow,
+  upsertAvailabilityBatch,
   type AvailabilityRow,
 } from './availability.repo'
 import { findCategoryById } from './category.repo'
 import { getHasTransactionsPort } from './ports'
-import { tombstonePriceEntriesForSku } from './price.repo'
+import { tombstonePriceEntriesForSkus } from './price.repo'
 import {
   findProductById,
   insertProductRow,
@@ -41,23 +43,23 @@ import {
 import {
   findActiveSkuUomByBarcode,
   hasNonBaseActiveSkuUomForProductAndUom,
-  tombstoneSkuUomsBySku,
+  tombstoneSkuUomsBySkus,
   updateBaseSkuUomForProduct,
-  upsertSkuUomRow,
+  upsertSkuUomBatch,
 } from './sku-uom.repo'
 import { findUomById } from './uom.repo'
 import {
-  insertAttributeValueRow,
-  insertProductAttributeRow,
-  insertSkuAttributeValueRow,
-  insertSkuRow,
+  insertAttributeValueBatch,
+  insertProductAttributeBatch,
+  insertSkuAttributeValueBatch,
   listAttributeValuesByAttributes,
   listProductAttributes,
   listSkusByProduct,
-  tombstoneAttributeValueRow,
-  tombstoneProductAttributeRow,
-  tombstoneSkuAttributeValuesForSku,
-  tombstoneSkuRow,
+  tombstoneAttributeValueRows,
+  tombstoneProductAttributeRows,
+  tombstoneSkuAttributeValuesForSkus,
+  tombstoneSkuRows,
+  upsertSkuBatch,
   type AttributeValueRow,
   type ProductAttributeRow,
   type SkuRow,
@@ -105,14 +107,7 @@ export async function createProduct(
   deps?: CatalogServiceDeps,
 ): Promise<CreateProductResult> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = createProductSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid product input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createProductSchema, rawInput, 'Invalid product input')
   const nowIso = nowIsoFrom(deps)
   const productId = newIdFrom(deps)
   const cleanBarcode = parsed.barcode?.trim() || null
@@ -213,12 +208,16 @@ export async function createProduct(
           nowIso,
         })
 
-        const createdSkus: SkuRow[] = []
-        const createdAttrs: Array<{ attribute: ProductAttributeRow; values: AttributeValueRow[] }> = []
+        const skuItems: Parameters<typeof upsertSkuBatch>[2][number][] = []
+        const skuUomItems: Parameters<typeof upsertSkuUomBatch>[2][number][] = []
+        const attrItems: Parameters<typeof insertProductAttributeBatch>[3][number][] = []
+        const attrValueItems: Parameters<typeof insertAttributeValueBatch>[3][number][] = []
+        const skuAttrItems: Parameters<typeof insertSkuAttributeValueBatch>[3][number][] = []
 
         if (!parsed.hasVariants) {
-          const defaultSku = await insertSkuRow(tx, w, {
-            id: newIdFrom(deps),
+          const defaultSkuId = newIdFrom(deps)
+          skuItems.push({
+            id: defaultSkuId,
             productId,
             skuCode: parsed.code,
             variantLabel: null,
@@ -227,43 +226,38 @@ export async function createProduct(
             sortOrder: 0,
             nowIso,
           })
-          await upsertSkuUomRow(tx, w, {
+          skuUomItems.push({
             id: newIdFrom(deps),
-            skuId: defaultSku.id,
+            skuId: defaultSkuId,
             uomId: parsed.baseUomId,
             conversionFactor: '1',
             isBase: true,
             barcode: cleanBarcode,
             nowIso,
           })
-          createdSkus.push(defaultSku)
         } else {
           for (const attr of preparedAttributes) {
-            const attrRow = await insertProductAttributeRow(tx, w.tenantId, w.actorUserId, {
+            attrItems.push({
               id: attr.id,
               productId,
               name: attr.name,
               sortOrder: attr.sortOrder,
               nowIso,
             })
-            const valueRows: AttributeValueRow[] = []
             for (const val of attr.values) {
-              const valRow = await insertAttributeValueRow(tx, w.tenantId, w.actorUserId, {
+              attrValueItems.push({
                 id: val.id,
-                attributeId: attrRow.id,
+                attributeId: attr.id,
                 value: val.value,
                 sortOrder: val.sortOrder,
                 nowIso,
               })
-              valueRows.push(valRow)
             }
-            createdAttrs.push({ attribute: attrRow, values: valueRows })
           }
-
-          for (let idx = 0; idx < generatedSkus.length; idx += 1) {
-            const spec = generatedSkus[idx]!
-            const skuRow = await insertSkuRow(tx, w, {
-              id: newIdFrom(deps),
+          generatedSkus.forEach((spec, idx) => {
+            const skuId = newIdFrom(deps)
+            skuItems.push({
+              id: skuId,
               productId,
               skuCode: spec.skuCode,
               variantLabel: spec.variantLabel,
@@ -273,39 +267,55 @@ export async function createProduct(
               nowIso,
             })
             for (const valId of spec.valueIds) {
-              await insertSkuAttributeValueRow(tx, w.tenantId, w.actorUserId, {
-                id: newIdFrom(deps),
-                skuId: skuRow.id,
-                attributeValueId: valId,
-                nowIso,
-              })
+              skuAttrItems.push({ id: newIdFrom(deps), skuId, attributeValueId: valId, nowIso })
             }
-            await upsertSkuUomRow(tx, w, {
+            skuUomItems.push({
               id: newIdFrom(deps),
-              skuId: skuRow.id,
+              skuId,
               uomId: parsed.baseUomId,
               conversionFactor: '1',
               isBase: true,
               barcode: null,
               nowIso,
             })
-            createdSkus.push(skuRow)
-          }
+          })
         }
 
-        const availability: AvailabilityRow[] = []
-        for (const outletId of activeOutlets) {
-          const status = excludeOutletSet.has(outletId) ? 'UNAVAILABLE' : 'AVAILABLE'
-          const availRow = await upsertAvailabilityRow(tx, w, {
+        await insertProductAttributeBatch(tx, w.tenantId, w.actorUserId, attrItems)
+        await insertAttributeValueBatch(tx, w.tenantId, w.actorUserId, attrValueItems)
+        await upsertSkuBatch(tx, w, skuItems)
+        await insertSkuAttributeValueBatch(tx, w.tenantId, w.actorUserId, skuAttrItems)
+        await upsertSkuUomBatch(tx, w, skuUomItems)
+        await upsertAvailabilityBatch(
+          tx,
+          w,
+          activeOutlets.map((outletId) => ({
             id: newIdFrom(deps),
             outletId,
             productId,
             skuId: null,
-            status,
+            status: excludeOutletSet.has(outletId) ? ('UNAVAILABLE' as const) : ('AVAILABLE' as const),
             nowIso,
-          })
-          availability.push(availRow)
-        }
+          })),
+        )
+
+        // Read back so the result carries the stored rows, in their canonical order.
+        const createdSkus: SkuRow[] = await listSkusByProduct(tx, actor.tenantId, productId)
+        const attributeRows = await listProductAttributes(tx, actor.tenantId, productId)
+        const valueRows = await listAttributeValuesByAttributes(
+          tx,
+          actor.tenantId,
+          attributeRows.map((a) => a.id),
+        )
+        const createdAttrs: Array<{ attribute: ProductAttributeRow; values: AttributeValueRow[] }> =
+          attributeRows.map((attribute) => ({
+            attribute,
+            values: valueRows.filter((v) => v.attributeId === attribute.id),
+          }))
+        const outletRank = new Map(activeOutlets.map((id, i) => [id, i] as const))
+        const availability: AvailabilityRow[] = (
+          await listAvailabilityByProductIds(tx, actor.tenantId, [productId])
+        ).sort((a, b) => (outletRank.get(a.outletId) ?? 0) - (outletRank.get(b.outletId) ?? 0))
 
         return {
           product: createdProduct,
@@ -365,14 +375,7 @@ export async function updateProduct(
   deps?: CatalogServiceDeps,
 ): Promise<ProductRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = updateProductSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid product input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateProductSchema, rawInput, 'Invalid product input')
   const nowIso = nowIsoFrom(deps)
 
   try {
@@ -475,18 +478,25 @@ export async function deleteProduct(
     )
 
     await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
-      for (const s of skus) {
-        await tombstonePriceEntriesForSku(tx, w, s.id, nowIso)
-        await tombstoneSkuUomsBySku(tx, w, s.id, nowIso)
-        await tombstoneSkuAttributeValuesForSku(tx, w.tenantId, w.actorUserId, s.id, nowIso)
-        await tombstoneSkuRow(tx, w, s.id, nowIso)
-      }
-      for (const av of attrValues) {
-        await tombstoneAttributeValueRow(tx, w.tenantId, w.actorUserId, av.id, nowIso)
-      }
-      for (const attr of attrs) {
-        await tombstoneProductAttributeRow(tx, w.tenantId, w.actorUserId, attr.id, nowIso)
-      }
+      const skuIds = skus.map((s) => s.id)
+      await tombstonePriceEntriesForSkus(tx, w, skuIds, nowIso)
+      await tombstoneSkuUomsBySkus(tx, w, skuIds, nowIso)
+      await tombstoneSkuAttributeValuesForSkus(tx, w.tenantId, w.actorUserId, skuIds, nowIso)
+      await tombstoneSkuRows(tx, w, skuIds, nowIso)
+      await tombstoneAttributeValueRows(
+        tx,
+        w.tenantId,
+        w.actorUserId,
+        attrValues.map((av) => av.id),
+        nowIso,
+      )
+      await tombstoneProductAttributeRows(
+        tx,
+        w.tenantId,
+        w.actorUserId,
+        attrs.map((a) => a.id),
+        nowIso,
+      )
       await tombstoneAvailabilityForProduct(tx, w, productId, nowIso)
       await tombstoneProductRow(tx, w, productId, nowIso)
     })

@@ -3,8 +3,6 @@ import { z } from 'zod'
 import {
   addAttributeValue,
   addSkuUom,
-  bulkSetAvailability,
-  clearSkuOverride,
   createCategory,
   createProduct,
   createUom,
@@ -12,10 +10,8 @@ import {
   deleteUom,
   removeAttributeValue,
   removeSkuUom,
-  setPrice,
-  setPricesBulk,
-  setProductAvailability,
-  setSkuOverride,
+  saveAvailabilityAcrossOutlets,
+  setPricesAcrossOutlets,
   updateCategory,
   updateProduct,
   updateSku,
@@ -244,34 +240,11 @@ export const savePricesFn = createServerFn({ method: 'POST' })
   .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<{ savedCount: number }>> => {
     return runValidatedAction(async () => {
-      const byOutlet = new Map<string | null, Array<{ skuId: string; uomId: string; price: number }>>()
-      for (const entry of data.entries) {
-        const list = byOutlet.get(entry.outletId) ?? []
-        list.push({ skuId: entry.skuId, uomId: entry.uomId, price: entry.price })
-        byOutlet.set(entry.outletId, list)
-      }
-      let savedCount = 0
-      for (const [outletId, items] of byOutlet) {
-        if (items.length === 1) {
-          const item = items[0]!
-          await setPrice(context.auth, {
-            skuId: item.skuId,
-            uomId: item.uomId,
-            outletId,
-            price: item.price,
-            reasonText: data.reasonText ?? null,
-          })
-          savedCount += 1
-        } else {
-          const res = await setPricesBulk(context.auth, {
-            outletId,
-            items,
-            reasonText: data.reasonText ?? null,
-          })
-          savedCount += res.entries.length
-        }
-      }
-      return { savedCount }
+      const res = await setPricesAcrossOutlets(context.auth, {
+        entries: data.entries,
+        reasonText: data.reasonText ?? null,
+      })
+      return { savedCount: res.savedCount }
     })
   })
 
@@ -280,57 +253,12 @@ export const saveAvailabilityFn = createServerFn({ method: 'POST' })
   .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<{ savedCount: number }>> => {
     return runValidatedAction(async () => {
-      const byOutlet = new Map<
-        string,
-        Array<{ productId: string; skuId?: string | null; status: 'AVAILABLE' | 'UNAVAILABLE' }>
-      >()
-      for (const upd of data.outletUpdates) {
-        const list = byOutlet.get(upd.outletId) ?? []
-        list.push({ productId: upd.productId, skuId: upd.skuId ?? null, status: upd.status })
-        byOutlet.set(upd.outletId, list)
-      }
-
-      let savedCount = 0
-      for (const [outletId, items] of byOutlet) {
-        if (items.length === 1) {
-          const item = items[0]!
-          if (item.skuId) {
-            await setSkuOverride(context.auth, {
-              outletId,
-              productId: item.productId,
-              skuId: item.skuId,
-              status: item.status,
-              reasonText: data.reasonText ?? null,
-            })
-          } else {
-            await setProductAvailability(context.auth, {
-              outletId,
-              productId: item.productId,
-              status: item.status,
-              reasonText: data.reasonText ?? null,
-            })
-          }
-          savedCount += 1
-        } else {
-          const res = await bulkSetAvailability(context.auth, {
-            outletId,
-            items,
-            reasonText: data.reasonText ?? null,
-          })
-          savedCount += res.rows.length
-        }
-      }
-
-      for (const clr of data.clearOverrides) {
-        await clearSkuOverride(context.auth, {
-          outletId: clr.outletId,
-          productId: clr.productId,
-          skuId: clr.skuId,
-          reasonText: data.reasonText ?? null,
-        })
-        savedCount += 1
-      }
-      return { savedCount }
+      const res = await saveAvailabilityAcrossOutlets(context.auth, {
+        updates: data.outletUpdates,
+        clears: data.clearOverrides,
+        reasonText: data.reasonText ?? null,
+      })
+      return { savedCount: res.savedCount }
     })
   })
 

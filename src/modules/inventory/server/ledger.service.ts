@@ -19,8 +19,9 @@ import {
   insertMovements,
   lockBalancesOrdered,
   setLedgerLockTimeout,
-  updateBalance,
+  updateBalances,
   type BalanceKey,
+  type BalanceUpdate,
   type MovementInsert,
 } from './ledger.repo'
 
@@ -253,22 +254,30 @@ export async function applyMovements(
 
   await insertMovements(tx, inserts)
 
+  const lockedByKey = new Map<string, (typeof locked)[number]>(
+    locked.map((r) => [`${r.outletId}|${r.skuId}`, r] as const),
+  )
+  const balanceUpdates: BalanceUpdate[] = []
   for (const k of keys) {
     const key = `${k.outletId}|${k.skuId}`
     const s = state.get(key)
     if (!s) continue
-    const before = locked.find((r) => r.outletId === k.outletId && r.skuId === k.skuId)
+    const before = lockedByKey.get(key)
     if (before && before.rev === s.rev) continue // no new movement for this key
-    await updateBalance(tx, ctx.tenantId, k, {
-      qty: s.qty,
-      inventoryValue: s.inventoryValue,
-      refValue: s.refValue,
-      refQty: s.refQty,
-      rev: s.rev,
-      lastMovementAt: touchedAt.get(key) ?? ctx.processedAt,
-      updatedAt: ctx.processedAt,
+    balanceUpdates.push({
+      key: k,
+      next: {
+        qty: s.qty,
+        inventoryValue: s.inventoryValue,
+        refValue: s.refValue,
+        refQty: s.refQty,
+        rev: s.rev,
+        lastMovementAt: touchedAt.get(key) ?? ctx.processedAt,
+        updatedAt: ctx.processedAt,
+      },
     })
   }
+  await updateBalances(tx, ctx.tenantId, balanceUpdates)
 
   return { applied, negativeResults }
 }

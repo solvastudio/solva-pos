@@ -3,6 +3,7 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster, type MasterWriter } from '~/modules/sync/public'
 import { withTenant, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { nowIsoFrom } from '~/server/service-deps'
 import { validatePin } from '../domain/pin-policy'
 import {
   identityIdGen,
@@ -24,10 +25,6 @@ import {
   upsertUserPinCredential,
   type UserPinCredentialRow,
 } from './pin.repo'
-
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
-}
 
 function isMemberWithinActorScope(
   assignments: readonly Pick<MemberAssignmentDbRow, 'outletId'>[],

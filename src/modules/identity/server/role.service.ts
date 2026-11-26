@@ -3,6 +3,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import { PERMISSION_CODES, type PermissionCode } from '../domain/permissions'
 import { updateRoleSchema, type RoleMatrixView, type UpdateRoleInput } from '../shared'
 import {
@@ -18,10 +20,6 @@ import {
   syncRolePermissionsRows,
   updateRoleRow,
 } from './role.repo'
-
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
-}
 
 export async function listRolesWithPermissions(
   actor: IdentityAuthActor,
@@ -55,14 +53,7 @@ export async function updateRole(
   deps?: IdentityServiceDeps,
 ): Promise<RoleMatrixView> {
   requireActorPermission(actor, 'user.manage', { requireTenantWide: true })
-  const parsedRes = updateRoleSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid role update input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateRoleSchema, rawInput, 'Invalid role update input')
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {

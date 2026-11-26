@@ -4,6 +4,7 @@ import { cmpQty, normalizeQty, parseQty, QtyError, type Qty } from '~/lib/kernel
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import {
   newIdFrom,
   nowIsoFrom,
@@ -75,14 +76,7 @@ export async function addSkuUom(
   deps?: CatalogServiceDeps,
 ): Promise<SkuUomRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = addSkuUomSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid SKU-UOM input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(addSkuUomSchema, rawInput, 'Invalid SKU-UOM input')
   const normalizedFactor = validatePositiveConversionFactor(parsed.conversionFactor)
   const cleanBarcode = parsed.barcode?.trim() || null
   const nowIso = nowIsoFrom(deps)
@@ -139,14 +133,7 @@ export async function updateSkuUom(
   deps?: CatalogServiceDeps,
 ): Promise<SkuUomRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = updateSkuUomSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid SKU-UOM input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateSkuUomSchema, rawInput, 'Invalid SKU-UOM input')
   const normalizedFactor =
     parsed.conversionFactor !== undefined
       ? validatePositiveConversionFactor(parsed.conversionFactor)

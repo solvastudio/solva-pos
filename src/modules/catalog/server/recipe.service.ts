@@ -5,6 +5,7 @@ import { D, normalizeQty } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
 import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import { validateRecipe } from '../domain/recipe'
 import type { IngredientOptionView, MenuRecipeResult, RecipeItemView } from '../shared'
 import {
@@ -122,14 +123,7 @@ export async function saveRecipe(
   deps?: CatalogServiceDeps,
 ): Promise<MenuRecipeResult> {
   requireCatalogPermission(actor)
-  const parsedRes = saveRecipeSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid recipe input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(saveRecipeSchema, rawInput, 'Invalid recipe input')
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {

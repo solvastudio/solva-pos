@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import {
   generateSkus,
   VariantLimitError,
@@ -134,14 +135,7 @@ export async function addAttributeValue(
   deps?: CatalogServiceDeps,
 ): Promise<{ attributeValue: AttributeValueRow; createdSkus: SkuRow[]; version: number }> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = addAttributeValueSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid attribute value input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(addAttributeValueSchema, rawInput, 'Invalid attribute value input')
   const nowIso = nowIsoFrom(deps)
   const newValueId = newIdFrom(deps)
 
@@ -285,14 +279,7 @@ export async function removeAttributeValue(
   deps?: CatalogServiceDeps,
 ): Promise<{ removedSkuIds: string[]; version: number }> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = removeAttributeValueSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid attribute value input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(removeAttributeValueSchema, rawInput, 'Invalid attribute value input')
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {
@@ -359,14 +346,7 @@ export async function updateSku(
   deps?: CatalogServiceDeps,
 ): Promise<SkuRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = updateSkuSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid SKU input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateSkuSchema, rawInput, 'Invalid SKU input')
   const nowIso = nowIsoFrom(deps)
 
   try {

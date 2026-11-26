@@ -12,6 +12,7 @@ import {
   getEffectivePrice,
   listPricesForSku,
   setPrice,
+  setPricesAcrossOutlets,
   setPricesBulk,
 } from '~/modules/catalog/public'
 import {
@@ -24,6 +25,7 @@ import {
 import { PERMISSION_CODES } from '~/modules/identity/shared'
 import { composeServer, resetCompositionForTests } from '~/server/composition'
 import { closePools } from '~/server/db'
+import { AppError } from '~/server/error-classify'
 import { uniqueSlug, withTestTenant } from './helpers/tenants'
 
 const testIdGen = createIdGenerator({
@@ -217,5 +219,50 @@ describe('catalog-price integration (tier resolution, NO_PRICE, tombstone reviva
     expect(
       await getEffectivePrice(owner, { skuId: openSku.id, uomId: pcs.id, outletId: outletA.id }),
     ).toEqual({ kind: 'OPEN_PRICE', suggested: toMoney(25000) })
+  })
+
+  it('saves prices across outlets atomically without partial writes on failure', async () => {
+    const { tenantId, owner, outletA, outletB } = await setupPriceTenant('cpriceatomic')
+    const cat = await createCategory(owner, { name: 'Beverages' })
+    const pcs = await createUom(owner, { code: 'pcs', name: 'Pieces' })
+    const unattachedBox = await createUom(owner, { code: 'box', name: 'Box' })
+    const prod = await createProduct(owner, {
+      categoryId: cat.id,
+      code: 'TEH-ATOM',
+      name: 'Teh Atomik',
+      baseUomId: pcs.id,
+    })
+    const sku = prod.skus[0]!
+
+    await expect(
+      setPricesAcrossOutlets(owner, {
+        entries: [
+          { skuId: sku.id, uomId: pcs.id, outletId: outletA.id, price: 12000 },
+          { skuId: sku.id, uomId: unattachedBox.id, outletId: outletB.id, price: 24000 },
+        ],
+      }),
+    ).rejects.toSatisfy((err: unknown) => err instanceof AppError && err.code === 'VALIDATION_FAILED')
+
+    expect(
+      await getEffectivePrice(owner, { skuId: sku.id, uomId: pcs.id, outletId: outletA.id }),
+    ).toEqual({ kind: 'NO_PRICE' })
+
+    const versionBefore = await getTenantVersion(tenantId)
+    const saved = await setPricesAcrossOutlets(owner, {
+      entries: [
+        { skuId: sku.id, uomId: pcs.id, outletId: outletA.id, price: 12000 },
+        { skuId: sku.id, uomId: pcs.id, outletId: outletB.id, price: 13000 },
+      ],
+    })
+    const versionAfter = await getTenantVersion(tenantId)
+
+    expect(saved.savedCount).toBe(2)
+    expect(versionAfter).toBe(versionBefore + 1)
+    expect(
+      await getEffectivePrice(owner, { skuId: sku.id, uomId: pcs.id, outletId: outletA.id }),
+    ).toEqual({ kind: 'PRICE', price: toMoney(12000), source: 'OUTLET' })
+    expect(
+      await getEffectivePrice(owner, { skuId: sku.id, uomId: pcs.id, outletId: outletB.id }),
+    ).toEqual({ kind: 'PRICE', price: toMoney(13000), source: 'OUTLET' })
   })
 })

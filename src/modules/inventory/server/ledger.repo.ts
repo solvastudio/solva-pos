@@ -205,3 +205,46 @@ export async function updateBalance(
       ),
     )
 }
+
+export interface BalanceUpdate {
+  readonly key: BalanceKey
+  readonly next: {
+    readonly qty: string
+    readonly inventoryValue: number
+    readonly refValue: number
+    readonly refQty: string
+    readonly rev: number
+    readonly lastMovementAt: string
+    readonly updatedAt: string
+  }
+}
+
+/** One set-based UPDATE for all balance keys touched by a command (replaces N calls of `updateBalance`). */
+export async function updateBalances(
+  tx: TenantTx,
+  tenantId: string,
+  updates: readonly BalanceUpdate[],
+): Promise<void> {
+  if (updates.length === 0) return
+  const values = sql.join(
+    updates.map(
+      ({ key, next }) =>
+        sql`(${key.outletId}::uuid, ${key.skuId}::uuid, ${next.qty}::numeric, ${next.inventoryValue}::bigint, ${next.refValue}::bigint, ${next.refQty}::numeric, ${next.rev}::bigint, ${next.lastMovementAt}::timestamptz, ${next.updatedAt}::timestamptz)`,
+    ),
+    sql`, `,
+  )
+  await tx.execute(sql`
+    UPDATE stock_balance AS b
+    SET qty = v.qty,
+        inventory_value = v.inventory_value,
+        ref_value = v.ref_value,
+        ref_qty = v.ref_qty,
+        rev = v.rev,
+        last_movement_at = v.last_movement_at,
+        updated_at = v.updated_at
+    FROM (VALUES ${values}) AS v(outlet_id, sku_id, qty, inventory_value, ref_value, ref_qty, rev, last_movement_at, updated_at)
+    WHERE b.tenant_id = ${tenantId}::uuid
+      AND b.outlet_id = v.outlet_id
+      AND b.sku_id = v.sku_id
+  `)
+}

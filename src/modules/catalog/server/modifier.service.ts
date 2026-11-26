@@ -18,6 +18,7 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import type {
   ModifierGroupView,
   ModifierIngredientView,
@@ -178,14 +179,7 @@ export async function createModifierGroup(
   deps?: CatalogServiceDeps,
 ): Promise<ModifierGroupRow> {
   requireCatalogPermission(actor)
-  const parsedRes = createModifierGroupSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid modifier group input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createModifierGroupSchema, rawInput, 'Invalid modifier group input')
   const id = newIdFrom(deps)
   const nowIso = nowIsoFrom(deps)
 
@@ -230,14 +224,7 @@ export async function updateModifierGroup(
   deps?: CatalogServiceDeps,
 ): Promise<ModifierGroupRow> {
   requireCatalogPermission(actor)
-  const parsedRes = updateModifierGroupSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid modifier group update input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateModifierGroupSchema, rawInput, 'Invalid modifier group update input')
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {
@@ -341,14 +328,7 @@ export async function createModifier(
   deps?: CatalogServiceDeps,
 ): Promise<ModifierView> {
   requireCatalogPermission(actor)
-  const parsedRes = createModifierSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid modifier input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createModifierSchema, rawInput, 'Invalid modifier input')
   const id = newIdFrom(deps)
   const nowIso = nowIsoFrom(deps)
   const ingredients = parsed.ingredients ?? []
@@ -422,14 +402,7 @@ export async function updateModifier(
   deps?: CatalogServiceDeps,
 ): Promise<ModifierView> {
   requireCatalogPermission(actor)
-  const parsedRes = updateModifierSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid modifier update input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateModifierSchema, rawInput, 'Invalid modifier update input')
   const nowIso = nowIsoFrom(deps)
 
   try {
@@ -601,14 +574,7 @@ export async function linkModifierGroupProduct(
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string; modifierGroupId: string; productId: string; sortOrder: number; version: number }> {
   requireCatalogPermission(actor)
-  const parsedRes = linkModifierGroupProductSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid link input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(linkModifierGroupProductSchema, rawInput, 'Invalid link input')
   const id = newIdFrom(deps)
   const nowIso = nowIsoFrom(deps)
 
@@ -663,14 +629,7 @@ export async function unlinkModifierGroupProduct(
   deps?: CatalogServiceDeps,
 ): Promise<void> {
   requireCatalogPermission(actor)
-  const parsedRes = unlinkModifierGroupProductSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid unlink input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(unlinkModifierGroupProductSchema, rawInput, 'Invalid unlink input')
   const nowIso = nowIsoFrom(deps)
 
   await withTenant(actor.tenantId, async (tx) => {

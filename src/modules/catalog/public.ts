@@ -10,10 +10,12 @@ export {
   clearSkuOverride,
   listEffectiveVisibleSkusForOutlet,
   listOutletAvailabilityRows,
+  saveAvailabilityAcrossOutlets,
   setProductAvailability,
   setSkuOverride,
   type BulkSetAvailabilityInput,
   type ClearSkuOverrideInput,
+  type SaveAvailabilityAcrossOutletsInput,
   type SetProductAvailabilityInput,
   type SetSkuOverrideInput,
 } from './server/availability.service'
@@ -100,10 +102,12 @@ export {
   getEffectivePrice,
   listPricesForSku,
   setPrice,
+  setPricesAcrossOutlets,
   setPricesBulk,
   type ClearOutletPriceInput,
   type GetEffectivePriceInput,
   type SetPriceInput,
+  type SetPricesAcrossOutletsInput,
   type SetPricesBulkInput,
 } from './server/price.service'
 export { type ProductRow } from './server/product.repo'
@@ -165,9 +169,12 @@ export {
   filterMissingCatalogRefs,
   findMissingModifierId,
   getCurrentPrice,
+  getCurrentPrices,
   getEffectiveAvailabilityRow,
+  getEffectiveAvailabilityRows,
   getModifierIngredients,
   getProductSkuState,
+  getProductSkuStates,
   getRecipeFor,
   getSkuProductTypes,
 } from './server/catalog-read.repo'

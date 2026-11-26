@@ -11,6 +11,7 @@ import {
   createUom,
   listEffectiveVisibleSkusForOutlet,
   listOutletAvailabilityRows,
+  saveAvailabilityAcrossOutlets,
   setProductAvailability,
   setSkuOverride,
   updateProduct,
@@ -26,6 +27,7 @@ import {
 import { PERMISSION_CODES } from '~/modules/identity/shared'
 import { composeServer, resetCompositionForTests } from '~/server/composition'
 import { closePools } from '~/server/db'
+import { AppError } from '~/server/error-classify'
 import { masterTx } from './helpers/master'
 import { uniqueSlug, withTestTenant } from './helpers/tenants'
 
@@ -290,5 +292,65 @@ describe('catalog-availability integration (V-27 DB end-to-end, 4,000-product se
       return res.rows as Array<{ action: string; after_data: Record<string, unknown> }>
     })
     expect(audits).toHaveLength(2)
+  })
+
+  it('saves availability across outlets atomically and rolls back all changes on invalid target', async () => {
+    const { owner, outletA, outletB } = await setupAvailabilityTenant('cavailatom1')
+    const cat = await createCategory(owner, { name: 'Drinks' })
+    const pcs = await createUom(owner, { code: 'pcs', name: 'Pieces' })
+    const prod = await createProduct(owner, {
+      categoryId: cat.id,
+      code: 'KOPI-ATOM',
+      name: 'Kopi Atom',
+      baseUomId: pcs.id,
+    })
+
+    await expect(
+      saveAvailabilityAcrossOutlets(owner, {
+        updates: [
+          { outletId: outletA.id, productId: prod.product.id, status: 'UNAVAILABLE' },
+          { outletId: outletB.id, productId: testIdGen.newId(), status: 'UNAVAILABLE' },
+        ],
+      }),
+    ).rejects.toSatisfy((err: unknown) => err instanceof AppError && err.code === 'VALIDATION_FAILED')
+
+    const outletARows = await listOutletAvailabilityRows(owner, outletA.id)
+    expect(outletARows.find((r) => r.productId === prod.product.id && r.skuId === null)?.status).toBe(
+      'AVAILABLE',
+    )
+  })
+
+  it('applies updates and clears SKU overrides across outlets in one transaction', async () => {
+    const { owner, outletA, outletB } = await setupAvailabilityTenant('cavailatom2')
+    const cat = await createCategory(owner, { name: 'Apparel' })
+    const pcs = await createUom(owner, { code: 'pcs', name: 'Pieces' })
+    const kaos = await createProduct(owner, {
+      categoryId: cat.id,
+      code: 'KAOS-ATOM',
+      name: 'Kaos Atom',
+      hasVariants: true,
+      baseUomId: pcs.id,
+      attributes: [{ name: 'Size', values: ['S', 'M'] }],
+    })
+    const targetSku = kaos.skus[0]!
+    await setSkuOverride(owner, {
+      outletId: outletB.id,
+      productId: kaos.product.id,
+      skuId: targetSku.id,
+      status: 'UNAVAILABLE',
+    })
+
+    const saved = await saveAvailabilityAcrossOutlets(owner, {
+      updates: [{ outletId: outletA.id, productId: kaos.product.id, status: 'UNAVAILABLE' }],
+      clears: [{ outletId: outletB.id, productId: kaos.product.id, skuId: targetSku.id }],
+    })
+
+    expect(saved.savedCount).toBe(2)
+    const outletARows = await listOutletAvailabilityRows(owner, outletA.id)
+    expect(outletARows.find((r) => r.productId === kaos.product.id && r.skuId === null)?.status).toBe(
+      'UNAVAILABLE',
+    )
+    const outletBRows = await listOutletAvailabilityRows(owner, outletB.id)
+    expect(outletBRows.some((r) => r.skuId === targetSku.id)).toBe(false)
   })
 })

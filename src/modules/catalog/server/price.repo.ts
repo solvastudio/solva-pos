@@ -196,6 +196,31 @@ export async function tombstonePriceEntriesForSku(
     )
 }
 
+export async function tombstonePriceEntriesForSkus(
+  tx: TenantTx,
+  w: MasterWriter,
+  skuIds: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(skuIds)) {
+    await tx
+      .update(priceEntry)
+      .set({
+        deletedAt: nowIso,
+        version: w.version,
+        updatedAt: nowIso,
+        updatedBy: w.actorUserId,
+      })
+      .where(
+        and(
+          eq(priceEntry.tenantId, w.tenantId),
+          inArray(priceEntry.skuId, batch),
+          isNull(priceEntry.deletedAt),
+        ),
+      )
+  }
+}
+
 export async function listActivePriceEntriesBySkuIds(
   tx: TenantTx,
   tenantId: string,

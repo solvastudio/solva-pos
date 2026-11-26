@@ -17,6 +17,7 @@ import { getPublicBaseUrl } from '~/server/env'
 import { AppError } from '~/server/error-classify'
 import { createLogger } from '~/server/log'
 import { getContext } from '~/server/logging/log-context'
+import { nowIsoFrom } from '~/server/service-deps'
 import {
   hashMemberCode,
   identityIdGen,
@@ -96,10 +97,6 @@ async function ensureMinDuration(startedAt: number, minMs: number): Promise<void
     if (remaining <= 0) return
     await new Promise((resolve) => setTimeout(resolve, Math.ceil(remaining)))
   }
-}
-
-function nowIsoFrom(deps?: { nowIso?: () => string }): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
 }
 
 export async function createPairingCode(

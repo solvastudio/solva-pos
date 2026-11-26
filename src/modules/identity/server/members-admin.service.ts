@@ -3,6 +3,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import {
   changeMemberRoleAndOutletsSchema,
   type ChangeMemberRoleAndOutletsInput,
@@ -34,10 +36,6 @@ export interface ListMembersFilter {
   search?: string
   roleId?: string
   outletId?: string
-}
-
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
 }
 
 function isMemberWithinActorScope(
@@ -134,14 +132,7 @@ export async function changeMemberRoleAndOutlets(
   deps?: IdentityServiceDeps,
 ): Promise<MemberDirectoryView> {
   requireActorPermission(actor, 'user.manage')
-  const parsedRes = changeMemberRoleAndOutletsSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid member assignment input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(changeMemberRoleAndOutletsSchema, rawInput, 'Invalid member assignment input')
   const nowIso = nowIsoFrom(deps)
 
   // Reject duplicate outlet keys so intent is unambiguous.

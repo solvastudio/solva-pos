@@ -197,6 +197,23 @@ export async function listProductsByCodes(
   return out
 }
 
+export async function listProductsByIds(
+  tx: TenantTx,
+  tenantId: string,
+  ids: readonly string[],
+): Promise<ProductRow[]> {
+  if (ids.length === 0) return []
+  const out: ProductRow[] = []
+  for (const batch of chunkArray(ids)) {
+    const rows = await tx
+      .select(productSelect)
+      .from(product)
+      .where(and(eq(product.tenantId, tenantId), inArray(product.id, batch), isNull(product.deletedAt)))
+    out.push(...rows.map(toProductRow))
+  }
+  return out
+}
+
 export async function upsertProductBatch(
   tx: TenantTx,
   w: MasterWriter,

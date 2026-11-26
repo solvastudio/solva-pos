@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { MoneyError, toNonNegMoney, type Money } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
-import { withTenant, withTenantReadOnly } from '~/server/db'
+import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import { resolvePrice, type PriceResolution } from '../shared'
 import {
   newIdFrom,
@@ -16,13 +17,15 @@ import {
 import {
   findPriceEntryByKey,
   listActivePriceEntriesBySku,
+  listActivePriceEntriesBySkuIds,
   listActivePriceEntriesForSkuUom,
   tombstonePriceEntryRow,
+  upsertPriceEntryBatch,
   upsertPriceEntryRow,
   type PriceEntryRow,
 } from './price.repo'
 import { findProductById } from './product.repo'
-import { findSkuUomBySkuAndUom } from './sku-uom.repo'
+import { findSkuUomBySkuAndUom, listSkuUomsBySkuIds } from './sku-uom.repo'
 import { findSkuById } from './variant.repo'
 
 const MAX_DETAILED_AUDIT_ITEMS = 200
@@ -100,14 +103,7 @@ export async function getEffectivePrice(
   actor: CatalogActor,
   rawInput: GetEffectivePriceInput,
 ): Promise<PriceResolution> {
-  const parsedRes = getEffectivePriceSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid price lookup input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(getEffectivePriceSchema, rawInput, 'Invalid price lookup input')
   requireCatalogPermission(actor, { outletId: parsed.outletId })
 
   return withTenantReadOnly(actor.tenantId, async (tx) => {
@@ -153,14 +149,7 @@ export async function setPrice(
   rawInput: SetPriceInput,
   deps?: CatalogServiceDeps,
 ): Promise<PriceEntryRow> {
-  const parsedRes = setPriceSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid price input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(setPriceSchema, rawInput, 'Invalid price input')
   const outletId = parsed.outletId ?? null
   if (outletId === null) {
     requireCatalogPermission(actor, { requireTenantWide: true })
@@ -224,14 +213,7 @@ export async function clearOutletPrice(
   rawInput: ClearOutletPriceInput,
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string | null }> {
-  const parsedRes = clearOutletPriceSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid clear outlet price input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(clearOutletPriceSchema, rawInput, 'Invalid clear outlet price input')
   requireCatalogPermission(actor, { outletId: parsed.outletId })
   const reasonText = parsed.reasonText?.trim() || null
   const nowIso = nowIsoFrom(deps)
@@ -271,19 +253,118 @@ export async function clearOutletPrice(
   })
 }
 
+interface ValidatedPriceItem {
+  skuId: string
+  uomId: string
+  price: Money
+}
+
+function priceKey(skuId: string, uomId: string): string {
+  return `${skuId}:${uomId}`
+}
+
+/** Throws unless every (sku, uom) pair has an active `sku_uom` row. One query per 1000 SKUs. */
+async function assertActiveSkuUomPairs(
+  tx: TenantTx,
+  tenantId: string,
+  items: readonly ValidatedPriceItem[],
+): Promise<void> {
+  const rows = await listSkuUomsBySkuIds(tx, tenantId, [...new Set(items.map((i) => i.skuId))])
+  const active = new Set(rows.map((r) => priceKey(r.skuId, r.uomId)))
+  for (const item of items) {
+    if (!active.has(priceKey(item.skuId, item.uomId))) {
+      throw new AppError(
+        'VALIDATION_FAILED',
+        `Active SKU-UOM pair not found (${item.skuId}, ${item.uomId})`,
+      )
+    }
+  }
+}
+
+/** Active price rows of one outlet (`null` = default price), keyed by `skuId:uomId`. */
+async function loadActivePricesByKey(
+  tx: TenantTx,
+  tenantId: string,
+  outletId: string | null,
+  skuIds: readonly string[],
+): Promise<Map<string, PriceEntryRow>> {
+  const rows = await listActivePriceEntriesBySkuIds(tx, tenantId, [...new Set(skuIds)])
+  const map = new Map<string, PriceEntryRow>()
+  for (const r of rows) {
+    if (r.outletId === outletId) map.set(priceKey(r.skuId, r.uomId), r)
+  }
+  return map
+}
+
+/** Last occurrence wins, matching the former one-by-one upsert loop. */
+function dedupePriceItems(items: readonly ValidatedPriceItem[]): ValidatedPriceItem[] {
+  const unique = new Map<string, ValidatedPriceItem>()
+  for (const item of items) unique.set(priceKey(item.skuId, item.uomId), item)
+  return [...unique.values()]
+}
+
+async function appendPriceBulkAudit(
+  tx: TenantTx,
+  actor: CatalogActor,
+  deps: CatalogServiceDeps | undefined,
+  params: {
+    outletId: string | null
+    reasonText: string | null
+    nowIso: string
+    result: readonly PriceEntryRow[]
+    beforeMap: ReadonlyMap<string, PriceEntryRow>
+  },
+): Promise<void> {
+  const { outletId, reasonText, nowIso, result, beforeMap } = params
+  const auditSlice = result.slice(0, MAX_DETAILED_AUDIT_ITEMS)
+  for (const row of auditSlice) {
+    await appendAudit(
+      tx,
+      {
+        action: 'price.changed',
+        entityType: 'price_entry',
+        entityId: row.id,
+        outletId,
+        beforeData: priceSnapshot(beforeMap.get(priceKey(row.skuId, row.uomId)) ?? null),
+        afterData: priceSnapshot(row),
+        reasonText,
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      { newId: () => newIdFrom(deps), nowIso: () => nowIso },
+    )
+  }
+
+  if (result.length > MAX_DETAILED_AUDIT_ITEMS) {
+    await appendAudit(
+      tx,
+      {
+        action: 'price.changed',
+        entityType: 'price_entry',
+        entityId: outletId,
+        outletId,
+        beforeData: null,
+        afterData: {
+          batch: true,
+          outletId,
+          totalCount: result.length,
+          auditedDetailCount: auditSlice.length,
+        },
+        reasonText,
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      { newId: () => newIdFrom(deps), nowIso: () => nowIso },
+    )
+  }
+}
+
 export async function setPricesBulk(
   actor: CatalogActor,
   rawInput: SetPricesBulkInput,
   deps?: CatalogServiceDeps,
 ): Promise<{ entries: PriceEntryRow[]; version: number }> {
-  const parsedRes = setPricesBulkSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid bulk price input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(setPricesBulkSchema, rawInput, 'Invalid bulk price input')
   const outletId = parsed.outletId ?? null
   if (outletId === null) {
     requireCatalogPermission(actor, { requireTenantWide: true })
@@ -300,90 +381,149 @@ export async function setPricesBulk(
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {
-    const beforeMap = new Map<string, Record<string, unknown> | null>()
-    const existingIdMap = new Map<string, string>()
-
-    for (const item of validatedItems) {
-      const skuUomRow = await findSkuUomBySkuAndUom(tx, actor.tenantId, item.skuId, item.uomId)
-      if (!skuUomRow) {
-        throw new AppError(
-          'VALIDATION_FAILED',
-          `Active SKU-UOM pair not found (${item.skuId}, ${item.uomId})`,
-        )
-      }
-      const existing = await findPriceEntryByKey(tx, actor.tenantId, {
-        skuId: item.skuId,
-        uomId: item.uomId,
-        outletId,
-      })
-      const key = `${item.skuId}:${item.uomId}`
-      beforeMap.set(key, priceSnapshot(existing))
-      if (existing) {
-        existingIdMap.set(key, existing.id)
-      }
-    }
+    await assertActiveSkuUomPairs(tx, actor.tenantId, validatedItems)
+    const beforeMap = await loadActivePricesByKey(
+      tx,
+      actor.tenantId,
+      outletId,
+      validatedItems.map((i) => i.skuId),
+    )
+    const uniqueItems = dedupePriceItems(validatedItems)
 
     const { version, result } = await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
-      const saved: PriceEntryRow[] = []
-      for (const item of validatedItems) {
-        const key = `${item.skuId}:${item.uomId}`
-        const row = await upsertPriceEntryRow(tx, w, {
-          id: existingIdMap.get(key) ?? newIdFrom(deps),
+      await upsertPriceEntryBatch(
+        tx,
+        w,
+        uniqueItems.map((item) => ({
+          id: newIdFrom(deps),
           skuId: item.skuId,
           uomId: item.uomId,
           outletId,
           price: item.price,
           currency: 'IDR',
           nowIso,
-        })
-        saved.push(row)
-      }
-      return saved
+        })),
+      )
+      const saved = await loadActivePricesByKey(
+        tx,
+        actor.tenantId,
+        outletId,
+        uniqueItems.map((i) => i.skuId),
+      )
+      return uniqueItems.map((item) => saved.get(priceKey(item.skuId, item.uomId))!)
     })
 
-    const auditSlice = result.slice(0, MAX_DETAILED_AUDIT_ITEMS)
-    for (const row of auditSlice) {
-      const key = `${row.skuId}:${row.uomId}`
-      await appendAudit(
-        tx,
-        {
-          action: 'price.changed',
-          entityType: 'price_entry',
-          entityId: row.id,
-          outletId,
-          beforeData: beforeMap.get(key) ?? null,
-          afterData: priceSnapshot(row),
-          reasonText,
-          actorUserId: actor.appUserId,
-          occurredAt: nowIso,
-        },
-        { newId: () => newIdFrom(deps), nowIso: () => nowIso },
-      )
-    }
-
-    if (result.length > MAX_DETAILED_AUDIT_ITEMS) {
-      await appendAudit(
-        tx,
-        {
-          action: 'price.changed',
-          entityType: 'price_entry',
-          entityId: outletId,
-          outletId,
-          beforeData: null,
-          afterData: {
-            batch: true,
-            outletId,
-            totalCount: result.length,
-            auditedDetailCount: auditSlice.length,
-          },
-          reasonText,
-          actorUserId: actor.appUserId,
-          occurredAt: nowIso,
-        },
-        { newId: () => newIdFrom(deps), nowIso: () => nowIso },
-      )
-    }
-
+    await appendPriceBulkAudit(tx, actor, deps, { outletId, reasonText, nowIso, result, beforeMap })
     return { entries: result, version }
+  })
+}
+
+const setPricesAcrossOutletsSchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        skuId: z.string().uuid(),
+        uomId: z.string().uuid(),
+        outletId: z.string().uuid().nullable().optional(),
+        price: z.number(),
+      }),
+    )
+    .min(1)
+    .max(5000),
+  reasonText: z.string().trim().max(200).nullable().optional(),
+})
+
+export type SetPricesAcrossOutletsInput = z.input<typeof setPricesAcrossOutletsSchema>
+
+/**
+ * All-or-nothing price save for several outlets: one transaction and one master version.
+ * `writeMaster` may run only once per transaction, so every outlet is written inside the same call.
+ */
+export async function setPricesAcrossOutlets(
+  actor: CatalogActor,
+  rawInput: SetPricesAcrossOutletsInput,
+  deps?: CatalogServiceDeps,
+): Promise<{ savedCount: number; version: number }> {
+  const parsed = parseOrThrow(setPricesAcrossOutletsSchema, rawInput, 'Invalid price save input')
+
+  const itemsByOutlet = new Map<string | null, ValidatedPriceItem[]>()
+  for (const entry of parsed.entries) {
+    const outletId = entry.outletId ?? null
+    const list = itemsByOutlet.get(outletId) ?? []
+    list.push({ skuId: entry.skuId, uomId: entry.uomId, price: assertValidMoney(entry.price) })
+    itemsByOutlet.set(outletId, list)
+  }
+  for (const outletId of itemsByOutlet.keys()) {
+    if (outletId === null) {
+      requireCatalogPermission(actor, { requireTenantWide: true })
+    } else {
+      requireCatalogPermission(actor, { outletId })
+    }
+  }
+  const reasonText = parsed.reasonText?.trim() || null
+  const nowIso = nowIsoFrom(deps)
+
+  return withTenant(actor.tenantId, async (tx) => {
+    const plans: Array<{
+      outletId: string | null
+      items: ValidatedPriceItem[]
+      beforeMap: Map<string, PriceEntryRow>
+    }> = []
+    for (const [outletId, rawItems] of itemsByOutlet) {
+      await assertActiveSkuUomPairs(tx, actor.tenantId, rawItems)
+      plans.push({
+        outletId,
+        items: dedupePriceItems(rawItems),
+        beforeMap: await loadActivePricesByKey(
+          tx,
+          actor.tenantId,
+          outletId,
+          rawItems.map((i) => i.skuId),
+        ),
+      })
+    }
+
+    const { version, result } = await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+      await upsertPriceEntryBatch(
+        tx,
+        w,
+        plans.flatMap((plan) =>
+          plan.items.map((item) => ({
+            id: newIdFrom(deps),
+            skuId: item.skuId,
+            uomId: item.uomId,
+            outletId: plan.outletId,
+            price: item.price,
+            currency: 'IDR',
+            nowIso,
+          })),
+        ),
+      )
+      const savedPerPlan: PriceEntryRow[][] = []
+      for (const plan of plans) {
+        const saved = await loadActivePricesByKey(
+          tx,
+          actor.tenantId,
+          plan.outletId,
+          plan.items.map((i) => i.skuId),
+        )
+        savedPerPlan.push(plan.items.map((item) => saved.get(priceKey(item.skuId, item.uomId))!))
+      }
+      return savedPerPlan
+    })
+
+    let savedCount = 0
+    for (let i = 0; i < plans.length; i += 1) {
+      const rows = result[i]!
+      savedCount += rows.length
+      await appendPriceBulkAudit(tx, actor, deps, {
+        outletId: plans[i]!.outletId,
+        reasonText,
+        nowIso,
+        result: rows,
+        beforeMap: plans[i]!.beforeMap,
+      })
+    }
+    return { savedCount, version }
   })
 }

@@ -281,6 +281,27 @@ export async function tombstoneSkuUomsBySku(
     .where(and(eq(skuUom.tenantId, w.tenantId), eq(skuUom.skuId, skuId), isNull(skuUom.deletedAt)))
 }
 
+export async function tombstoneSkuUomsBySkus(
+  tx: TenantTx,
+  w: MasterWriter,
+  skuIds: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(skuIds)) {
+    await tx
+      .update(skuUom)
+      .set({
+        deletedAt: nowIso,
+        version: w.version,
+        updatedAt: nowIso,
+        updatedBy: w.actorUserId,
+      })
+      .where(
+        and(eq(skuUom.tenantId, w.tenantId), inArray(skuUom.skuId, batch), isNull(skuUom.deletedAt)),
+      )
+  }
+}
+
 export async function upsertSkuUomBatch(
   tx: TenantTx,
   w: MasterWriter,

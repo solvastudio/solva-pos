@@ -12,6 +12,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import type { FnbTableView } from '../shared'
 import {
   findTableById,
@@ -46,10 +48,6 @@ export interface FnbActor {
 export interface FnbServiceDeps {
   nowIso?: () => string
   newId?: () => string
-}
-
-function nowIsoFrom(deps?: FnbServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
 }
 
 function newIdFrom(deps?: FnbServiceDeps): string {
@@ -104,14 +102,7 @@ export async function createTable(
   rawInput: CreateFnbTableInput,
   deps?: FnbServiceDeps,
 ): Promise<FnbTableRow> {
-  const parsedRes = createFnbTableSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid table input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createFnbTableSchema, rawInput, 'Invalid table input')
   assertOutletAccess(actor, parsed.outletId)
 
   const id = newIdFrom(deps)
@@ -170,14 +161,7 @@ export async function updateTable(
   rawInput: UpdateFnbTableInput,
   deps?: FnbServiceDeps,
 ): Promise<FnbTableRow> {
-  const parsedRes = updateFnbTableSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid table update input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateFnbTableSchema, rawInput, 'Invalid table update input')
   requireManagePermission(actor)
 
   const nowIso = nowIsoFrom(deps)

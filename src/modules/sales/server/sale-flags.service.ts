@@ -3,9 +3,9 @@ import type { FinalizeSalePayloadV1, FlagCode } from '~/lib/contracts'
 import { parseIsoUtcMs, parseQty, ratioRound, toMoney } from '~/lib/kernel'
 import { selectTaxRate } from '~/lib/sales-calc'
 import {
-  getCurrentPrice,
-  getEffectiveAvailabilityRow,
-  getProductSkuState,
+  getCurrentPrices,
+  getEffectiveAvailabilityRows,
+  getProductSkuStates,
 } from '~/modules/catalog/public'
 import { getTaxRateHistory } from '~/modules/identity/public'
 import { createDataFlag, type CommandContext } from '~/modules/sync/public'
@@ -26,12 +26,31 @@ export async function evaluateSaleBusinessFlags(
   const outletId = ctx.device.outletId
   const occurredMs = parseIsoUtcMs(s.occurred_at)
 
-  for (const line of payload.lines) {
-    if (line.line_kind === 'SHARE' || line.line_kind === 'STOCK_BASIS' || !line.sku_id) {
-      continue
-    }
+  const eligibleLines = payload.lines.filter(
+    (line): line is typeof line & { sku_id: string } =>
+      line.line_kind !== 'SHARE' && line.line_kind !== 'STOCK_BASIS' && Boolean(line.sku_id),
+  )
+  const skuStates = await getProductSkuStates(
+    tx,
+    eligibleLines.map((line) => line.sku_id),
+  )
+  const priceChecked = eligibleLines.filter(
+    (line): line is typeof line & { uom_id: string } =>
+      line.price_source !== 'OPEN_PRICE' && !line.is_open_price && Boolean(line.uom_id),
+  )
+  const currentPrices = await getCurrentPrices(tx, {
+    outletId,
+    pairs: priceChecked.map((line) => ({ skuId: line.sku_id, uomId: line.uom_id })),
+    states: skuStates,
+  })
+  const availabilityByKey = await getEffectiveAvailabilityRows(tx, {
+    outletId,
+    items: eligibleLines.map((line) => ({ productId: line.product_id, skuId: line.sku_id })),
+    states: skuStates,
+  })
 
-    const skuState = await getProductSkuState(tx, line.sku_id)
+  for (const line of eligibleLines) {
+    const skuState = skuStates.get(line.sku_id) ?? null
     if (!skuState || !skuState.productActive || !skuState.skuActive) {
       await createDataFlag(tx, {
         tenantId,
@@ -48,12 +67,8 @@ export async function evaluateSaleBusinessFlags(
     }
 
     if (line.price_source !== 'OPEN_PRICE' && !line.is_open_price && line.uom_id) {
-      const priceRes = await getCurrentPrice(tx, {
-        skuId: line.sku_id,
-        uomId: line.uom_id,
-        outletId,
-      })
-      if (priceRes.kind === 'PRICE' && priceRes.price !== line.unit_price) {
+      const priceRes = currentPrices.get(`${line.sku_id}:${line.uom_id}`)
+      if (priceRes && priceRes.kind === 'PRICE' && priceRes.price !== line.unit_price) {
         const diffMag = ratioRound(
           toMoney(Math.abs(line.unit_price - priceRes.price)),
           parseQty(line.qty),
@@ -79,11 +94,7 @@ export async function evaluateSaleBusinessFlags(
       }
     }
 
-    const avail = await getEffectiveAvailabilityRow(tx, {
-      outletId,
-      productId: line.product_id,
-      skuId: line.sku_id,
-    })
+    const avail = availabilityByKey.get(`${line.product_id ?? skuState?.productId ?? null}:${line.sku_id}`)
     if (avail && avail.status === 'UNAVAILABLE') {
       const afterCursor = s.catalog_cursor === null || avail.version > s.catalog_cursor
       const changedMs = parseIsoUtcMs(avail.changedAt)

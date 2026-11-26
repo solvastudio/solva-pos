@@ -25,9 +25,7 @@ export const catalogIdGen = createIdGenerator({
   },
 })
 
-export function nowIsoFrom(deps?: CatalogServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
-}
+export { nowIsoFrom } from '~/server/service-deps'
 
 export function newIdFrom(deps?: CatalogServiceDeps): string {
   return (deps?.newId ?? (() => catalogIdGen.newId()))()

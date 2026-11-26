@@ -370,6 +370,88 @@ export async function tombstoneSkuAttributeValuesForSku(
     )
 }
 
+export async function tombstoneSkuAttributeValuesForSkus(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  skuIds: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(skuIds)) {
+    await tx
+      .update(skuAttributeValue)
+      .set({ deletedAt: nowIso, updatedAt: nowIso, updatedBy: actorUserId })
+      .where(
+        and(
+          eq(skuAttributeValue.tenantId, tenantId),
+          inArray(skuAttributeValue.skuId, batch),
+          isNull(skuAttributeValue.deletedAt),
+        ),
+      )
+  }
+}
+
+export async function tombstoneSkuRows(
+  tx: TenantTx,
+  w: MasterWriter,
+  ids: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(ids)) {
+    await tx
+      .update(sku)
+      .set({
+        deletedAt: nowIso,
+        version: w.version,
+        updatedAt: nowIso,
+        updatedBy: w.actorUserId,
+      })
+      .where(and(eq(sku.tenantId, w.tenantId), inArray(sku.id, batch), isNull(sku.deletedAt)))
+  }
+}
+
+export async function tombstoneAttributeValueRows(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  ids: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(ids)) {
+    await tx
+      .update(attributeValue)
+      .set({ deletedAt: nowIso, updatedAt: nowIso, updatedBy: actorUserId })
+      .where(
+        and(
+          eq(attributeValue.tenantId, tenantId),
+          inArray(attributeValue.id, batch),
+          isNull(attributeValue.deletedAt),
+        ),
+      )
+  }
+}
+
+export async function tombstoneProductAttributeRows(
+  tx: TenantTx,
+  tenantId: string,
+  actorUserId: string | null,
+  ids: readonly string[],
+  nowIso: string,
+): Promise<void> {
+  for (const batch of chunkArray(ids)) {
+    await tx
+      .update(productAttribute)
+      .set({ deletedAt: nowIso, updatedAt: nowIso, updatedBy: actorUserId })
+      .where(
+        and(
+          eq(productAttribute.tenantId, tenantId),
+          inArray(productAttribute.id, batch),
+          isNull(productAttribute.deletedAt),
+        ),
+      )
+  }
+}
+
 export async function listSkusByCodes(
   tx: TenantTx,
   tenantId: string,

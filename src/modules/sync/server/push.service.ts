@@ -25,7 +25,7 @@ import {
   type CommandContext,
   type SyncDeviceIdentity,
 } from '../domain/command-types'
-import { getCommandHandler } from './command-registry'
+import { getCommandHandler, type ServerCommandHandler } from './command-registry'
 import { getDeviceStatusPort } from './device-status-port'
 import {
   evaluateClientVersion,
@@ -163,16 +163,263 @@ export function safeFailureDetail(err: unknown): string {
   return parts.join(' <- ')
 }
 
-async function processSingleCommand(
-  device: SyncDeviceIdentity,
+/** Parses a command payload; every failure is reported as a `CommandRejected`, never another error type. */
+function parseCommandOrReject(
+  handler: ServerCommandHandler<unknown>,
   cmd: PushCommandEnvelope,
-  reqClockOffsetMs: number,
-  meta: { appVersion: string | null; requestRef: string },
-  receivedAtIso: string,
-  lockTimeoutMs?: number,
-  maxFailureAttempts = 10,
-  maxTransientAttempts = 200,
+): unknown {
+  try {
+    const contractPayload = hasRegisteredCommandSchema(cmd.type)
+      ? parseCommandPayload(cmd.type, cmd.schema_version, cmd.payload)
+      : cmd.payload
+    return handler.parse(contractPayload, cmd.schema_version)
+  } catch (err: unknown) {
+    if (err instanceof CommandRejected) throw err
+    if (err instanceof ContractError) {
+      const code = err.code === 'UPDATE_REQUIRED' ? 'SCHEMA_NOT_MIGRATABLE' : 'VALIDATION_FAILED'
+      throw new CommandRejected('STRUCTURAL', code, err.message)
+    }
+    const msg =
+      err instanceof ZodError
+        ? err.issues[0]?.message ?? 'Invalid command payload'
+        : err instanceof Error
+          ? err.message
+          : 'Invalid command payload'
+    throw new CommandRejected('STRUCTURAL', 'VALIDATION_FAILED', msg)
+  }
+}
+
+/** Holds the command while a parent is missing or in ATTENTION; rejects when a parent was dismissed. */
+async function assertDependenciesSatisfied(
+  tx: TenantTx,
+  tenantId: string,
+  dependsOn: readonly string[],
+): Promise<void> {
+  if (dependsOn.length === 0) return
+  const parentMap = await findParentCommandStatuses(tx, tenantId, dependsOn)
+  for (const depId of dependsOn) {
+    const depStatus = parentMap.get(depId)
+    if (!depStatus || depStatus === 'ATTENTION') {
+      throw new HoldDependencyError()
+    }
+    if (depStatus === 'DISMISSED') {
+      throw new CommandRejected(
+        'STRUCTURAL',
+        'UNKNOWN_REFERENCE',
+        `Dependency ${depId} was dismissed`,
+      )
+    }
+  }
+}
+
+function assertCommandAllowedForDevice(
+  cmd: PushCommandEnvelope,
+  parsedPayload: unknown,
+  device: SyncDeviceIdentity,
+): void {
+  assertPayloadMatchesDeviceScope(cmd.payload, device)
+  assertPayloadMatchesDeviceScope(parsedPayload, device)
+  if (device.registerType === 'WAITER' && WAITER_FORBIDDEN_TYPES.has(cmd.type)) {
+    throw new CommandRejected(
+      'AUTHORIZATION',
+      'FORBIDDEN',
+      `Waiter register cannot execute ${cmd.type}`,
+    )
+  }
+}
+
+function buildCommandContext(params: {
+  cmd: PushCommandEnvelope
+  appVersion: string | null
+  clockOffsetMs: number
+  receivedAtIso: string
+  requestRef: string
+  device: SyncDeviceIdentity
+}): CommandContext {
+  const { cmd } = params
+  return {
+    commandId: cmd.id,
+    deviceSeq: cmd.device_seq,
+    schemaVersion: cmd.schema_version,
+    appVersion: params.appVersion,
+    createdAtDevice: cmd.created_at_device,
+    clockOffsetMs: params.clockOffsetMs,
+    receivedAtIso: params.receivedAtIso,
+    requestRef: params.requestRef,
+    device: params.device,
+  }
+}
+
+interface CommandFailureContext {
+  cmd: PushCommandEnvelope
+  device: SyncDeviceIdentity
+  requestRef: string
+  receivedAtIso: string
+  startedAt: number
+  maxFailureAttempts: number
+  maxTransientAttempts: number
+  recordAttention: (
+    reasonClass: 'STRUCTURAL' | 'AUTHORIZATION',
+    reasonCode: string,
+    detail: string | null,
+    attemptCount?: number,
+  ) => Promise<PushResultItem>
+}
+
+/** Maps an error thrown while processing a pushed command to its result (ATTENTION, HELD or RETRY). */
+async function resolveCommandFailure(
+  err: unknown,
+  failure: CommandFailureContext,
 ): Promise<PushResultItem> {
+  const {
+    cmd,
+    device,
+    receivedAtIso,
+    startedAt,
+    maxFailureAttempts,
+    maxTransientAttempts,
+    recordAttention,
+  } = failure
+  const meta = { requestRef: failure.requestRef }
+  const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+
+  if (err instanceof HashMismatchReplayError) {
+    log.error(
+      {
+        commandId: cmd.id,
+        commandType: cmd.type,
+        schemaVersion: cmd.schema_version,
+        outcome: 'ATTENTION',
+        reason: 'payload_hash_mismatch',
+        durationMs,
+      },
+      'idempotency key reused with mismatched payload',
+    )
+    return {
+      id: cmd.id,
+      outcome: 'ATTENTION',
+      reason_class: 'STRUCTURAL',
+      reason_code: 'VALIDATION_FAILED',
+      ref: meta.requestRef,
+    }
+  }
+
+  if (err instanceof HoldDependencyError) {
+    log.info(
+      {
+        commandId: cmd.id,
+        commandType: cmd.type,
+        schemaVersion: cmd.schema_version,
+        outcome: 'HELD',
+        durationMs,
+      },
+      'command held on unmet dependency',
+    )
+    return { id: cmd.id, outcome: 'HELD' }
+  }
+
+  if (err instanceof CommandRejected) {
+    return recordAttention(err.reasonClass, err.reasonCode, err.detail ?? null)
+  }
+
+  const transientPg = isTransientPgError(err)
+  const pgCode = transientPg ? extractPgErrorCode(err) : null
+  const trackedErrorCode = pgCode ?? 'INTERNAL_ERROR'
+  const safeDetail = safeFailureDetail(err)
+  const attemptLimit = transientPg ? maxTransientAttempts : maxFailureAttempts
+
+  let attemptCount: number
+  try {
+    attemptCount = await withTenant(
+      device.tenantId,
+      async (tx) =>
+        recordCommandFailureAttempt(tx, {
+          tenantId: device.tenantId,
+          commandId: cmd.id,
+          lastErrorCode: trackedErrorCode,
+          updatedAtIso: receivedAtIso,
+        }),
+      { statementTimeoutMs: 5_000 },
+    )
+  } catch (trackErr: unknown) {
+    log.warn(
+      { err: trackErr, commandId: cmd.id, outcome: 'RETRY' },
+      'failed to persist command failure attempt count',
+    )
+    return { id: cmd.id, outcome: 'RETRY' }
+  }
+
+  if (attemptCount >= attemptLimit) {
+    const detailPrefix = transientPg
+      ? `Repeated transient DB failure (${trackedErrorCode})`
+      : `Repeated internal handler error (${attemptCount} attempts)`
+    const detail = `${detailPrefix}: ${safeDetail}`
+    const attentionRes = await recordAttention(
+      'STRUCTURAL',
+      'INTERNAL_ERROR',
+      detail,
+      attemptCount,
+    )
+    getNotifier().notify('error_spike', {
+      code: 'INTERNAL_ERROR',
+      ref: meta.requestRef,
+      count: attemptCount,
+    })
+    return attentionRes
+  }
+
+  if (transientPg) {
+    log.warn(
+      {
+        commandId: cmd.id,
+        commandType: cmd.type,
+        schemaVersion: cmd.schema_version,
+        reason: `attempt_${attemptCount}_of_${attemptLimit}`,
+        outcome: 'RETRY',
+        durationMs,
+      },
+      'transient DB contention during command push',
+    )
+    return { id: cmd.id, outcome: 'RETRY' }
+  }
+
+  log.error(
+    {
+      err,
+      commandId: cmd.id,
+      commandType: cmd.type,
+      schemaVersion: cmd.schema_version,
+      reason: `attempt_${attemptCount}_of_${attemptLimit}`,
+      outcome: 'RETRY',
+      durationMs,
+    },
+    'unexpected server error during command push',
+  )
+  return { id: cmd.id, outcome: 'RETRY' }
+}
+
+interface ProcessSingleCommandParams {
+  device: SyncDeviceIdentity
+  cmd: PushCommandEnvelope
+  reqClockOffsetMs: number
+  meta: { appVersion: string | null; requestRef: string }
+  receivedAtIso: string
+  lockTimeoutMs?: number
+  maxFailureAttempts?: number
+  maxTransientAttempts?: number
+}
+
+async function processSingleCommand(params: ProcessSingleCommandParams): Promise<PushResultItem> {
+  const {
+    device,
+    cmd,
+    reqClockOffsetMs,
+    meta,
+    receivedAtIso,
+    lockTimeoutMs,
+    maxFailureAttempts = 10,
+    maxTransientAttempts = 200,
+  } = params
   const startedAt = performance.now()
   const parentCtx = getContext() ?? {
     reqId: meta.requestRef,
@@ -272,25 +519,12 @@ async function processSingleCommand(
       }
 
       try {
-        const contractPayload = hasRegisteredCommandSchema(cmd.type)
-          ? parseCommandPayload(cmd.type, cmd.schema_version, cmd.payload)
-          : cmd.payload
-        parsedPayload = handler.parse(contractPayload, cmd.schema_version)
+        parsedPayload = parseCommandOrReject(handler, cmd)
       } catch (err: unknown) {
         if (err instanceof CommandRejected) {
           return recordAttention(err.reasonClass, err.reasonCode, err.detail ?? null)
         }
-        if (err instanceof ContractError) {
-          const code = err.code === 'UPDATE_REQUIRED' ? 'SCHEMA_NOT_MIGRATABLE' : 'VALIDATION_FAILED'
-          return recordAttention('STRUCTURAL', code, err.message)
-        }
-        const msg =
-          err instanceof ZodError
-            ? err.issues[0]?.message ?? 'Invalid command payload'
-            : err instanceof Error
-              ? err.message
-              : 'Invalid command payload'
-        return recordAttention('STRUCTURAL', 'VALIDATION_FAILED', msg)
+        throw err
       }
 
       payloadHash = sha256Hex(
@@ -351,44 +585,18 @@ async function processSingleCommand(
               }
             }
 
-            if (cmd.depends_on.length > 0) {
-              const parentMap = await findParentCommandStatuses(tx, device.tenantId, cmd.depends_on)
-              for (const depId of cmd.depends_on) {
-                const depStatus = parentMap.get(depId)
-                if (!depStatus || depStatus === 'ATTENTION') {
-                  throw new HoldDependencyError()
-                }
-                if (depStatus === 'DISMISSED') {
-                  throw new CommandRejected(
-                    'STRUCTURAL',
-                    'UNKNOWN_REFERENCE',
-                    `Dependency ${depId} was dismissed`,
-                  )
-                }
-              }
-            }
+            await assertDependenciesSatisfied(tx, device.tenantId, cmd.depends_on)
 
-            assertPayloadMatchesDeviceScope(cmd.payload, device)
-            assertPayloadMatchesDeviceScope(parsedPayload, device)
-            if (device.registerType === 'WAITER' && WAITER_FORBIDDEN_TYPES.has(cmd.type)) {
-              throw new CommandRejected(
-                'AUTHORIZATION',
-                'FORBIDDEN',
-                `Waiter register cannot execute ${cmd.type}`,
-              )
-            }
+            assertCommandAllowedForDevice(cmd, parsedPayload, device)
 
-            const cmdCtx: CommandContext = {
-              commandId: cmd.id,
-              deviceSeq: cmd.device_seq,
-              schemaVersion: cmd.schema_version,
+            const cmdCtx = buildCommandContext({
+              cmd,
               appVersion: meta.appVersion,
-              createdAtDevice: cmd.created_at_device,
               clockOffsetMs: reqClockOffsetMs,
               receivedAtIso,
               requestRef: meta.requestRef,
               device,
-            }
+            })
 
             const ackResult = await handler.handle(tx, cmdCtx, parsedPayload)
             const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
@@ -423,121 +631,16 @@ async function processSingleCommand(
         )
         return txResult
       } catch (err: unknown) {
-        const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
-
-        if (err instanceof HashMismatchReplayError) {
-          log.error(
-            {
-              commandId: cmd.id,
-              commandType: cmd.type,
-              schemaVersion: cmd.schema_version,
-              outcome: 'ATTENTION',
-              reason: 'payload_hash_mismatch',
-              durationMs,
-            },
-            'idempotency key reused with mismatched payload',
-          )
-          return {
-            id: cmd.id,
-            outcome: 'ATTENTION',
-            reason_class: 'STRUCTURAL',
-            reason_code: 'VALIDATION_FAILED',
-            ref: meta.requestRef,
-          }
-        }
-
-        if (err instanceof HoldDependencyError) {
-          log.info(
-            {
-              commandId: cmd.id,
-              commandType: cmd.type,
-              schemaVersion: cmd.schema_version,
-              outcome: 'HELD',
-              durationMs,
-            },
-            'command held on unmet dependency',
-          )
-          return { id: cmd.id, outcome: 'HELD' }
-        }
-
-        if (err instanceof CommandRejected) {
-          return recordAttention(err.reasonClass, err.reasonCode, err.detail ?? null)
-        }
-
-        const transientPg = isTransientPgError(err)
-        const pgCode = transientPg ? extractPgErrorCode(err) : null
-        const trackedErrorCode = pgCode ?? 'INTERNAL_ERROR'
-        const safeDetail = safeFailureDetail(err)
-        const attemptLimit = transientPg ? maxTransientAttempts : maxFailureAttempts
-
-        let attemptCount: number
-        try {
-          attemptCount = await withTenant(
-            device.tenantId,
-            async (tx) =>
-              recordCommandFailureAttempt(tx, {
-                tenantId: device.tenantId,
-                commandId: cmd.id,
-                lastErrorCode: trackedErrorCode,
-                updatedAtIso: receivedAtIso,
-              }),
-            { statementTimeoutMs: 5_000 },
-          )
-        } catch (trackErr: unknown) {
-          log.warn(
-            { err: trackErr, commandId: cmd.id, outcome: 'RETRY' },
-            'failed to persist command failure attempt count',
-          )
-          return { id: cmd.id, outcome: 'RETRY' }
-        }
-
-        if (attemptCount >= attemptLimit) {
-          const detailPrefix = transientPg
-            ? `Repeated transient DB failure (${trackedErrorCode})`
-            : `Repeated internal handler error (${attemptCount} attempts)`
-          const detail = `${detailPrefix}: ${safeDetail}`
-          const attentionRes = await recordAttention(
-            'STRUCTURAL',
-            'INTERNAL_ERROR',
-            detail,
-            attemptCount,
-          )
-          getNotifier().notify('error_spike', {
-            code: 'INTERNAL_ERROR',
-            ref: meta.requestRef,
-            count: attemptCount,
-          })
-          return attentionRes
-        }
-
-        if (transientPg) {
-          log.warn(
-            {
-              commandId: cmd.id,
-              commandType: cmd.type,
-              schemaVersion: cmd.schema_version,
-              reason: `attempt_${attemptCount}_of_${attemptLimit}`,
-              outcome: 'RETRY',
-              durationMs,
-            },
-            'transient DB contention during command push',
-          )
-          return { id: cmd.id, outcome: 'RETRY' }
-        }
-
-        log.error(
-          {
-            err,
-            commandId: cmd.id,
-            commandType: cmd.type,
-            schemaVersion: cmd.schema_version,
-            reason: `attempt_${attemptCount}_of_${attemptLimit}`,
-            outcome: 'RETRY',
-            durationMs,
-          },
-          'unexpected server error during command push',
-        )
-        return { id: cmd.id, outcome: 'RETRY' }
+        return resolveCommandFailure(err, {
+          cmd,
+          device,
+          requestRef: meta.requestRef,
+          receivedAtIso,
+          startedAt,
+          maxFailureAttempts,
+          maxTransientAttempts,
+          recordAttention,
+        })
       }
     },
   )
@@ -590,19 +693,16 @@ export async function processPush(
     // Server processing time is per command (BR-HPP-004, RSK-A31): a batch of many commands must not
     // share one request-level timestamp for `received_at` / `processed_at`.
     const commandReceivedAtIso = readClock()
-    const item = await processSingleCommand(
+    const item = await processSingleCommand({
       device,
       cmd,
-      req.clock_offset_ms,
-      {
-        appVersion: safeAppVersion,
-        requestRef: meta.requestRef,
-      },
-      commandReceivedAtIso,
-      deps?.lockTimeoutMs,
+      reqClockOffsetMs: req.clock_offset_ms,
+      meta: { appVersion: safeAppVersion, requestRef: meta.requestRef },
+      receivedAtIso: commandReceivedAtIso,
+      lockTimeoutMs: deps?.lockTimeoutMs,
       maxFailureAttempts,
       maxTransientAttempts,
-    )
+    })
     if (item.outcome === 'ACK') ackCount += 1
     if (item.outcome === 'RETRY') hasRetry = true
     results.push(item)
@@ -674,26 +774,7 @@ export async function processCommandAs(
     throw new CommandRejected('STRUCTURAL', 'VALIDATION_FAILED', `unknown command type: ${cmd.type}`)
   }
 
-  let parsedPayload: unknown
-  try {
-    const contractPayload = hasRegisteredCommandSchema(cmd.type)
-      ? parseCommandPayload(cmd.type, cmd.schema_version, cmd.payload)
-      : cmd.payload
-    parsedPayload = handler.parse(contractPayload, cmd.schema_version)
-  } catch (err: unknown) {
-    if (err instanceof CommandRejected) throw err
-    if (err instanceof ContractError) {
-      const code = err.code === 'UPDATE_REQUIRED' ? 'SCHEMA_NOT_MIGRATABLE' : 'VALIDATION_FAILED'
-      throw new CommandRejected('STRUCTURAL', code, err.message)
-    }
-    const msg =
-      err instanceof ZodError
-        ? err.issues[0]?.message ?? 'Invalid command payload'
-        : err instanceof Error
-          ? err.message
-          : 'Invalid command payload'
-    throw new CommandRejected('STRUCTURAL', 'VALIDATION_FAILED', msg)
-  }
+  const parsedPayload = parseCommandOrReject(handler, cmd)
 
   const rawJsonText = JSON.stringify(cmd.payload ?? null) ?? 'null'
   const payloadSize = Buffer.byteLength(rawJsonText, 'utf8')
@@ -754,44 +835,18 @@ export async function processCommandAs(
       }
     }
 
-    if (cmd.depends_on.length > 0) {
-      const parentMap = await findParentCommandStatuses(tx, identity.tenantId, cmd.depends_on)
-      for (const depId of cmd.depends_on) {
-        const depStatus = parentMap.get(depId)
-        if (!depStatus || depStatus === 'ATTENTION') {
-          throw new HoldDependencyError()
-        }
-        if (depStatus === 'DISMISSED') {
-          throw new CommandRejected(
-            'STRUCTURAL',
-            'UNKNOWN_REFERENCE',
-            `Dependency ${depId} was dismissed`,
-          )
-        }
-      }
-    }
+    await assertDependenciesSatisfied(tx, identity.tenantId, cmd.depends_on)
 
-    assertPayloadMatchesDeviceScope(cmd.payload, identity)
-    assertPayloadMatchesDeviceScope(parsedPayload, identity)
-    if (identity.registerType === 'WAITER' && WAITER_FORBIDDEN_TYPES.has(cmd.type)) {
-      throw new CommandRejected(
-        'AUTHORIZATION',
-        'FORBIDDEN',
-        `Waiter register cannot execute ${cmd.type}`,
-      )
-    }
+    assertCommandAllowedForDevice(cmd, parsedPayload, identity)
 
-    const cmdCtx: CommandContext = {
-      commandId: cmd.id,
-      deviceSeq: cmd.device_seq,
-      schemaVersion: cmd.schema_version,
+    const cmdCtx = buildCommandContext({
+      cmd,
       appVersion: safeAppVersion,
-      createdAtDevice: cmd.created_at_device,
       clockOffsetMs: opts.reqClockOffsetMs ?? 0,
       receivedAtIso,
       requestRef: opts.requestRef,
       device: identity,
-    }
+    })
 
     const ackResult = await handler.handle(tx, cmdCtx, parsedPayload)
     const durationMs = Math.max(0, Math.round(performance.now() - startedAt))

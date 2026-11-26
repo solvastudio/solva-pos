@@ -3,6 +3,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster, type MasterWriter } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import type { OutletTimezoneValue } from '../shared'
 import {
   createOutletSchema,
@@ -64,10 +66,6 @@ export function registerOutletCreatedHook(hook: OutletCreatedHook): void {
  */
 export function __clearOutletCreatedHooksForTests(): void {
   outletCreatedHooks.length = 0
-}
-
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
 }
 
 function toOutletAuditSnapshot(o: OutletView): Record<string, unknown> {
@@ -142,14 +140,7 @@ export async function createLegalEntity(
     ...rawInput,
     npwp: rawInput.npwp ? normalizeNpwpInput(rawInput.npwp) || null : null,
   }
-  const parsedRes = legalEntityFormSchema.safeParse(cleanRaw)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid legal entity input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(legalEntityFormSchema, cleanRaw, 'Invalid legal entity input')
   const npwp = parsed.npwp ?? null
   const pkpSince = parsed.isPkp ? (parsed.pkpSince ?? null) : null
   const address = parsed.address?.trim() || null
@@ -214,14 +205,7 @@ export async function updateLegalEntity(
     ...rawInput,
     npwp: rawInput.npwp ? normalizeNpwpInput(rawInput.npwp) || null : null,
   }
-  const parsedRes = updateLegalEntitySchema.safeParse(cleanRaw)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid legal entity input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateLegalEntitySchema, cleanRaw, 'Invalid legal entity input')
   const npwp = parsed.npwp ?? null
   const pkpSince = parsed.isPkp ? (parsed.pkpSince ?? null) : null
   const address = parsed.address?.trim() || null
@@ -303,14 +287,7 @@ export async function createOutlet(
   deps?: IdentityServiceDeps,
 ): Promise<OutletView> {
   requireActorPermission(actor, 'user.manage', { requireTenantWide: true })
-  const parsedRes = createOutletSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid outlet input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createOutletSchema, rawInput, 'Invalid outlet input')
   const nowIso = nowIsoFrom(deps)
   const outletId = identityIdGen.newId()
   const receiptSettingId = identityIdGen.newId()
@@ -409,14 +386,7 @@ export async function updateOutlet(
   rawInput: UpdateOutletInput,
   deps?: IdentityServiceDeps,
 ): Promise<OutletView> {
-  const parsedRes = updateOutletSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid outlet input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateOutletSchema, rawInput, 'Invalid outlet input')
   requireActorPermission(actor, 'user.manage', { outletId: parsed.id })
   const nowIso = nowIsoFrom(deps)
 

@@ -3,8 +3,9 @@ import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { ModifierAdjustType } from '~/lib/contracts'
 import { toMoney } from '~/lib/kernel'
 import type { TenantTx } from '~/server/db'
-import { resolvePrice, type PriceResolution } from '../domain/price'
+import { resolvePrice, type PriceEntryLike, type PriceResolution } from '../domain/price'
 import type { AvailabilityStatus, ProductType } from '../shared'
+import { chunkArray } from './chunk'
 import { itemOutletAvailability, priceEntry, product, sku, uom } from './schema'
 import { modifier, modifierIngredient, recipeItem } from './schema-fnb'
 
@@ -121,6 +122,177 @@ export async function getEffectiveAvailabilityRow(
     version: effective.version,
     changedAt: effective.changedAt,
   }
+}
+
+export interface ProductSkuState {
+  productId: string
+  productActive: boolean
+  skuActive: boolean
+  isOpenPrice: boolean
+}
+
+/**
+ * Batch variant of `getProductSkuState`: one query for all SKUs.
+ * SKUs that do not exist are absent from the returned map.
+ */
+export async function getProductSkuStates(
+  tx: TenantTx,
+  skuIds: readonly string[],
+): Promise<Map<string, ProductSkuState>> {
+  const out = new Map<string, ProductSkuState>()
+  for (const batch of chunkArray([...new Set(skuIds)])) {
+    const rows = await tx
+      .select({
+        skuId: sku.id,
+        productId: sku.productId,
+        skuIsActive: sku.isActive,
+        skuDeletedAt: sku.deletedAt,
+        productIsActive: product.isActive,
+        productDeletedAt: product.deletedAt,
+        isOpenPrice: product.isOpenPrice,
+      })
+      .from(sku)
+      .innerJoin(product, and(eq(product.tenantId, sku.tenantId), eq(product.id, sku.productId)))
+      .where(inArray(sku.id, batch))
+    for (const row of rows) {
+      out.set(row.skuId, {
+        productId: row.productId,
+        productActive: row.productIsActive && row.productDeletedAt === null,
+        skuActive: row.skuIsActive && row.skuDeletedAt === null,
+        isOpenPrice: row.isOpenPrice,
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * Batch variant of `getCurrentPrice`. The result is keyed by `${skuId}:${uomId}`.
+ * `states` must come from `getProductSkuStates` for the same SKUs (used for the open-price flag).
+ */
+export async function getCurrentPrices(
+  tx: TenantTx,
+  params: {
+    outletId: string
+    pairs: ReadonlyArray<{ skuId: string; uomId: string }>
+    states: ReadonlyMap<string, ProductSkuState>
+  },
+): Promise<Map<string, PriceResolution>> {
+  const out = new Map<string, PriceResolution>()
+  const entriesByKey = new Map<string, PriceEntryLike[]>()
+  for (const batch of chunkArray([...new Set(params.pairs.map((p) => p.skuId))])) {
+    const rows = await tx
+      .select({
+        skuId: priceEntry.skuId,
+        uomId: priceEntry.uomId,
+        outletId: priceEntry.outletId,
+        price: priceEntry.price,
+      })
+      .from(priceEntry)
+      .where(
+        and(
+          inArray(priceEntry.skuId, batch),
+          isNull(priceEntry.deletedAt),
+          or(eq(priceEntry.outletId, params.outletId), isNull(priceEntry.outletId)),
+        ),
+      )
+    for (const r of rows) {
+      const key = `${r.skuId}:${r.uomId}`
+      const list = entriesByKey.get(key) ?? []
+      list.push({ skuId: r.skuId, uomId: r.uomId, outletId: r.outletId, price: toMoney(r.price) })
+      entriesByKey.set(key, list)
+    }
+  }
+  for (const pair of params.pairs) {
+    const key = `${pair.skuId}:${pair.uomId}`
+    if (out.has(key)) continue
+    out.set(
+      key,
+      resolvePrice({
+        skuId: pair.skuId,
+        uomId: pair.uomId,
+        outletId: params.outletId,
+        entries: entriesByKey.get(key) ?? [],
+        isOpenPrice: params.states.get(pair.skuId)?.isOpenPrice ?? false,
+      }),
+    )
+  }
+  return out
+}
+
+export interface EffectiveAvailability {
+  status: AvailabilityStatus
+  version: number
+  changedAt: string
+}
+
+/**
+ * Batch variant of `getEffectiveAvailabilityRow`. The result is keyed by `${productId}:${skuId}`
+ * where `productId` is the item's own product id, or the SKU's product id when the item has none.
+ * A SKU-level override wins over the product-level row; no row means `null`.
+ */
+export async function getEffectiveAvailabilityRows(
+  tx: TenantTx,
+  params: {
+    outletId: string
+    items: ReadonlyArray<{ productId: string | null; skuId: string }>
+    states: ReadonlyMap<string, ProductSkuState>
+  },
+): Promise<Map<string, EffectiveAvailability | null>> {
+  const out = new Map<string, EffectiveAvailability | null>()
+  const resolved: Array<{ key: string; productId: string; skuId: string }> = []
+  for (const item of params.items) {
+    const productId = item.productId ?? params.states.get(item.skuId)?.productId ?? null
+    const key = `${productId}:${item.skuId}`
+    if (productId === null) {
+      out.set(key, null)
+      continue
+    }
+    resolved.push({ key, productId, skuId: item.skuId })
+  }
+
+  const rows: Array<{
+    productId: string
+    skuId: string | null
+    status: string
+    version: number
+    changedAt: string
+  }> = []
+  for (const batch of chunkArray([...new Set(resolved.map((r) => r.productId))])) {
+    const found = await tx
+      .select({
+        productId: itemOutletAvailability.productId,
+        skuId: itemOutletAvailability.skuId,
+        status: itemOutletAvailability.status,
+        version: itemOutletAvailability.version,
+        changedAt: itemOutletAvailability.changedAt,
+      })
+      .from(itemOutletAvailability)
+      .where(
+        and(
+          eq(itemOutletAvailability.outletId, params.outletId),
+          inArray(itemOutletAvailability.productId, batch),
+          isNull(itemOutletAvailability.deletedAt),
+        ),
+      )
+    rows.push(...found)
+  }
+
+  for (const r of resolved) {
+    const override = rows.find((x) => x.productId === r.productId && x.skuId === r.skuId)
+    const effective = override ?? rows.find((x) => x.productId === r.productId && x.skuId === null)
+    out.set(
+      r.key,
+      effective
+        ? {
+            status: effective.status as AvailabilityStatus,
+            version: effective.version,
+            changedAt: effective.changedAt,
+          }
+        : null,
+    )
+  }
+  return out
 }
 
 export async function filterMissingCatalogRefs(

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
 import {
   createCategorySchema,
   updateCategorySchema,
@@ -45,14 +46,7 @@ export async function createCategory(
   deps?: CatalogServiceDeps,
 ): Promise<CategoryRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = createCategorySchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid category input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(createCategorySchema, rawInput, 'Invalid category input')
   const parentId = parsed.parentId ?? null
   const id = newIdFrom(deps)
   const nowIso = nowIsoFrom(deps)
@@ -94,14 +88,7 @@ export async function updateCategory(
   deps?: CatalogServiceDeps,
 ): Promise<CategoryRow> {
   requireCatalogPermission(actor, { requireTenantWide: true })
-  const parsedRes = updateCategorySchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid category input',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(updateCategorySchema, rawInput, 'Invalid category input')
   const nowIso = nowIsoFrom(deps)
 
   try {

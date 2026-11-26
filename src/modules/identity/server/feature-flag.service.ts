@@ -5,6 +5,8 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { parseOrThrow } from '~/server/parse-or-throw'
+import { nowIsoFrom } from '~/server/service-deps'
 import {
   identityIdGen,
   requireActorPermission,
@@ -38,10 +40,6 @@ export interface SetFeatureFlagInput {
   note?: string | null
 }
 
-function nowIsoFrom(deps?: IdentityServiceDeps): string {
-  return (deps?.nowIso ?? (() => new Date().toISOString()))()
-}
-
 function assertKnownFlagKey(
   key: string,
   registry: Readonly<Record<string, FeatureFlagDefinition>>,
@@ -65,14 +63,7 @@ export async function setFeatureFlag(
 ): Promise<FeatureFlagRow> {
   requireActorPermission(actor, 'flag.manage', { requireTenantWide: true })
 
-  const parsedRes = setFeatureFlagSchema.safeParse(rawInput)
-  if (!parsedRes.success) {
-    throw new AppError(
-      'VALIDATION_FAILED',
-      parsedRes.error.issues[0]?.message ?? 'Invalid feature flag payload',
-    )
-  }
-  const parsed = parsedRes.data
+  const parsed = parseOrThrow(setFeatureFlagSchema, rawInput, 'Invalid feature flag payload')
   const registry = deps?.registry ?? FEATURE_FLAGS
   assertKnownFlagKey(parsed.key, registry)
 
