@@ -202,6 +202,7 @@ export async function startSyncEngine(
 
   const connectivity = createConnectivityMonitor({
     fetch: opts.fetch,
+    rng: Math.random,
     nowMs,
     clock,
     onStateChange: (conn) => {
@@ -219,6 +220,7 @@ export async function startSyncEngine(
   const sseClient = createSignalsClient({
     db: opts.db,
     fetch: opts.fetch,
+    rng: Math.random,
     onSignal: (msg) => {
       if (msg.t === 'pull' || msg.t === 'release' || msg.t === 'bills') {
         schedulerRef?.kick('signal')
@@ -238,12 +240,14 @@ export async function startSyncEngine(
     clock,
     connectivity,
     locks: opts.locks,
+    rng: Math.random,
     runPushStep: () =>
       runPush({
         db: opts.db,
         clock,
         unstable: connectivity.isUnstable(),
         fetch: opts.fetch,
+        rng: Math.random,
         onAuthTerminal: opts.onTerminalLockDetected,
       }),
     runPullStep: (pushOk) =>

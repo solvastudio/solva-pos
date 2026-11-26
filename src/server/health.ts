@@ -39,6 +39,8 @@ export async function checkHealth(
         const applied = typeof rawCnt === 'number' ? rawCnt : Number(rawCnt)
         return Number.isSafeInteger(applied) ? applied : null
       } finally {
+        // `SET` above is session-scoped; reset it so the pooled connection does not keep the short timeout.
+        await client.query('RESET statement_timeout').catch(() => undefined)
         client.release()
       }
     })()
