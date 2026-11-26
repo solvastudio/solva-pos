@@ -1,18 +1,10 @@
-import { createIdGenerator, type LocaleId } from '~/lib/kernel'
+import { type LocaleId } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { getCreditNoteWithDetails } from '../../data/credit-note.repo'
 import { addPrintJob } from '../../data/print-job.repo'
 import { getSaleWithDetails } from '../../data/sale.repo'
 import type { SolvaDb } from '../../db/solva-db'
 import type { PrintJobRecord } from '../../db/types'
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 /**
  * Enqueues a `REPRINT` job preserving the original document's `receipt_locale` (FR-I18N-005 / FR-PRN-004).

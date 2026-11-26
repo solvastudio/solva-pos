@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import { createIdGenerator, isUuid } from '~/lib/kernel'
+import { isUuid } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant } from '~/server/db'
@@ -10,15 +11,6 @@ import { supplier as supplierTable } from './schema'
  * Suppliers (simple CRUD). `name ≤ 120`, unique regardless of case among active rows;
  * `contact ≤ 200`. Delete = soft-delete: old GRs still point to this row, so the FK stays valid.
  */
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const b = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(b)
-    return b[0]!
-  },
-})
 
 export interface SupplierRow {
   readonly id: string

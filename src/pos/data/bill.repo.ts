@@ -8,12 +8,12 @@ import {
 } from '~/lib/contracts'
 import {
   businessDate,
-  createIdGenerator,
   parseQty,
   qtyToBase,
   toMoney,
   type OutletTimezone,
 } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import {
   applyBillEvent,
   computeModifierDeltaSum,
@@ -43,15 +43,6 @@ import { enqueueCommand } from './outbox.repo'
 import { enqueuePrintJob } from './print-job.repo'
 import { trustedNowMs } from '../session/device-state'
 import { kickActiveSync } from '../sync'
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export type BillRepoErrorCode =
   | 'DEVICE_NOT_PAIRED'

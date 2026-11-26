@@ -1,13 +1,13 @@
 import { AppendAuditPayloadV1, type AppendAuditPayloadV1 as AppendAuditPayloadV1Type } from '~/lib/contracts'
 import {
   businessDate,
-  createIdGenerator,
   formatInvoiceNo,
   invoicePeriod,
   toMoney,
   type Money,
   type OutletTimezone,
 } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import {
   getLegalEntity,
   getOutlet,
@@ -89,15 +89,6 @@ export interface FinalizeSaleResult {
   invoiceNo: string
   change: Money
 }
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 function computeTotalChange(
   payments: readonly { change_given: number | null }[],

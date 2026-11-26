@@ -1,5 +1,4 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type {
   BillHandoverStatus,
@@ -9,7 +8,7 @@ import type {
   DiscountType,
   PriceSource,
 } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as billRepoIdGen } from '~/lib/runtime-id'
 import type { TenantTx } from '~/server/db'
 import type {
   BillEventEnvelopeV1,
@@ -18,15 +17,6 @@ import type {
   BillProjectionState,
 } from '../shared'
 import { bill, billEvent, billItem, billItemModifier, fnbTable } from './schema'
-
-const billRepoIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface BillRow {
   readonly id: string

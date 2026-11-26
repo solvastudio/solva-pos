@@ -1,17 +1,8 @@
 import { AppendAuditPayloadV1, SCHEMA_VERSION } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as auditIdGen } from '~/lib/runtime-id'
 import { enqueueCommandStandalone } from '../../data/outbox.repo'
 import type { SolvaDb } from '../../db/solva-db'
 import type { OutboxCommandRow } from '../../db/types'
-
-const auditIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface EnqueueAuditInput {
   action: string

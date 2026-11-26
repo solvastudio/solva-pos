@@ -3,10 +3,10 @@ import {
   CloseShiftPayloadV1,
 } from '~/lib/contracts'
 import {
-  createIdGenerator,
   toMoney,
   type Money,
 } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import { cashVariance } from '~/lib/sales-calc'
 import { listCashMovementsForShift } from '../../data/cash-movement.repo'
 import { listCreditNoteRefundsForShift } from '../../data/credit-note.repo'
@@ -50,15 +50,6 @@ export interface CloseShiftResult {
   expectedCash: Money
   variance: Money
 }
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export async function closeShift(
   db: SolvaDb,

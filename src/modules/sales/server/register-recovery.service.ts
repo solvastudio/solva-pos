@@ -1,14 +1,13 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import {
   businessDate,
-  createIdGenerator,
   formatInvoiceNo,
   invoicePeriod,
   isUuid,
   type OutletTimezone,
 } from '~/lib/kernel'
+import { runtimeIdGenerator as recoveryIdGen } from '~/lib/runtime-id'
 import { appendAudit } from '~/modules/audit/public'
 import {
   findRegisterPrefixForBusinessDate,
@@ -24,15 +23,6 @@ import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import type { DocType } from './invoice-series.repo'
 import { invoiceGap, invoiceSeries, registerRecovery } from './schema'
-
-const recoveryIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface RecoverySeriesPreview {
   readonly docType: DocType

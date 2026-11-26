@@ -1,5 +1,6 @@
 import { SCHEMA_VERSION, type OpenShiftPayloadV1 } from '~/lib/contracts'
-import { businessDate, createIdGenerator, type OutletTimezone } from '~/lib/kernel'
+import { businessDate, type OutletTimezone } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import type { SolvaDb } from '../../db/solva-db'
 import type { OutboxCommandRow, ShiftRecord } from '../../db/types'
 import { getOutlet } from '../../data/master.repo'
@@ -33,15 +34,6 @@ export type OpenShiftResult =
         | 'UPDATE_REQUIRED'
       readonly existingShift?: ShiftRecord
     }
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 /**
  * Opens a register shift offline in a single Dexie transaction (shift row + OpenShift outbox

@@ -2,7 +2,8 @@ import {
   AppendAuditPayloadV1,
   RecordCashMovementPayloadV1,
 } from '~/lib/contracts'
-import { businessDate, createIdGenerator, type OutletTimezone } from '~/lib/kernel'
+import { businessDate, type OutletTimezone } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import { commitCashMovementTransaction } from '../../data/cash-movement.repo'
 import { getOutlet } from '../../data/master.repo'
 import { getMeta } from '../../data/meta.repo'
@@ -29,15 +30,6 @@ export class RecordCashMovementError extends Error {
     this.code = code
   }
 }
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export async function recordCashMovement(
   db: SolvaDb,

@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 import type { CashRoundingUnit } from '~/lib/kernel'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import type { SaleConfigSnapshot } from '~/lib/sales-calc'
 import type { SolvaDb } from '../db/solva-db'
 import {
@@ -37,15 +37,6 @@ const DEFAULT_CONFIG: SaleConfigSnapshot = {
   serviceChargeRate: '0',
   serviceChargeTaxable: true,
 }
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface CartContext {
   registerId: string

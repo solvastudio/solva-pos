@@ -1,20 +1,10 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
 import type { FinalizeSalePayloadV1, SaleLineModifierInput } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as saleRepoIdGen } from '~/lib/runtime-id'
 import type { CommandContext } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
 import { creditNote, sale, saleLine, saleLineModifier, salePayment } from './schema'
-
-const saleRepoIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export async function insertSaleFacts(
   tx: TenantTx,

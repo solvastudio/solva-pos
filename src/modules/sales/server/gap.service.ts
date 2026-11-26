@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, desc, eq, inArray } from 'drizzle-orm'
-import { createIdGenerator, isUuid } from '~/lib/kernel'
+import { isUuid } from '~/lib/kernel'
+import { runtimeIdGenerator as gapAuditIdGen } from '~/lib/runtime-id'
 import { appendAudit } from '~/modules/audit/public'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
@@ -10,15 +10,6 @@ import type { InvoiceGapRow } from '../shared'
 import { invoiceGap } from './schema'
 
 export type { InvoiceGapRow }
-
-const gapAuditIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 /**
  * Transitions an `OPEN` invoice/credit-note gap to `EXPLAINED` (`gap.annotate`, BR-INV-007).

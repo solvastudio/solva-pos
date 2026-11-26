@@ -4,7 +4,7 @@ import {
   SCHEMA_VERSION,
   type BillDetailResponse,
 } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import {
   getLocalBillWithItems,
   markLocalBillHandoverCanceled,
@@ -19,15 +19,6 @@ import { deviceFetch, type DeviceFetchOptions } from './device-http'
 
 const HANDOVER_TIMEOUT_MS = 10_000
 const MAX_429_RETRIES = 3
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export type HandoverClientErrorCode =
   | 'OFFLINE'

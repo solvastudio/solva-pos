@@ -1,5 +1,4 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { z } from 'zod'
 import {
   createFnbTableSchema,
@@ -7,7 +6,7 @@ import {
   type CreateFnbTableInput,
   type UpdateFnbTableInput,
 } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as fnbIdGen } from '~/lib/runtime-id'
 import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
@@ -28,15 +27,6 @@ import {
 } from './table.repo'
 
 const uuidSchema = z.string().uuid()
-
-const fnbIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface FnbActor {
   tenantId: string

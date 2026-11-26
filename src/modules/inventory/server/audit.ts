@@ -1,17 +1,7 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as auditIdGen } from '~/lib/runtime-id'
 import { appendAudit } from '~/modules/audit/public'
 import type { TenantTx } from '~/server/db'
-
-const auditIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const b = new Uint32Array(1)
-    webcrypto.getRandomValues(b)
-    return b[0]!
-  },
-})
 
 /** Audits an inventory document event (GR, transfer, stocktake). Called last within the transaction. */
 export async function auditInventoryEvent(

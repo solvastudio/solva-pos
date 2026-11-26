@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, desc, eq, inArray } from 'drizzle-orm'
-import { createIdGenerator, isUuid } from '~/lib/kernel'
+import { isUuid } from '~/lib/kernel'
+import { runtimeIdGenerator as shiftIdGen } from '~/lib/runtime-id'
 import { appendAudit } from '~/modules/audit/public'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
@@ -9,15 +9,6 @@ import { AppError } from '~/server/error-classify'
 import { recomputeShiftRecap } from './recap.service'
 import { cashCashier } from './schema'
 import { findShiftFullById, updateForceCloseShiftRow } from './shift.repo'
-
-const shiftIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface ForceCloseShiftInput {
   shiftId: string

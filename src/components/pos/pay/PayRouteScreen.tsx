@@ -5,7 +5,8 @@ import { PosWorkspaceShell } from '~/components/pos/shell/PosWorkspaceShell'
 import { formatPosOutletLabel } from '~/components/pos/shell/use-pos-shell-actions'
 import { Button } from '~/components/ui/Button'
 import { ErrorCodeBlock } from '~/components/ui/ErrorCodeBlock'
-import { createIdGenerator, businessDate, type OutletTimezone } from '~/lib/kernel'
+import { businessDate, type OutletTimezone } from '~/lib/kernel'
+import { runtimeIdGenerator as payIdGen } from '~/lib/runtime-id'
 import type { BootResult } from '~/pos/boot/boot'
 import { getLocalBillWithItems, listChildBillsByParent } from '~/pos/data/bill.repo'
 import { getOutlet, listActivePaymentMethods, listActiveStaff, listRegisters } from '~/pos/data/master.repo'
@@ -22,15 +23,6 @@ import { clearSession, getSessionState } from '~/pos/session/session'
 import { posCartStore } from '~/pos/state/cart-store'
 import { finalizeSale, FinalizeSaleError } from '~/pos/usecases/sales/finalize-sale'
 import { PaymentScreen } from './PaymentScreen'
-
-const payIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const b = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(b)
-    return b[0]!
-  },
-})
 
 export interface PayRouteScreenProps {
   tenant: string

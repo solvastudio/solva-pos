@@ -1,12 +1,12 @@
 import '@tanstack/react-start/server-only'
-import { createHash, randomBytes, webcrypto } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import {
   CODE_LENGTH_MEMBER,
-  createIdGenerator,
   formatCode,
   generateCode,
   normalizeCode,
 } from '~/lib/kernel'
+import { runtimeIdGenerator } from '~/lib/runtime-id'
 import { AppError } from '~/server/error-classify'
 import type { PermissionCode } from '../domain/permissions'
 
@@ -26,14 +26,7 @@ export interface IdentityServiceDeps {
   randomCodeBytes?: (length: number) => Uint8Array
 }
 
-export const identityIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
+export const identityIdGen = runtimeIdGenerator
 
 export function requireActorPermission(
   actor: IdentityAuthActor,

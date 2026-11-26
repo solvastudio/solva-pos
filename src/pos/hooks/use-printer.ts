@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createIdGenerator, type LocaleId } from '~/lib/kernel'
+import { type LocaleId } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { listRegisters } from '../data/master.repo'
 import { getMeta, setMeta } from '../data/meta.repo'
 import { addPrintJob } from '../data/print-job.repo'
@@ -18,15 +19,6 @@ import type { PrinterState } from '../printing/adapters/types'
 import type { PrinterCapabilities } from '../printing/printer-profiles'
 
 export type PrinterConfig = NonNullable<MetaValueMap['printer']>
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export function usePrinter(db: SolvaDb | null, outletId: string | null, registerId: string | null) {
   const [config, setConfig] = useState<PrinterConfig | null>(null)

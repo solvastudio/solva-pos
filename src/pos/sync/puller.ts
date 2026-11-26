@@ -5,7 +5,7 @@ import {
   SYNC_PROTOCOL_VERSION,
   type DeviceReport,
 } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as cycleIdGen } from '~/lib/runtime-id'
 import { getMeta, setMeta } from '../data/meta.repo'
 import { getOutboxQueueSummary } from '../data/outbox.repo'
 import { applyStockSnapshot } from '../data/stock.repo'
@@ -21,15 +21,6 @@ import { deviceFetch, type DeviceAuthFailureCode } from './device-http'
 export const DEFAULT_PULL_PAGE_SIZE = 500
 export const DEFAULT_PULL_TIMEOUT_MS = 15_000
 export const UNSTABLE_PULL_TIMEOUT_MS = 30_000
-
-const cycleIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export type PullRunResult =
   | { kind: 'ok'; serverTimeMs?: number; pages: number }

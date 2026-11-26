@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import type { PushCommandEnvelope } from '~/lib/contracts'
-import { createIdGenerator, isUuid } from '~/lib/kernel'
+import { isUuid } from '~/lib/kernel'
+import { runtimeIdGenerator as attentionIdGen } from '~/lib/runtime-id'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { CommandRejected, type SyncDeviceIdentity } from '../domain/command-types'
@@ -14,15 +14,6 @@ import {
 } from './attention.repo'
 import { getSyncAuditWriter } from './device-status-port'
 import { processCommandAs } from './push.service'
-
-const attentionIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface SyncAdminActor {
   readonly tenantId: string

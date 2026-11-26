@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import { createIdGenerator, isUuid, mulQty, mulRound, parseQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { isUuid, mulQty, mulRound, parseQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant, type TenantTx } from '~/server/db'
@@ -10,15 +11,6 @@ import { draftDocNo, nextDocNo } from './doc-no'
 import { findMovementIdsBySource, loadInventoryEnabledAt } from './sale-stock.repo'
 import { createStockMinusFlags, resolveStockMinus } from './stock-flags.service'
 import { goodsReceipt as grTable, goodsReceiptLine as grLineTable } from './schema'
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const b = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(b)
-    return b[0]!
-  },
-})
 
 export interface GrLineInput {
   readonly skuId: string

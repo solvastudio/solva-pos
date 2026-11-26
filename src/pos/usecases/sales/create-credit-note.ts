@@ -8,7 +8,6 @@ import {
   addQty,
   businessDate,
   cmpQty,
-  createIdGenerator,
   formatInvoiceNo,
   invoicePeriod,
   normalizeQty,
@@ -18,6 +17,7 @@ import {
   type Money,
   type OutletTimezone,
 } from '~/lib/kernel'
+import { runtimeIdGenerator as defaultIdGen } from '~/lib/runtime-id'
 import { calcCreditNote, type ReturnLineInput } from '~/lib/sales-calc'
 import {
   commitCreditNoteTransaction,
@@ -107,15 +107,6 @@ export interface CreateCreditNoteResult {
   refunds: CreditNoteRefundRecord[]
   totalRefund: Money
 }
-
-const defaultIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export async function createCreditNote(
   db: SolvaDb,

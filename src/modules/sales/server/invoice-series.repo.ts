@@ -1,21 +1,11 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as gapIdGen } from '~/lib/runtime-id'
 import type { TenantTx } from '~/server/db'
 import type { ActiveInvoiceGap, RemainderGapSpec } from '../domain/invoice-gap'
 import { creditNote, invoiceGap, invoiceSeries, sale } from './schema'
 
 export type DocType = 'INVOICE' | 'CREDIT_NOTE'
-
-const gapIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export async function lockOrInitInvoiceSeries(
   tx: TenantTx,

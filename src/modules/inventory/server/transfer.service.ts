@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { and, eq, sql } from 'drizzle-orm'
-import { createIdGenerator, isUuid, mulQty, parseQty, proRate, subMoney, subQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { isUuid, mulQty, parseQty, proRate, subMoney, subQty, toMoney, type Money, type Qty } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant, type TenantTx } from '~/server/db'
@@ -10,15 +11,6 @@ import { draftDocNo, nextDocNo } from './doc-no'
 import { transfer as transferTable, transferLine as transferLineTable } from './schema'
 import { loadInventoryEnabledAt } from './sale-stock.repo'
 import { createStockMinusFlags, createTransferVarianceFlag, resolveStockMinus } from './stock-flags.service'
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const b = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(b)
-    return b[0]!
-  },
-})
 
 export interface TransferLineInput {
   readonly skuId: string

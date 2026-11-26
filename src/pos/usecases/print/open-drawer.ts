@@ -1,19 +1,11 @@
-import { createIdGenerator, type IsoInstant } from '~/lib/kernel'
+import { type IsoInstant } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import { getMeta } from '../../data/meta.repo'
 import { addPrintJob } from '../../data/print-job.repo'
 import type { SolvaDb } from '../../db/solva-db'
 import type { PrintJobRecord } from '../../db/types'
 import { getSessionState } from '../../session/session'
 import { enqueueAudit } from '../audit/enqueue-audit'
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export class OpenDrawerError extends Error {
   constructor(

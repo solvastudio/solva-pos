@@ -1,20 +1,10 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { AttentionReasonClass, CommandType, FlagCode } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as syncRepoIdGen } from '~/lib/runtime-id'
 import type { TenantTx } from '~/server/db'
 import type { CommandContext } from '../domain/command-types'
 import { attentionItem, commandFailureAttempt, dataFlag, idempotencyCommand } from './schema'
-
-const syncRepoIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 export interface ExistingIdempotencyRow {
   commandId: string

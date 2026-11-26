@@ -1,6 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { webcrypto } from 'node:crypto'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator } from '~/lib/runtime-id'
 import { AppError } from '~/server/error-classify'
 
 export interface CatalogActor {
@@ -16,14 +15,7 @@ export interface CatalogServiceDeps {
   newId?: () => string
 }
 
-export const catalogIdGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    webcrypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
+export const catalogIdGen = runtimeIdGenerator
 
 export { nowIsoFrom } from '~/server/service-deps'
 
