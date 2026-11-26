@@ -11,16 +11,16 @@ import {
   getLocalBillWithItems,
   listBillEventsForBill,
   listChildBillsByParent,
-  mergeBillsLocal,
   openBill,
   printPrebill,
   setBillCustomer,
   setBillDiscount,
   setBillItemModifiers,
   setBillTable,
-  splitBillLocal,
   voidBillItem,
 } from './bill.repo'
+import { mergeBillsLocal } from './bill-merge.repo'
+import { splitBillLocal } from './bill-split.repo'
 import { buildCartFromBill } from '../domain/bill-payment'
 import type { ResolvedCartItem } from '../domain/cart'
 

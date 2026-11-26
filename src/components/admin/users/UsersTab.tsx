@@ -1,14 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useId, useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Button,
-  Checkbox,
   Chip,
   CircleAlert,
   DataTable,
   Dialog,
-  Field,
   IconButton,
   Input,
   KeyRound,
@@ -16,7 +14,6 @@ import {
   Plus,
   Search,
   Select,
-  Switch,
   Tooltip,
   Trash2,
   Users,
@@ -25,12 +22,10 @@ import {
 } from '~/components/ui'
 import {
   cancelInviteFn,
-  createInviteFn,
   issueResetCodeFn,
   reissueInviteFn,
   removeMemberFn,
 } from '~/functions/identity/members.fn'
-import { changeMemberRoleAndOutletsFn } from '~/functions/identity/members-admin.fn'
 import { formatDateTime } from '~/lib/kernel'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import type { PendingInviteItem } from '~/modules/identity/public'
@@ -42,6 +37,8 @@ import {
   rolesQueryOptions,
 } from '~/queries/identity.queries'
 import { qk } from '~/queries/keys'
+import { EditMemberAccessDialog } from './EditMemberAccessDialog'
+import { InviteMemberDialog } from './InviteMemberDialog'
 import { OneTimeCodeDialog } from './OneTimeCodeDialog'
 import { PinDialog } from './PinDialog'
 
@@ -69,7 +66,6 @@ export function UsersTab({
   const { t, i18n } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const formIdPrefix = useId()
   const permSet = useMemo(() => new Set(permissions), [permissions])
   const canInvite = permSet.has('user.invite')
   const canReset = permSet.has('user.reset_password')
@@ -113,20 +109,9 @@ export function UsersTab({
   } | null>(null)
 
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [invEmail, setInvEmail] = useState('')
-  const [invDisplayName, setInvDisplayName] = useState('')
-  const [invRoleId, setInvRoleId] = useState('')
-  const [invAllOutlets, setInvAllOutlets] = useState(false)
-  const [invOutletIds, setInvOutletIds] = useState<string[]>([])
-  const [inviteFieldErrors, setInviteFieldErrors] = useState<Record<string, string>>({})
-  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteSession, setInviteSession] = useState(0)
 
   const [editingMember, setEditingMember] = useState<MemberDirectoryView | null>(null)
-  const [accessAllOutlets, setAccessAllOutlets] = useState(false)
-  const [accessTenantWideRoleId, setAccessTenantWideRoleId] = useState('')
-  const [accessOutletRoles, setAccessOutletRoles] = useState<Record<string, string>>({})
-  const [accessOutletsError, setAccessOutletsError] = useState<string | null>(null)
-  const [accessError, setAccessError] = useState<string | null>(null)
 
   const [resetTarget, setResetTarget] = useState<MemberDirectoryView | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -142,35 +127,6 @@ export function UsersTab({
     void queryClient.invalidateQueries({ queryKey: ['identity', tenantSlug, 'members'] })
     void queryClient.invalidateQueries({ queryKey: qk.pendingInvites(tenantSlug) })
   }
-
-  const inviteMutation = useMutation({
-    retry: 0,
-    mutationFn: () =>
-      createInviteFn({
-        data: {
-          email: invEmail.trim(),
-          displayName: invDisplayName.trim(),
-          roleId: invRoleId,
-          outletIds: invAllOutlets ? null : invOutletIds,
-        },
-      }),
-    onSuccess: (res) => {
-      invalidateMemberQueries()
-      setInviteOpen(false)
-      setCodeModal({
-        kind: 'invite',
-        title: t('admin.users.invite.codeTitle'),
-        code: res.code,
-        url: `${originPrefix}${tenantHref(tenantSlug, '/join')}`,
-        expiryNotice: t('admin.users.invite.expiryNotice', {
-          expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate),
-        }),
-      })
-    },
-    onError: () => {
-      setInviteError(t('members.add.failed'))
-    },
-  })
 
   const reissueMutation = useMutation({
     retry: 0,
@@ -201,34 +157,6 @@ export function UsersTab({
     },
     onError: () => {
       toast.show({ tone: 'danger', message: t('admin.users.failed') })
-    },
-  })
-
-  const accessMutation = useMutation({
-    retry: 0,
-    mutationFn: async () => {
-      if (!editingMember) return { ok: false as const, errorKey: 'admin.users.failed' }
-      const assignments = accessAllOutlets
-        ? [{ outletId: null, roleId: accessTenantWideRoleId }]
-        : Object.entries(accessOutletRoles).map(([outletId, roleId]) => ({ outletId, roleId }))
-      return changeMemberRoleAndOutletsFn({
-        data: {
-          appUserId: editingMember.appUserId,
-          assignments,
-        },
-      })
-    },
-    onSuccess: (res) => {
-      if (!res.ok) {
-        setAccessError(t(res.errorKey, { defaultValue: t('admin.users.failed') }))
-        return
-      }
-      invalidateMemberQueries()
-      toast.show({ tone: 'success', message: t('admin.users.saved') })
-      setEditingMember(null)
-    },
-    onError: () => {
-      setAccessError(t('admin.users.failed'))
     },
   })
 
@@ -266,115 +194,22 @@ export function UsersTab({
   })
 
   function openInviteDialog() {
-    setInvEmail('')
-    setInvDisplayName('')
-    setInvRoleId(roles[0]?.id ?? '')
-    setInvAllOutlets(false)
-    setInvOutletIds(outlets[0]?.id ? [outlets[0].id] : [])
-    setInviteFieldErrors({})
-    setInviteError(null)
+    setInviteSession((n) => n + 1)
     setInviteOpen(true)
   }
 
-  function openEditAccessDialog(member: MemberDirectoryView) {
-    setEditingMember(member)
-    setAccessOutletsError(null)
-    setAccessError(null)
-    const wide = member.assignments.find((a) => a.outletId === null)
-    if (wide && canTenantWide) {
-      setAccessAllOutlets(true)
-      setAccessTenantWideRoleId(wide.roleId)
-      setAccessOutletRoles({})
-    } else {
-      setAccessAllOutlets(false)
-      setAccessTenantWideRoleId(roles[0]?.id ?? '')
-      const map: Record<string, string> = {}
-      for (const a of member.assignments) {
-        if (a.outletId) map[a.outletId] = a.roleId
-      }
-      setAccessOutletRoles(map)
-    }
-  }
-
-  function toggleInviteOutlet(outletId: string, checked: boolean) {
-    setInvOutletIds((prev) => {
-      const next = checked ? Array.from(new Set([...prev, outletId])) : prev.filter((id) => id !== outletId)
-      if (next.length > 0) {
-        setInviteFieldErrors((errs) => {
-          if (!errs.outlets) return errs
-          const copy = { ...errs }
-          delete copy.outlets
-          return copy
-        })
-      }
-      return next
+  function handleInviteCreated(res: { code: string; expiresAt: string }) {
+    invalidateMemberQueries()
+    setInviteOpen(false)
+    setCodeModal({
+      kind: 'invite',
+      title: t('admin.users.invite.codeTitle'),
+      code: res.code,
+      url: `${originPrefix}${tenantHref(tenantSlug, '/join')}`,
+      expiryNotice: t('admin.users.invite.expiryNotice', {
+        expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate),
+      }),
     })
-  }
-
-  function toggleEditOutlet(outletId: string, checked: boolean) {
-    setAccessOutletRoles((prev) => {
-      const next = { ...prev }
-      if (checked) {
-        next[outletId] = next[outletId] ?? roles[0]?.id ?? ''
-        setAccessOutletsError(null)
-      } else {
-        delete next[outletId]
-      }
-      return next
-    })
-  }
-
-  function clearInviteFieldError(field: string) {
-    setInviteFieldErrors((prev) => {
-      if (!prev[field]) return prev
-      const copy = { ...prev }
-      delete copy[field]
-      return copy
-    })
-  }
-
-  function handleInviteSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setInviteError(null)
-    const nextErrors: Record<string, string> = {}
-    const cleanEmail = invEmail.trim()
-    if (!cleanEmail) {
-      nextErrors.email = t('validation.fieldRequired', {
-        field: t('admin.users.invite.emailLabel'),
-      })
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      nextErrors.email = t('validation.emailInvalid')
-    }
-    if (!invDisplayName.trim()) {
-      nextErrors.displayName = t('validation.fieldRequired', {
-        field: t('admin.users.invite.displayNameLabel'),
-      })
-    }
-    if (!invRoleId) {
-      nextErrors.roleId = t('validation.selectRequired', {
-        field: t('admin.users.invite.roleLabel'),
-      })
-    }
-    if (!invAllOutlets && invOutletIds.length === 0) {
-      nextErrors.outlets = t('admin.users.editAccess.needOneOutlet')
-    }
-    if (Object.keys(nextErrors).length > 0) {
-      setInviteFieldErrors(nextErrors)
-      return
-    }
-    setInviteFieldErrors({})
-    inviteMutation.mutate()
-  }
-
-  function handleEditAccessSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setAccessError(null)
-    setAccessOutletsError(null)
-    if (!accessAllOutlets && Object.keys(accessOutletRoles).length === 0) {
-      setAccessOutletsError(t('admin.users.editAccess.needOneOutlet'))
-      return
-    }
-    accessMutation.mutate()
   }
 
   const roleOptions = [
@@ -507,7 +342,7 @@ export function UsersTab({
                   variant="ghost"
                   size="md"
                   className="px-3"
-                  onClick={() => openEditAccessDialog(row)}
+                  onClick={() => setEditingMember(row)}
                 >
                   {t('admin.users.actionChangeAccessShort')}
                 </Button>
@@ -623,11 +458,6 @@ export function UsersTab({
     },
   ]
 
-  const invEmailId = `${formIdPrefix}-inv-email`
-  const invNameId = `${formIdPrefix}-inv-name`
-  const invRoleSelectId = `${formIdPrefix}-inv-role`
-  const editWideRoleId = `${formIdPrefix}-edit-wide-role`
-
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4">
@@ -683,7 +513,7 @@ export function UsersTab({
           emptyDescription={t('admin.users.emptyDesc')}
           mobileActions={(row) => (
             <div className="flex flex-wrap gap-1">
-              <Button variant="ghost" size="md" onClick={() => openEditAccessDialog(row)}>
+              <Button variant="ghost" size="md" onClick={() => setEditingMember(row)}>
                 {t('common.edit')}
               </Button>
               {canReset && row.membershipStatus === 'ACTIVE' ? (
@@ -738,250 +568,31 @@ export function UsersTab({
         </section>
       ) : null}
 
-      <Dialog
+      <InviteMemberDialog
+        key={inviteSession}
         open={inviteOpen}
         onOpenChange={setInviteOpen}
-        title={t('admin.users.invite.title')}
-        size="md"
-      >
-        <form onSubmit={handleInviteSubmit} className="flex flex-col gap-4" noValidate>
-          {inviteError ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-            >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>{inviteError}</span>
-            </div>
-          ) : null}
+        roles={roles}
+        outlets={outlets}
+        canTenantWide={canTenantWide}
+        onCreated={handleInviteCreated}
+      />
 
-          <Field
-            label={t('admin.users.invite.emailLabel')}
-            htmlFor={invEmailId}
-            error={inviteFieldErrors.email}
-          >
-            <Input
-              id={invEmailId}
-              controlSize="md"
-              type="email"
-              value={invEmail}
-              invalid={Boolean(inviteFieldErrors.email)}
-              onChange={(e) => {
-                setInvEmail(e.target.value)
-                clearInviteFieldError('email')
-              }}
-            />
-          </Field>
-
-          <Field
-            label={t('admin.users.invite.displayNameLabel')}
-            htmlFor={invNameId}
-            error={inviteFieldErrors.displayName}
-          >
-            <Input
-              id={invNameId}
-              controlSize="md"
-              value={invDisplayName}
-              invalid={Boolean(inviteFieldErrors.displayName)}
-              onChange={(e) => {
-                setInvDisplayName(e.target.value)
-                clearInviteFieldError('displayName')
-              }}
-              maxLength={80}
-            />
-          </Field>
-
-          <Field
-            label={t('admin.users.invite.roleLabel')}
-            htmlFor={invRoleSelectId}
-            error={inviteFieldErrors.roleId}
-          >
-            <Select
-              id={invRoleSelectId}
-              value={invRoleId}
-              onValueChange={(v) => {
-                setInvRoleId(v)
-                clearInviteFieldError('roleId')
-              }}
-              invalid={Boolean(inviteFieldErrors.roleId)}
-              options={roles.map((r) => ({
-                value: r.id,
-                label: t(`role.${r.code}`, { defaultValue: r.name }),
-              }))}
-              placeholder={t('admin.users.invite.rolePlaceholder')}
-              size="md"
-            />
-          </Field>
-
-          {canTenantWide ? (
-            <div className="rounded-control border border-line bg-surface-subtle px-3 py-1">
-              <Switch
-                label={t('admin.users.invite.allOutletsLabel')}
-                checked={invAllOutlets}
-                onCheckedChange={(checked) => {
-                  setInvAllOutlets(checked)
-                  if (checked) clearInviteFieldError('outlets')
-                }}
-              />
-            </div>
-          ) : null}
-
-          {!invAllOutlets ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-label font-medium text-ink">
-                {t('admin.users.invite.outletsLabel')}
-              </p>
-              <div
-                className={
-                  inviteFieldErrors.outlets
-                    ? 'flex flex-col gap-1 rounded-control border-2 border-danger-solid p-2'
-                    : 'flex flex-col gap-1 rounded-control border border-line p-2'
-                }
-              >
-                {outlets.map((o) => (
-                  <Checkbox
-                    key={o.id}
-                    label={`${o.code} · ${o.name}`}
-                    checked={invOutletIds.includes(o.id)}
-                    onCheckedChange={(checked) => toggleInviteOutlet(o.id, checked)}
-                  />
-                ))}
-              </div>
-              {inviteFieldErrors.outlets ? (
-                <p className="flex items-center gap-1.5 text-body-sm text-danger-ink">
-                  <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
-                  <span>{inviteFieldErrors.outlets}</span>
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="md"
-              onClick={() => setInviteOpen(false)}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" variant="primary" size="md" loading={inviteMutation.isPending}>
-              {t('admin.users.invite.submit')}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(editingMember)}
-        onOpenChange={(open) => !open && setEditingMember(null)}
-        title={t('admin.users.editAccess.title', { name: editingMember?.displayName ?? '' })}
-        size="md"
-      >
-        <form onSubmit={handleEditAccessSubmit} className="flex flex-col gap-4">
-          {accessError ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-            >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>{accessError}</span>
-            </div>
-          ) : null}
-
-          {canTenantWide ? (
-            <div className="rounded-control border border-line bg-surface-subtle px-3 py-1">
-              <Switch
-                label={t('admin.users.editAccess.scopeModeAll')}
-                checked={accessAllOutlets}
-                onCheckedChange={(checked) => {
-                  setAccessAllOutlets(checked)
-                  if (checked) setAccessOutletsError(null)
-                }}
-              />
-            </div>
-          ) : null}
-
-          {accessAllOutlets ? (
-            <Field label={t('admin.users.editAccess.roleLabel')} htmlFor={editWideRoleId}>
-              <Select
-                id={editWideRoleId}
-                value={accessTenantWideRoleId}
-                onValueChange={setAccessTenantWideRoleId}
-                options={roles.map((r) => ({
-                  value: r.id,
-                  label: t(`role.${r.code}`, { defaultValue: r.name }),
-                }))}
-                size="md"
-              />
-            </Field>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-label font-medium text-ink">
-                {t('admin.users.editAccess.outletsLabel')}
-              </p>
-              {outlets.map((o) => {
-                const assignedRoleId = accessOutletRoles[o.id]
-                const checked = Boolean(assignedRoleId)
-                return (
-                  <div
-                    key={o.id}
-                    className={
-                      accessOutletsError
-                        ? 'flex flex-wrap items-center justify-between gap-3 rounded-control border-2 border-danger-solid p-3'
-                        : 'flex flex-wrap items-center justify-between gap-3 rounded-control border border-line p-3'
-                    }
-                  >
-                    <Checkbox
-                      label={`${o.code} · ${o.name}`}
-                      checked={checked}
-                      onCheckedChange={(next) => toggleEditOutlet(o.id, next)}
-                    />
-                    {checked ? (
-                      <div className="w-44">
-                        <Select
-                          value={assignedRoleId}
-                          onValueChange={(nextRole) =>
-                            setAccessOutletRoles((prev) => ({ ...prev, [o.id]: nextRole }))
-                          }
-                          options={roles
-                            .filter((r) => canTenantWide || r.code !== 'OWNER')
-                            .map((r) => ({
-                              value: r.id,
-                              label: t(`role.${r.code}`, { defaultValue: r.name }),
-                            }))}
-                          ariaLabel={t('admin.users.editAccess.roleForOutlet', { outlet: o.code })}
-                          size="md"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                )
-              })}
-              {accessOutletsError ? (
-                <p className="flex items-center gap-1.5 text-body-sm text-danger-ink">
-                  <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
-                  <span>{accessOutletsError}</span>
-                </p>
-              ) : null}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="md"
-              onClick={() => setEditingMember(null)}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" variant="primary" size="md" loading={accessMutation.isPending}>
-              {t('admin.users.editAccess.submit')}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+      {editingMember ? (
+        <EditMemberAccessDialog
+          key={editingMember.appUserId}
+          member={editingMember}
+          roles={roles}
+          outlets={outlets}
+          canTenantWide={canTenantWide}
+          onClose={() => setEditingMember(null)}
+          onSaved={() => {
+            invalidateMemberQueries()
+            toast.show({ tone: 'success', message: t('admin.users.saved') })
+            setEditingMember(null)
+          }}
+        />
+      ) : null}
 
       <Dialog
         open={Boolean(resetTarget)}

@@ -20,12 +20,8 @@ import {
 } from '~/lib/kernel'
 import type { SaleConfigSnapshot } from '~/lib/sales-calc'
 import type { BootResult } from '~/pos/boot/boot'
-import {
-  getLocalBillWithItems,
-  splitBillLocal,
-  type LocalBillWithItems,
-  type LocalSplitChildRequest,
-} from '~/pos/data/bill.repo'
+import { getLocalBillWithItems, type LocalBillWithItems } from '~/pos/data/bill.repo'
+import { splitBillLocal, type LocalSplitChildRequest } from '~/pos/data/bill-split.repo'
 import { getOutlet } from '~/pos/data/master.repo'
 import { buildConfigSnapshot } from '~/pos/domain/config-snapshot'
 import {

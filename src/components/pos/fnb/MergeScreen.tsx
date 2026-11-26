@@ -12,9 +12,9 @@ import type { BootResult } from '~/pos/boot/boot'
 import {
   getLocalBillWithItems,
   listLocalBills,
-  mergeBillsLocal,
   type LocalBillWithItems,
 } from '~/pos/data/bill.repo'
+import { mergeBillsLocal } from '~/pos/data/bill-merge.repo'
 import { listActiveTables } from '~/pos/data/table.repo'
 import type { BillRecord, FnbTableRecord } from '~/pos/db/types'
 import { canMergeBillsTarget, filterMergeCandidates } from '~/pos/domain/merge-candidates'

@@ -82,11 +82,12 @@ export function LoginRouteScreen({
       listRegisters(db, device.outlet_id),
     ])
 
+    const pinRecords = await Promise.all(staffList.map((s) => getStaffPinRecord(db, s.userId)))
     const epochs = new Map<string, number>()
-    for (const s of staffList) {
-      const rec = await getStaffPinRecord(db, s.userId)
+    staffList.forEach((s, i) => {
+      const rec = pinRecords[i]
       if (rec) epochs.set(s.userId, rec.pin_epoch)
-    }
+    })
 
     const reg = regs.find((r) => r.id === device.register_id)
     if (outlet && reg) {
