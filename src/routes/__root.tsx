@@ -1,6 +1,7 @@
 import '~/i18n'
 import type { QueryClient } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext, type ErrorComponentProps } from '@tanstack/react-router'
 import { NotFoundView } from '~/components/layout/NotFoundView'
 import { RecoveryScreen } from '~/components/layout/RecoveryScreen'
@@ -13,15 +14,14 @@ export interface RootRouterContext {
   queryClient: QueryClient
 }
 
-export interface RootRouteContext {
-  publicLocale: Locale
-}
-
 export const Route = createRootRouteWithContext<RootRouterContext>()({
-  beforeLoad: async ({ location }): Promise<RootRouteContext> => {
+  beforeLoad: async ({ location, cause }): Promise<void> => {
     if (needsAdminI18n(location.pathname)) {
       await ensureAdminI18n()
     }
+    // Only the initial entry takes the browser language; client navigations and preloads keep the
+    // current language, otherwise child routes (e.g. admin session locale) flip it back and forth.
+    if (cause !== 'enter') return
     let publicLocale: Locale = getLocale()
     try {
       publicLocale = await getPublicLocaleFn()
@@ -31,7 +31,6 @@ export const Route = createRootRouteWithContext<RootRouterContext>()({
     if (i18next.language !== publicLocale) {
       await i18next.changeLanguage(publicLocale)
     }
-    return { publicLocale }
   },
   head: () => ({
     meta: [
@@ -51,8 +50,13 @@ function RootErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 function RootComponent() {
-  const { publicLocale } = Route.useRouteContext()
-  const htmlLang = publicLocale === 'en-US' ? 'en' : 'id'
+  // Follows the active language (session locale in admin), not the browser-derived public locale.
+  const { i18n } = useTranslation()
+  const htmlLang = i18n.language === 'en-US' ? 'en' : 'id'
+  // The server shell only knows the browser language; re-sync once the client has the session locale.
+  useEffect(() => {
+    document.documentElement.lang = htmlLang
+  }, [htmlLang])
 
   return (
     <RootDocument lang={htmlLang}>
@@ -114,7 +118,7 @@ const POS_BOOT_WATCHDOG_SCRIPT = `(function(){
 
 function RootDocument({ children, lang }: { children: ReactNode; lang: string }) {
   return (
-    <html lang={lang}>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
