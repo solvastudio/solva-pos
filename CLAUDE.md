@@ -2,15 +2,38 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Status proyek: masih tahap spesifikasi
+## Status proyek: implementasi berjalan
 
-Repo ini **belum berisi kode aplikasi**, `package.json`, atau konfigurasi apa pun. Isinya hanya dokumen di `docs/`. Konsekuensinya:
+Kode aplikasi sudah ada di `src/` (TanStack Start). Fase MVP sudah diimplementasikan sampai gerbang F5 (`gate:f5`, `gate:mvp`): identity, sync, katalog, penjualan/shift, inventori, dan F&B (meja, bill, split/merge). Dokumen di `docs/` tetap sumber kebenaran; kode mengikutinya. Konsekuensinya:
 
-- **Perintah build / lint / test / dev server belum ada.** Jangan mengarang perintah `npm`/`pnpm`. Setelah proyek di-scaffold, tambahkan perintah yang sebenarnya ke bagian ini.
-- **Jangan membuat kode aplikasi, struktur folder, atau file konfigurasi** sebelum user menyuruh. Struktur folder pada `docs/ARCHITECTURE.md` Bab 8 adalah *blueprint*, bukan instruksi untuk membuatnya sekarang.
+- Struktur folder nyata: `src/modules/<m>/` (server + `public.ts` + `shared.ts`), `src/functions/` (server function admin), `src/routes/`, `src/components/{admin,pos}/`, `src/pos/` (Dexie, outbox, use case, cetak), `src/lib/` (`kernel`, `sales-calc`, `contracts`, dll.), `src/server/`, `src/i18n/`. Migrasi di `drizzle/`, skrip di `scripts/`, tes di `tests/{arch,integration,property,e2e}` plus tes sejajar kode (`*.test.ts`).
+- Alias impor `~/` = `src/`. Jalur impor antar modul **hanya lewat `public.ts`/`shared.ts`** (dijaga `lint:arch` dan `tests/arch/layering.test.ts`).
+- Folder `plans/` berisi rencana fase kerja; jangan dirujuk dari kode, tes, komentar, commit, atau dokumen (lihat Konvensi kerja).
 - Folder `D:\React\Tanstack router\financeDashboard` adalah referensi struktur dan pola (logging, layering, rilis). **Hanya dibaca, jangan diubah.**
 
 Solva POS = POS web **offline-first, multi-tenant**, untuk F&B + retail. Repo git: `solvastudio/solva-pos` (branch `main`).
+
+## Perintah
+
+Node `>=22.12.0`. Skrip yang butuh env dibungkus `node scripts/local.mjs`, yang memuat `.env.local` (kopi dari `.env.example`; jangan commit). Daftar lengkap ada di `package.json`.
+
+| Tujuan | Perintah |
+|---|---|
+| Dev server | `npm run dev` |
+| Build / jalankan hasil build | `npm run build` / `npm run build:ops` lalu `npm start` |
+| Typecheck | `npm run typecheck` |
+| Lint (ESLint + aturan arsitektur depcruise) | `npm run lint` (hanya arsitektur: `npm run lint:arch`) |
+| Tes unit (Vitest project `unit`) | `npm run test:unit` (satu berkas: `npm run test:unit -- <path>`) |
+| Tes DB (PostgreSQL nyata) | `npm run db:up` lalu `npm run test:db` |
+| Migrasi / generate migrasi | `npm run db:migrate` / `npm run db:generate` |
+| PostgreSQL lokal | `npm run db:up` / `npm run db:down` (Docker Compose) |
+| E2E Playwright | `npm run e2e:build`, `npm run e2e:setup`, `npm run test:e2e` |
+| Gerbang rilis | `npm run gate:f1` … `gate:f5`, `gate:mvp` |
+| Seed dev | `npm run seed:dev-tenant`, `npm run seed:dev-owner` |
+| Bundle / ukuran | `npm run guard:bundle`, `npm run size` |
+| Verifikasi rantai audit | `npm run audit:verify` |
+
+Gerbang tes berjalan di GitHub Actions (`.github/workflows/ci.yml`); rilis/deploy tetap manual dari komputer user.
 
 ## Dokumen sumber kebenaran
 
@@ -43,7 +66,7 @@ TanStack Start + React + TypeScript + TanStack Query · Tailwind v4 (tanpa shadc
 
 **Isolasi tenant:** RLS `FORCE` per transaksi (`set_config('app.tenant_id', …, true)`, peran `solva_app` `NOBYPASSRLS`, FK komposit `(tenant_id, x_id)`). Tenant otoritatif = sesi (admin) atau token device (POS); **slug di URL hanya petunjuk yang dicocokkan, bukan sumber tenant**. Di device, Dexie dan semua penanda lokal dinamai `tenant_id` (AD-34).
 
-**Modul server** di `src/modules/<m>/` (blueprint): `identity`, `catalog`, `sales`, `shift`, `inventory`, `fnb`, `sync`, `audit`, `reporting`, dengan `public.ts` (antarmuka server) dan `shared.ts` (isomorfik). Arah dependensi hanya ke bawah; modul `sync` memanggil modul bisnis lewat registry/komposisi (`server/composition.ts`), bukan impor. Penulisan master hanya lewat `sync.writeMaster` (BR-ARC-006). Aturan impor lengkap: ARCHITECTURE §8.4.
+**Modul server** di `src/modules/<m>/`: `identity`, `catalog`, `sales`, `shift`, `inventory`, `fnb`, `sync`, `audit`, `reporting`, dengan `public.ts` (antarmuka server) dan `shared.ts` (isomorfik). Arah dependensi hanya ke bawah; modul `sync` memanggil modul bisnis lewat registry/komposisi (`server/composition.ts`), bukan impor. Penulisan master hanya lewat `sync.writeMaster` (BR-ARC-006). Aturan impor lengkap: ARCHITECTURE §8.4.
 
 ## Aturan yang sering terlanggar
 
@@ -66,4 +89,4 @@ TanStack Start + React + TypeScript + TanStack Query · Tailwind v4 (tanpa shadc
 - **Conventional Commits**; **SemVer** `vMAJOR.MINOR.PATCH` dengan **git tag sebagai sumber kebenaran** versi (ARCHITECTURE §9.6.1).
 - Commit/push **hanya bila user meminta**.
 - Gerbang tes di GitHub Actions; **rilis/deploy manual** dari komputer user (ARCHITECTURE §9.5, OQ-A21).
-- Strategi uji (nanti): Vitest `unit`/`db` (PostgreSQL 18 nyata), `fast-check`, `fake-indexeddb`, Playwright offline; kualitas sync = gerbang rilis (ARCHITECTURE §9.2).
+- Strategi uji: Vitest `unit`/`db` (PostgreSQL 18 nyata), `fast-check`, `fake-indexeddb`, Playwright offline; kualitas sync = gerbang rilis (ARCHITECTURE §9.2).
