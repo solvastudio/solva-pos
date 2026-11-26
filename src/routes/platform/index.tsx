@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PlatformShell } from '~/components/layout/PlatformShell'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { Card, EmptyState, Plus, Skeleton, Store } from '~/components/ui'
 
 interface TenantListRow {
@@ -57,13 +58,13 @@ function PlatformTenantsPage() {
     <PlatformShell operatorEmail={operatorEmail} activeSection="tenants">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-h1 font-semibold text-ink">{t('platform.tenants.title')}</h1>
-        <a
+        <SpaLink
           href="/platform/tenants/new"
           className="inline-flex h-control-md items-center gap-2 rounded-control bg-action px-4 text-button font-semibold text-on-action transition-colors hover:bg-action-hover"
         >
           <Plus className="size-4" aria-hidden="true" />
           <span>{t('platform.tenants.newButton')}</span>
-        </a>
+        </SpaLink>
       </div>
 
       {tenants === null ? (
@@ -99,12 +100,12 @@ function PlatformTenantsPage() {
                     {t(`platform.tenants.status${tenant.status}`)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <a
+                    <SpaLink
                       href={`/platform/tenants/${tenant.id}`}
                       className="text-body-sm font-semibold text-ink-brand hover:underline"
                     >
                       {t('platform.tenants.openDetail')}
-                    </a>
+                    </SpaLink>
                   </td>
                 </tr>
               ))}

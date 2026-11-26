@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PlatformShell } from '~/components/layout/PlatformShell'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { Button, Card, Check, CircleAlert, Field, Input } from '~/components/ui'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 
@@ -92,12 +93,12 @@ function PlatformNewTenantPage() {
   return (
     <PlatformShell operatorEmail={operatorEmail} activeSection="create">
       <div className="max-w-dialog-lg">
-        <a
+        <SpaLink
           href="/platform"
           className="text-body-sm font-medium text-ink-soft hover:text-ink hover:underline"
         >
           {t('platform.detail.backToList')}
-        </a>
+        </SpaLink>
         <h1 className="mt-2 text-h1 font-semibold text-ink">{t('platform.create.title')}</h1>
 
         {created ? (
@@ -134,12 +135,12 @@ function PlatformNewTenantPage() {
             </dl>
 
             <div className="mt-5">
-              <a
+              <SpaLink
                 href={`/platform/tenants/${created.tenantId}`}
                 className="inline-flex h-control-lg items-center justify-center rounded-control bg-action px-5 text-button-lg font-semibold text-on-action hover:bg-action-hover"
               >
                 {t('platform.create.viewTenant')}
-              </a>
+              </SpaLink>
             </div>
           </Card>
         ) : (

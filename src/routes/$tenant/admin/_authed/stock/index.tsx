@@ -13,6 +13,7 @@ import {
   useToast,
   type DataTableColumn,
 } from '~/components/ui'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { listOutletsFn } from '~/functions/identity/org.fn'
 import { enableOutletTrackingFn } from '~/functions/inventory/stock-write.fn'
 import { getStockReportFn } from '~/functions/inventory/stock-read.fn'
@@ -165,12 +166,12 @@ function AdminStockPage() {
           <Button variant="secondary" size="md" onClick={() => setActivateOpen(true)}>
             {t('admin.stock.activateAction')}
           </Button>
-          <a
+          <SpaLink
             href={tenantHref(slug, '/admin/stock/documents')}
             className={buttonVariants({ variant: 'primary', size: 'md' })}
           >
             {t('admin.stock.documentsLink')}
-          </a>
+          </SpaLink>
         </div>
       </div>
 

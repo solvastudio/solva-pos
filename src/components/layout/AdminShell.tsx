@@ -11,6 +11,7 @@ import { cn } from '~/lib/cn'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import { visibleAdminNavItems } from './admin-nav'
 import { LangToggle } from './LangToggle'
+import { SpaLink } from './SpaLink'
 import { TenantBadge } from './TenantBadge'
 
 export interface AdminShellProps {
@@ -74,12 +75,12 @@ export function AdminShell({ session, children }: AdminShellProps) {
           <div className="hidden sm:block">
             <LangToggle onLocaleChange={(loc) => setPreferredLocaleFn({ data: { locale: loc } }).then(() => undefined)} />
           </div>
-          <a
+          <SpaLink
             href={tenantHref(slug, '/admin/account')}
             className="hidden text-body-sm font-medium text-ink-soft hover:text-ink sm:inline"
           >
             {session.displayName}
-          </a>
+          </SpaLink>
           <Button
             variant="ghost"
             size="sm"
@@ -118,7 +119,7 @@ export function AdminShell({ session, children }: AdminShellProps) {
                   ? pathname === itemHref || pathname === `${itemHref}/`
                   : pathname.startsWith(itemHref)
               return (
-                <a
+                <SpaLink
                   key={item.id}
                   href={itemHref}
                   onClick={() => setDrawerOpen(false)}
@@ -132,19 +133,19 @@ export function AdminShell({ session, children }: AdminShellProps) {
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
                   <span>{t(item.labelKey)}</span>
-                </a>
+                </SpaLink>
               )
             })}
           </nav>
 
           <div className="mt-6 flex flex-col items-start gap-3 border-t border-line pt-4 sm:hidden">
-            <a
+            <SpaLink
               href={tenantHref(slug, '/admin/account')}
               onClick={() => setDrawerOpen(false)}
               className="w-full truncate px-1 text-body-sm font-medium text-ink-soft hover:text-ink"
             >
               {session.displayName}
-            </a>
+            </SpaLink>
             <LangToggle onLocaleChange={(loc) => setPreferredLocaleFn({ data: { locale: loc } }).then(() => undefined)} />
           </div>
         </aside>

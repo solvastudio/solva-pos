@@ -10,6 +10,7 @@ import {
   downloadReportCsvFile,
   getDefaultReportDateRange,
 } from '~/components/admin/reports/report-download'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { Chip, Tabs, useToast, type DataTableColumn, type TabItem } from '~/components/ui'
 import { listOutletsFn } from '~/functions/identity/org.fn'
 import { exportReportCsvFn, getOpsReportFn } from '~/functions/reporting/reports.fn'
@@ -248,12 +249,12 @@ function AdminOperationsReportPage() {
       id: 'invoice',
       header: t('admin.report.ops.colInvoice'),
       cell: (r) => (
-        <a
+        <SpaLink
           href={tenantHref(slug, '/admin/attention')}
           className="font-mono text-ink-brand hover:underline"
         >
           {r.invoiceNo ?? r.commandId.slice(0, 8)}
-        </a>
+        </SpaLink>
       ),
     },
     {

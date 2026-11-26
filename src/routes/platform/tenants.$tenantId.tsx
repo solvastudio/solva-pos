@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PlatformShell } from '~/components/layout/PlatformShell'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { Button, Card, Check, CircleAlert, Field, Input, Skeleton } from '~/components/ui'
 
 interface TenantViewPayload {
@@ -167,12 +168,12 @@ function PlatformTenantDetailPage() {
 
   return (
     <PlatformShell operatorEmail={operatorEmail} activeSection="tenants">
-      <a
+      <SpaLink
         href="/platform"
         className="text-body-sm font-medium text-ink-soft hover:text-ink hover:underline"
       >
         {t('platform.detail.backToList')}
-      </a>
+      </SpaLink>
 
       {!data ? (
         <div className="mt-6 flex flex-col gap-4">

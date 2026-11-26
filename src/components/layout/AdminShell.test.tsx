@@ -6,6 +6,7 @@ import { changeLocale } from '~/i18n'
 
 vi.mock('@tanstack/react-router', () => ({
   useRouterState: () => '/acme/admin',
+  useNavigate: () => vi.fn(),
 }))
 
 vi.mock('~/hooks/use-current-tenant', () => ({

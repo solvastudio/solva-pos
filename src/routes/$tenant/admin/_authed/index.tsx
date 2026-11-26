@@ -9,6 +9,7 @@ import { ReportBusy } from '~/components/admin/reports/ReportBusy'
 import { ReportFilters } from '~/components/admin/reports/ReportFilters'
 import { getDefaultReportDateRange } from '~/components/admin/reports/report-download'
 import { ShiftVarianceCell } from '~/components/admin/reports/ShiftVarianceCell'
+import { SpaLink } from '~/components/layout/SpaLink'
 import { Card, Chip, type DataTableColumn } from '~/components/ui'
 import { listOutletsFn } from '~/functions/identity/org.fn'
 import { getDashboardFn } from '~/functions/reporting/reports.fn'
@@ -225,12 +226,12 @@ function AdminDashboardPage() {
                     </span>
                   </div>
                 </div>
-                <a
+                <SpaLink
                   href={tenantHref(slug, '/admin/attention')}
                   className="rounded-control bg-surface px-3 py-2 text-body-sm font-semibold text-ink shadow-card hover:bg-surface-hover"
                 >
                   {t('admin.dashboard.attentionAction')}
-                </a>
+                </SpaLink>
               </Card>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
@@ -322,12 +323,12 @@ function AdminDashboardPage() {
           ))}
         </div>
         <p className="mt-4 text-body-sm text-ink-soft">{t('admin.dashboard.accountHint')}</p>
-        <a
+        <SpaLink
           href={tenantHref(slug, '/admin/account')}
           className="mt-3 inline-flex text-body-sm font-semibold text-ink-brand hover:underline"
         >
           {t('admin.shell.accountLink')}
-        </a>
+        </SpaLink>
       </Card>
     </div>
   )

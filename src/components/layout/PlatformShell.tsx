@@ -4,6 +4,7 @@ import { Button } from '~/components/ui/Button'
 import { LogOut, Store, Plus } from '~/components/ui/icons'
 import { cn } from '~/lib/cn'
 import { LangToggle } from './LangToggle'
+import { SpaLink } from './SpaLink'
 
 export interface PlatformShellProps {
   operatorEmail?: string | null
@@ -37,12 +38,12 @@ export function PlatformShell({
     <div className="min-h-screen bg-app text-ink">
       <header className="sticky top-0 z-header flex h-16 items-center justify-between gap-4 border-b border-line bg-surface px-4 md:px-6">
         <div className="flex items-center gap-6">
-          <a href="/platform" className="flex items-center gap-2 text-title font-bold text-ink">
+          <SpaLink href="/platform" className="flex items-center gap-2 text-title font-bold text-ink">
             <Store className="size-5 text-ink-brand" aria-hidden="true" />
             <span>{t('platform.brandTitle')}</span>
-          </a>
+          </SpaLink>
           <nav className="hidden items-center gap-2 sm:flex">
-            <a
+            <SpaLink
               href="/platform"
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-body-sm font-medium transition-colors',
@@ -52,8 +53,8 @@ export function PlatformShell({
               )}
             >
               <span>{t('platform.nav.tenants')}</span>
-            </a>
-            <a
+            </SpaLink>
+            <SpaLink
               href="/platform/tenants/new"
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-body-sm font-medium transition-colors',
@@ -64,7 +65,7 @@ export function PlatformShell({
             >
               <Plus className="size-4" aria-hidden="true" />
               <span>{t('platform.nav.createTenant')}</span>
-            </a>
+            </SpaLink>
           </nav>
         </div>
 
