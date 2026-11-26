@@ -20,7 +20,7 @@ import {
 import { CsvImportError, parseCsv } from '../csv/parse-csv'
 import { listProductsByCodes } from '../product.repo'
 import { listSkusByCodes } from '../variant.repo'
-import { createErrorCollector } from './catalog-import'
+import { createErrorCollector } from './catalog-csv'
 import { consumeImportPlan, storeImportPlan } from './plan-cache'
 import type { CommitImportResult, ImportReport } from './types'
 

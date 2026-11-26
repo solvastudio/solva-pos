@@ -17,7 +17,7 @@ import { listActivePriceEntriesBySkuIds, upsertPriceEntryBatch } from '../price.
 import { listSkuUomsBySkuIds } from '../sku-uom.repo'
 import { listUoms } from '../uom.repo'
 import { listSkusByCodes } from '../variant.repo'
-import { createErrorCollector } from './catalog-import'
+import { createErrorCollector } from './catalog-csv'
 import { consumeImportPlan, storeImportPlan } from './plan-cache'
 import type { CommitImportResult, ImportReport } from './types'
 

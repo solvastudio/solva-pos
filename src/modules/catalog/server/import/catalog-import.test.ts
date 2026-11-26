@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseAndValidateCatalogCsvRows } from './catalog-import'
+import { parseAndValidateCatalogCsvRows } from './catalog-csv'
 
 describe('catalog-import row validation', () => {
   it('validates fields and maps all structural row error codes cleanly', () => {
