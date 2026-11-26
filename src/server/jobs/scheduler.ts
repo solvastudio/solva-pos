@@ -16,6 +16,8 @@ export interface BackgroundJobDefinition {
 const ONE_HOUR_MS = 60 * 60 * 1000
 const SIX_HOURS_MS = 6 * ONE_HOUR_MS
 const ONE_DAY_MS = 24 * ONE_HOUR_MS
+const INITIAL_RUN_DELAY_MS = 60_000
+const INITIAL_RUN_STAGGER_MS = 30_000
 const registry: BackgroundJobDefinition[] = []
 const activeTimers: NodeJS.Timeout[] = []
 let started = false
@@ -91,17 +93,27 @@ export function startBackgroundJobs(): void {
     },
   })
 
-  for (const job of registry) {
+  registry.forEach((job, index) => {
     const timer = setInterval(() => {
       void runJobWithAdvisoryLock(job)
     }, job.intervalMs)
     timer.unref()
     activeTimers.push(timer)
-  }
+
+    // One early run, staggered so jobs do not start together: with long intervals and manual deploys
+    // a process that restarts more often than the interval would otherwise never run the job.
+    const initial = setTimeout(
+      () => void runJobWithAdvisoryLock(job),
+      INITIAL_RUN_DELAY_MS + index * INITIAL_RUN_STAGGER_MS,
+    )
+    initial.unref()
+    activeTimers.push(initial)
+  })
 }
 
 export function stopBackgroundJobsForTests(): void {
   for (const timer of activeTimers) {
+    // Node shares one id space, so this also cancels the initial-run timeouts.
     clearInterval(timer)
   }
   activeTimers.length = 0
