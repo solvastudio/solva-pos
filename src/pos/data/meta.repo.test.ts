@@ -69,6 +69,16 @@ describe('pos/data/meta.repo', () => {
         pages: 2,
       },
       full_resync: true,
+      full_resync_stage: {
+        cycle_id: 'cyc-full-1',
+        snapshot_token: 'snap-tok-1',
+        snapshot_version: 25,
+        entities: ['tenant', 'outlet'],
+        counts: { tenant: 1, outlet: 1 },
+        entity_index: 1,
+        after_id: null,
+        started_at_ms: 1_700_000_000_000,
+      },
       storage: { persist: 'GRANTED', used_pct: 12.5 },
       printer: { mode: 'escpos', printer_id: 'usb-01', width_mm: 58 },
       scanner: {

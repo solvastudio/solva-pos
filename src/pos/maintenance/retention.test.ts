@@ -1,6 +1,8 @@
 import 'fake-indexeddb/auto'
 import { afterEach, describe, expect, it } from 'vitest'
 import { deleteTenantDbForTests, openTenantDb, type SolvaDb } from '../db/solva-db'
+import { getMeta, setMeta } from '../data/meta.repo'
+import { FULL_RESYNC_RESUME_WINDOW_MS } from '../data/pull-stage.repo'
 import { computeRetentionCutoffDate, runRetentionPass } from './retention'
 import { checkAndPruneStorage } from './storage'
 
@@ -313,5 +315,42 @@ describe('retention & storage pressure', () => {
     expect((await db.outbox_command.get('cmd-pending-keep'))?.payload).toEqual({
       entry: { id: 'keep-me' },
     })
+  })
+
+  it('keeps staged rows of a resumable full resync and drops those of an expired one', async () => {
+    openedDb = await openTenantDb(TENANT_ID)
+    const db = openedDb
+    const nowMs = Date.parse('2026-11-20T10:00:00.000Z')
+    const stageRow = (cycleId: string) => ({
+      cycle_id: cycleId,
+      entity: 'outlet',
+      op: 'upsert' as const,
+      id: `row-${cycleId}`,
+      version: 1,
+      payload: {},
+    })
+    const baseStage = {
+      cycle_id: 'cyc-live',
+      snapshot_token: 'tok',
+      snapshot_version: 5,
+      entities: ['outlet'],
+      counts: { outlet: 1 },
+      entity_index: 0,
+      after_id: null,
+    }
+    await db.pull_stage.bulkAdd([stageRow('cyc-live'), stageRow('cyc-orphan')])
+
+    await setMeta(db, 'full_resync_stage', { ...baseStage, started_at_ms: nowMs - 60_000 })
+    const first = await runRetentionPass(db, { trustedNowMs: nowMs })
+    expect(first.pullStageDeleted).toBe(1)
+    expect((await db.pull_stage.toArray()).map((r) => r.cycle_id)).toEqual(['cyc-live'])
+
+    await setMeta(db, 'full_resync_stage', {
+      ...baseStage,
+      started_at_ms: nowMs - FULL_RESYNC_RESUME_WINDOW_MS - 1,
+    })
+    await runRetentionPass(db, { trustedNowMs: nowMs })
+    expect(await getMeta(db, 'full_resync_stage')).toBeNull()
+    expect(await db.pull_stage.count()).toBe(0)
   })
 })

@@ -45,6 +45,7 @@ export async function runRetentionPass(
     outboxCutoffIso,
     printCutoffIso,
     chunkSize,
+    nowMs,
   })
 
   return {

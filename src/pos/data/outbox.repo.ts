@@ -5,7 +5,7 @@ import {
   type PullCommandUpdate,
   type PushResultItem,
 } from '~/lib/contracts'
-import { createIdGenerator } from '~/lib/kernel'
+import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
 import type { SolvaDb } from '../db/solva-db'
 import type { OutboxCommandRow } from '../db/types'
 import { projectCommandAckToDocumentTx } from './command-projection'
@@ -13,15 +13,6 @@ import { DEVICE_SEQ_KEY, nextSeq } from './counter.repo'
 
 export const DEFAULT_PUSH_BATCH_MAX = 20
 export const DEFAULT_PUSH_BATCH_MAX_BYTES = 262_144
-
-const idGen = createIdGenerator({
-  nowMs: () => Date.now(),
-  nextUint32: () => {
-    const buf = new Uint32Array(1)
-    globalThis.crypto.getRandomValues(buf)
-    return buf[0]!
-  },
-})
 
 function byteLengthUtf8(text: string): number {
   return new TextEncoder().encode(text).length
@@ -98,48 +89,66 @@ export async function listSendable(
   const maxBytes = opts?.maxBytes ?? DEFAULT_PUSH_BATCH_MAX_BYTES
   const nowIso = opts?.nowIso ?? new Date().toISOString()
 
-  const pending = await db.outbox_command
-    .where('[status+device_seq]')
-    .between(['PENDING', Dexie.minKey], ['PENDING', Dexie.maxKey])
-    .toArray()
-
-  if (pending.length === 0) {
-    return []
-  }
-
-  // Collect all referenced parent IDs so we can check whether they are ACKED in one batch.
-  const parentIds = new Set<string>()
-  for (const row of pending) {
-    for (const dep of row.depends_on) {
-      parentIds.add(dep)
-    }
-  }
-
-  const ackedParents = new Set<string>()
-  if (parentIds.size > 0) {
-    const parentRows = await db.outbox_command.bulkGet([...parentIds])
-    for (const p of parentRows) {
-      if (p && p.status === 'ACKED') {
-        ackedParents.add(p.id)
-      }
-    }
-  }
-
+  // Read the queue in key-ordered chunks instead of loading every PENDING payload at once: after a long
+  // offline period the outbox can hold thousands of commands and this runs once per push batch.
+  const chunkSize = Math.max(max * 5, 100)
   const selected: OutboxCommandRow[] = []
+  const ackedParents = new Set<string>()
   let totalBytes = 0
+  let lastSeq: number | null = null
 
-  for (const row of pending) {
-    if (selected.length >= max) break
-    if (row.last_error_class === 'SCHEMA') continue
-    if (row.next_retry_at && row.next_retry_at > nowIso) continue
-    if (row.depends_on.some((depId) => !ackedParents.has(depId))) continue
+  while (selected.length < max) {
+    const chunk: OutboxCommandRow[] = await db.outbox_command
+      .where('[status+device_seq]')
+      .between(
+        ['PENDING', lastSeq ?? Dexie.minKey],
+        ['PENDING', Dexie.maxKey],
+        lastSeq === null,
+        false,
+      )
+      .limit(chunkSize)
+      .toArray()
 
-    const entryBytes = byteLengthUtf8(JSON.stringify(row.payload ?? {})) + 256
-    if (selected.length > 0 && totalBytes + entryBytes > maxBytes) {
+    if (chunk.length === 0) {
       break
     }
-    totalBytes += entryBytes
-    selected.push(row)
+
+    // Check the parents referenced by this chunk in one batch.
+    const parentIds = new Set<string>()
+    for (const row of chunk) {
+      for (const dep of row.depends_on) {
+        if (!ackedParents.has(dep)) {
+          parentIds.add(dep)
+        }
+      }
+    }
+    if (parentIds.size > 0) {
+      const parentRows = await db.outbox_command.bulkGet([...parentIds])
+      for (const p of parentRows) {
+        if (p && p.status === 'ACKED') {
+          ackedParents.add(p.id)
+        }
+      }
+    }
+
+    for (const row of chunk) {
+      if (selected.length >= max) return selected
+      if (row.last_error_class === 'SCHEMA') continue
+      if (row.next_retry_at && row.next_retry_at > nowIso) continue
+      if (row.depends_on.some((depId) => !ackedParents.has(depId))) continue
+
+      const entryBytes = byteLengthUtf8(JSON.stringify(row.payload ?? {})) + 256
+      if (selected.length > 0 && totalBytes + entryBytes > maxBytes) {
+        return selected
+      }
+      totalBytes += entryBytes
+      selected.push(row)
+    }
+
+    if (chunk.length < chunkSize) {
+      break
+    }
+    lastSeq = chunk[chunk.length - 1]!.device_seq
   }
 
   return selected

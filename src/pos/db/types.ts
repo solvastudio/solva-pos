@@ -92,6 +92,22 @@ export const META_SCHEMAS = {
     })
     .nullable(),
   full_resync: z.boolean(),
+  /**
+   * Resume pointer of an in-flight full resync. `pull/full/start` is limited to 1/hour/device, so an
+   * interrupted cycle continues from `pull_stage` instead of starting over. `null` when idle.
+   */
+  full_resync_stage: z
+    .object({
+      cycle_id: z.string().min(1),
+      snapshot_token: z.string().min(1),
+      snapshot_version: z.number().int().nonnegative(),
+      entities: z.array(z.string().min(1)),
+      counts: z.record(z.string(), z.number().int().nonnegative()),
+      entity_index: z.number().int().nonnegative(),
+      after_id: z.string().nullable(),
+      started_at_ms: z.number().int().nonnegative(),
+    })
+    .nullable(),
   storage: z.object({
     persist: z.enum(['GRANTED', 'DENIED', 'UNKNOWN']),
     used_pct: z.number().min(0).max(100),

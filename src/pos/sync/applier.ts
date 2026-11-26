@@ -125,6 +125,7 @@ export async function applyFullResyncSnapshot(
     await setMeta(tx, 'snapshot_version', String(opts.snapshotVersion))
     await setMeta(tx, 'full_resync', false)
     await setMeta(tx, 'stage', null)
+    await setMeta(tx, 'full_resync_stage', null)
     await stageTable.where('cycle_id').equals(opts.cycleId).delete()
   })
 

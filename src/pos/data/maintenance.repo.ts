@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { MAX_DEVICE_LOG_ROWS } from './device-log.repo'
-import { getMeta } from './meta.repo'
+import { getMeta, setMeta } from './meta.repo'
+import { isFullResyncStageResumable } from './pull-stage.repo'
 import type { SolvaDb } from '../db/solva-db'
 import type { OutboxCommandRow } from '../db/types'
 
@@ -31,9 +32,11 @@ export async function executeRetentionChunk(
     outboxCutoffIso: string
     printCutoffIso: string
     chunkSize: number
+    /** Trusted "now" in epoch ms; decides whether a persisted full-resync cycle is still resumable. */
+    nowMs: number
   },
 ): Promise<RetentionChunkSummary> {
-  const { cutoffDate, outboxCutoffIso, printCutoffIso, chunkSize } = opts
+  const { cutoffDate, outboxCutoffIso, printCutoffIso, chunkSize, nowMs } = opts
 
   let salesDeleted = 0
   let creditNotesDeleted = 0
@@ -159,9 +162,17 @@ export async function executeRetentionChunk(
   }
 
   const stageMeta = await getMeta(db, 'stage')
-  const activeCycleId = stageMeta?.cycle_id ?? null
+  const resyncStage = await getMeta(db, 'full_resync_stage')
+  const resyncResumable = resyncStage !== null && isFullResyncStageResumable(resyncStage, nowMs)
+  if (resyncStage !== null && !resyncResumable) {
+    // The snapshot token of this cycle has expired, so its staged rows can never be resumed.
+    await setMeta(db, 'full_resync_stage', null)
+  }
+  const activeCycleIds = new Set<string>()
+  if (stageMeta) activeCycleIds.add(stageMeta.cycle_id)
+  if (resyncStage !== null && resyncResumable) activeCycleIds.add(resyncStage.cycle_id)
   const stalePullIds = await db.pull_stage
-    .filter((row) => row.cycle_id !== activeCycleId)
+    .filter((row) => !activeCycleIds.has(row.cycle_id))
     .limit(chunkSize)
     .primaryKeys()
 

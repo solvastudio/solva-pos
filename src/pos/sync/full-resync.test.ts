@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { listOutlets } from '../data/master.repo'
 import { getMeta, setMeta } from '../data/meta.repo'
 import { enqueueCommandStandalone } from '../data/outbox.repo'
+import { FULL_RESYNC_RESUME_WINDOW_MS } from '../data/pull-stage.repo'
 import { deleteTenantDbForTests, openTenantDb } from '../db/solva-db'
 import { createSyncClock } from './clock'
 import { runFullResync } from './full-resync'
@@ -121,6 +122,168 @@ describe('pos/sync/full-resync', () => {
     ])
     expect((await listOutlets(db)).map((o) => o.name)).toEqual(['Main Outlet'])
     expect((await getMeta(db, 'tenant'))?.name).toBe('Acme Coffee')
+    expect(await getMeta(db, 'catalog_cursor')).toBe(26)
+  })
+
+  const DEVICE_META = {
+    device_id: 'dev-1',
+    credential: 'cred-1',
+    credential_expires_at: '2027-01-01T00:00:00.000Z',
+    tenant_id: T1,
+    slug: 'acme',
+    register_id: REG_1,
+    outlet_id: OUT_1,
+    register_type: 'CASHIER' as const,
+  }
+
+  /** Mock server for `/pull/full/*`; counts how often each endpoint is hit. */
+  function makeResyncFetch(opts: {
+    counts?: Record<string, number>
+    failOutletPageOnce?: boolean
+    startStatus?: number
+  }) {
+    const calls = { start: 0, tenantPage: 0, outletPage: 0 }
+    let outletFailed = false
+    const fetchFn = vi.fn().mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.endsWith('/pull/full/start')) {
+        calls.start += 1
+        if (opts.startStatus === 429) {
+          return new Response('{}', { status: 429, headers: { 'Retry-After': '3600' } })
+        }
+        return new Response(
+          JSON.stringify({
+            snapshot_version: 25,
+            tombstone_floor: 0,
+            manifest: { counts: opts.counts ?? { tenant: 1, outlet: 1 } },
+            snapshot_token: 'snap-tok-1',
+            entities: ['tenant', 'outlet'],
+          }),
+          { status: 200 },
+        )
+      }
+      if (url.endsWith('/pull/full/page')) {
+        const body = JSON.parse(String(init.body)) as { entity: string }
+        if (body.entity === 'tenant') {
+          calls.tenantPage += 1
+          return new Response(
+            JSON.stringify({
+              rows: [
+                {
+                  entity: 'tenant',
+                  op: 'upsert',
+                  id: T1,
+                  version: 1,
+                  row: { name: 'Acme Coffee', default_locale: 'en-US' },
+                },
+              ],
+              next_after_id: null,
+              has_more: false,
+            }),
+            { status: 200 },
+          )
+        }
+        calls.outletPage += 1
+        if (opts.failOutletPageOnce && !outletFailed) {
+          outletFailed = true
+          return new Response('{}', { status: 500 })
+        }
+        return new Response(
+          JSON.stringify({
+            rows: [
+              {
+                entity: 'outlet',
+                op: 'upsert',
+                id: OUT_1,
+                version: 25,
+                row: { code: 'O1', name: 'Main Outlet', deleted_at: null },
+              },
+            ],
+            next_after_id: null,
+            has_more: false,
+          }),
+          { status: 200 },
+        )
+      }
+      // Incremental catch-up call after the snapshot swap.
+      return new Response(
+        JSON.stringify({
+          server_time: '2026-11-20T06:10:00.000Z',
+          upper: 26,
+          tombstone_floor: 0,
+          rows: [],
+          next_cursor: { version: 26, id: '00000000-0000-0000-0000-000000000000' },
+          has_more: false,
+          max_schema_version: 1,
+          release: null,
+        }),
+        { status: 200 },
+      )
+    })
+    return { fetchFn: fetchFn as unknown as typeof fetch, calls }
+  }
+
+  it('resumes an interrupted cycle without calling pull/full/start again', async () => {
+    const db = await openTenantDb(T1)
+    await setMeta(db, 'device', DEVICE_META)
+    const clock = createSyncClock({ db })
+    const { fetchFn, calls } = makeResyncFetch({ failOutletPageOnce: true })
+
+    const first = await runFullResync({ db, clock, fetch: fetchFn })
+    expect(first.kind).toBe('failed')
+    expect(calls).toEqual({ start: 1, tenantPage: 1, outletPage: 1 })
+    expect((await getMeta(db, 'full_resync_stage'))?.entity_index).toBe(1)
+    expect(await db.pull_stage.count()).toBe(1)
+
+    const second = await runFullResync({ db, clock, fetch: fetchFn })
+    expect(second.kind).toBe('ok')
+    expect(calls).toEqual({ start: 1, tenantPage: 1, outletPage: 2 })
+    expect((await listOutlets(db)).map((o) => o.name)).toEqual(['Main Outlet'])
+    expect(await getMeta(db, 'full_resync_stage')).toBeNull()
+    expect(await db.pull_stage.count()).toBe(0)
+  })
+
+  it('discards an expired cycle and asks the server for a new one', async () => {
+    const db = await openTenantDb(T1)
+    await setMeta(db, 'device', DEVICE_META)
+    const clock = createSyncClock({ db })
+    await setMeta(db, 'full_resync_stage', {
+      cycle_id: 'cyc-expired',
+      snapshot_token: 'snap-tok-old',
+      snapshot_version: 10,
+      entities: ['tenant', 'outlet'],
+      counts: { tenant: 1, outlet: 1 },
+      entity_index: 1,
+      after_id: null,
+      started_at_ms: clock.trustedNow() - FULL_RESYNC_RESUME_WINDOW_MS - 1_000,
+    })
+    await db.pull_stage.add({
+      cycle_id: 'cyc-expired',
+      entity: 'tenant',
+      op: 'upsert',
+      id: T1,
+      version: 1,
+      payload: {},
+    })
+    const { fetchFn, calls } = makeResyncFetch({ startStatus: 429 })
+
+    const res = await runFullResync({ db, clock, fetch: fetchFn })
+
+    expect(res.kind).toBe('rate_limited')
+    expect(calls.start).toBe(1)
+    expect(await getMeta(db, 'full_resync_stage')).toBeNull()
+    expect(await db.pull_stage.count()).toBe(0)
+  })
+
+  it('does not restart the cycle when manifest counts differ; the catch-up pull converges', async () => {
+    const db = await openTenantDb(T1)
+    await setMeta(db, 'device', DEVICE_META)
+    const clock = createSyncClock({ db })
+    const { fetchFn, calls } = makeResyncFetch({ counts: { tenant: 1, outlet: 2 } })
+
+    const res = await runFullResync({ db, clock, fetch: fetchFn })
+
+    expect(res.kind).toBe('ok')
+    expect(calls.start).toBe(1)
     expect(await getMeta(db, 'catalog_cursor')).toBe(26)
   })
 })
