@@ -1,8 +1,9 @@
 import '@tanstack/react-start/server-only'
 import { purgeMemberCodes } from '~/modules/identity/public'
-import { cleanTombstoneFloors } from '~/modules/sync/public'
+import { blankOldIdempotencyResults, cleanTombstoneFloors } from '~/modules/sync/public'
 import { getBackgroundPool } from '~/server/db'
 import { createLogger } from '~/server/log'
+import { verifyAuditChainsForActiveTenants } from './audit-chain-job'
 
 const log = createLogger('jobs')
 
@@ -14,6 +15,7 @@ export interface BackgroundJobDefinition {
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const SIX_HOURS_MS = 6 * ONE_HOUR_MS
+const ONE_DAY_MS = 24 * ONE_HOUR_MS
 const registry: BackgroundJobDefinition[] = []
 const activeTimers: NodeJS.Timeout[] = []
 let started = false
@@ -70,6 +72,22 @@ export function startBackgroundJobs(): void {
     intervalMs: SIX_HOURS_MS,
     run: async () => {
       await cleanTombstoneFloors()
+    },
+  })
+
+  registerJob({
+    name: 'sync.blank_idempotency_results',
+    intervalMs: SIX_HOURS_MS,
+    run: async () => {
+      await blankOldIdempotencyResults()
+    },
+  })
+
+  registerJob({
+    name: 'audit.verify_chain',
+    intervalMs: ONE_DAY_MS,
+    run: async () => {
+      await verifyAuditChainsForActiveTenants()
     },
   })
 

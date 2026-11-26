@@ -2999,7 +2999,7 @@ Sub-pertanyaan: keunikan `display_name` per tenant (diasumsikan unik di antara y
 *Dampak:* ukuran skema F5, snapshot open bill (FR-SYN-016). *Asumsi:* A.
 
 **OQ-S09 — Retensi `idempotency_command` dan partisi — `TERJAWAB` (2026-11-17): opsi A — simpan baris, kosongkan `result` lama.** OQ-03 PRD: simpan semua (ditinjau ulang sebelum produksi jangka panjang). Tabel ini harus unik global per `command_id` sehingga tidak dapat dipartisi tanpa kunci partisi di PK.
-- **A — Simpan penuh; kosongkan `result` untuk perintah > N bulan** *(asumsi)*; idempotensi aman karena pengiriman ulang hanya terjadi saat pending (hari–pekan).
+- **A — Simpan penuh; kosongkan `result` untuk perintah > N bulan** *(asumsi; N = 12 bulan, `DIUSULKAN`, konstanta `IDEMPOTENCY_RESULT_RETENTION_MONTHS` di `modules/sync`)*; idempotensi aman karena pengiriman ulang hanya terjadi saat pending (hari–pekan).
 - **B — Hapus baris `ACKED` > N bulan** (N ≥ batas toleransi versi & ekspor file, mis. 12 bulan): menghemat ruang; risiko kecil idempotensi untuk impor file ekspor sangat lama.
 - **C — Partisi dengan PK `(command_id, received_at)`** + indeks unik global terpisah: rumit.
 *Dampak:* ukuran DB (§6.5), kebijakan retensi (RSK-12). *Asumsi:* A. *Terkait:* tinjauan retensi tabel besar bersama akuntan (OQ-03).

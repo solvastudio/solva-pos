@@ -44,6 +44,12 @@ export {
   type CleanTombstonesResult,
 } from './server/tombstone-cleaner'
 export {
+  blankOldIdempotencyResults,
+  blankOldIdempotencyResultsForTenant,
+  IDEMPOTENCY_RESULT_RETENTION_MONTHS,
+  type BlankIdempotencyResultsSummary,
+} from './server/idempotency-retention'
+export {
   __clearReleasePolicyCacheForTests,
   defaultReleasePolicy,
   evaluateClientVersion,
