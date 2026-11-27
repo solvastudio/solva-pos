@@ -40,7 +40,7 @@ export function Tabs({
       <div
         role="radiogroup"
         aria-label={ariaLabel}
-        className={cn('flex items-center gap-2 overflow-x-auto pb-1', className)}
+        className={cn('flex flex-wrap items-center gap-2', className)}
       >
         {items.map((item) => {
           const active = item.value === value
@@ -76,7 +76,7 @@ export function Tabs({
     <RadixTabs.Root value={value} onValueChange={onValueChange} className={className}>
       <RadixTabs.List
         aria-label={ariaLabel}
-        className="flex items-center gap-2 overflow-x-auto pb-1"
+        className="flex flex-wrap items-center gap-2"
       >
         {items.map((item) => (
           <RadixTabs.Trigger

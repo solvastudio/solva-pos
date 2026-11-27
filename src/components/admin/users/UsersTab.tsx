@@ -8,6 +8,7 @@ import {
   DataTable,
   Dialog,
   IconButton,
+  Inbox,
   Input,
   KeyRound,
   Lock,
@@ -235,6 +236,82 @@ export function UsersTab({
     ...outlets.map((o) => ({ value: o.id, label: `${o.code} · ${o.name}` })),
   ]
 
+  function renderMemberActions(row: MemberDirectoryView) {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1 whitespace-nowrap">
+        {row.membershipStatus === 'PENDING' && canInvite ? (
+          <Button
+            variant="ghost"
+            size="md"
+            className="px-3"
+            onClick={() => cancelInviteMutation.mutate(row.appUserId)}
+          >
+            {t('admin.users.actionCancelInvite')}
+          </Button>
+        ) : (
+          <>
+            <Tooltip
+              content={
+                row.pinStatus === 'unset'
+                  ? t('admin.users.actionSetPin')
+                  : t('admin.users.actionResetPin')
+              }
+            >
+              <Button
+                variant="ghost"
+                size="md"
+                className="px-3"
+                onClick={() => setPinTarget(row)}
+              >
+                {row.pinStatus === 'unset'
+                  ? t('admin.users.actionSetPinShort')
+                  : t('admin.users.actionResetPinShort')}
+              </Button>
+            </Tooltip>
+            <Tooltip content={t('admin.users.actionChangeAccess')}>
+              <Button
+                variant="ghost"
+                size="md"
+                className="px-3"
+                onClick={() => setEditingMember(row)}
+              >
+                {t('admin.users.actionChangeAccessShort')}
+              </Button>
+            </Tooltip>
+            {canReset ? (
+              <Tooltip content={t('admin.users.actionReset')}>
+                <IconButton
+                  variant="ghost"
+                  size="md"
+                  label={t('admin.users.actionReset')}
+                  icon={<KeyRound className="size-4" />}
+                  onClick={() => {
+                    setResetError(null)
+                    setResetTarget(row)
+                  }}
+                />
+              </Tooltip>
+            ) : null}
+            {canRemove ? (
+              <Tooltip content={t('admin.users.actionRemove', { tenant: tenantName })}>
+                <IconButton
+                  variant="danger-ghost"
+                  size="md"
+                  label={t('admin.users.actionRemove', { tenant: tenantName })}
+                  icon={<Trash2 className="size-4" />}
+                  onClick={() => {
+                    setRemoveError(null)
+                    setRemoveTarget(row)
+                  }}
+                />
+              </Tooltip>
+            ) : null}
+          </>
+        )}
+      </div>
+    )
+  }
+
   const memberColumns: readonly DataTableColumn<MemberDirectoryView>[] = [
     {
       id: 'name',
@@ -319,79 +396,7 @@ export function UsersTab({
       header: t('admin.users.colAction'),
       align: 'right',
       hideOnMobileCard: true,
-      cell: (row) => (
-        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
-          {row.membershipStatus === 'PENDING' && canInvite ? (
-            <Button
-              variant="ghost"
-              size="md"
-              className="px-3"
-              onClick={() => cancelInviteMutation.mutate(row.appUserId)}
-            >
-              {t('admin.users.actionCancelInvite')}
-            </Button>
-          ) : (
-            <>
-              <Tooltip
-                content={
-                  row.pinStatus === 'unset'
-                    ? t('admin.users.actionSetPin')
-                    : t('admin.users.actionResetPin')
-                }
-              >
-                <Button
-                  variant="ghost"
-                  size="md"
-                  className="px-3"
-                  onClick={() => setPinTarget(row)}
-                >
-                  {row.pinStatus === 'unset'
-                    ? t('admin.users.actionSetPinShort')
-                    : t('admin.users.actionResetPinShort')}
-                </Button>
-              </Tooltip>
-              <Tooltip content={t('admin.users.actionChangeAccess')}>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  className="px-3"
-                  onClick={() => setEditingMember(row)}
-                >
-                  {t('admin.users.actionChangeAccessShort')}
-                </Button>
-              </Tooltip>
-              {canReset ? (
-                <Tooltip content={t('admin.users.actionReset')}>
-                  <IconButton
-                    variant="ghost"
-                    size="md"
-                    label={t('admin.users.actionReset')}
-                    icon={<KeyRound className="size-4" />}
-                    onClick={() => {
-                      setResetError(null)
-                      setResetTarget(row)
-                    }}
-                  />
-                </Tooltip>
-              ) : null}
-              {canRemove ? (
-                <Tooltip content={t('admin.users.actionRemove', { tenant: tenantName })}>
-                  <IconButton
-                    variant="danger-ghost"
-                    size="md"
-                    label={t('admin.users.actionRemove', { tenant: tenantName })}
-                    icon={<Trash2 className="size-4" />}
-                    onClick={() => {
-                      setRemoveError(null)
-                      setRemoveTarget(row)
-                    }}
-                  />
-                </Tooltip>
-              ) : null}
-            </>
-          )}
-        </div>
-      ),
+      cell: renderMemberActions,
     },
   ]
 
@@ -475,7 +480,7 @@ export function UsersTab({
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-52 flex-1">
+          <div className="min-w-52 w-full flex-1">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -485,7 +490,7 @@ export function UsersTab({
               prefix={<Search className="size-4 text-ink-soft" aria-hidden="true" />}
             />
           </div>
-          <div className="w-44">
+          <div className="min-w-36 flex-1 sm:w-44 sm:flex-none">
             <Select
               value={roleFilter}
               onValueChange={setRoleFilter}
@@ -494,7 +499,7 @@ export function UsersTab({
               size="md"
             />
           </div>
-          <div className="w-52">
+          <div className="min-w-36 flex-1 sm:w-52 sm:flex-none">
             <Select
               value={outletFilter}
               onValueChange={setOutletFilter}
@@ -524,25 +529,7 @@ export function UsersTab({
           emptyIcon={<Users className="size-8" aria-hidden="true" />}
           emptyTitle={t('admin.users.emptyTitle')}
           emptyDescription={t('admin.users.emptyDesc')}
-          mobileActions={(row) => (
-            <div className="flex flex-wrap gap-1">
-              <Button variant="ghost" size="md" onClick={() => setEditingMember(row)}>
-                {t('common.edit')}
-              </Button>
-              {canReset && row.membershipStatus === 'ACTIVE' ? (
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={() => {
-                    setResetError(null)
-                    setResetTarget(row)
-                  }}
-                >
-                  {t('admin.users.actionReset')}
-                </Button>
-              ) : null}
-            </div>
-          )}
+          mobileActions={renderMemberActions}
         />
       </section>
 
@@ -556,6 +543,7 @@ export function UsersTab({
             columns={pendingColumns}
             rows={pendingInvites}
             getRowKey={(r) => r.id}
+            emptyIcon={<Inbox className="size-8" aria-hidden="true" />}
             emptyTitle={t('admin.users.pending.empty')}
             mobileActions={(row) => (
               <div className="flex gap-2">
