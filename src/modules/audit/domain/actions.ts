@@ -5,6 +5,8 @@ export const AUDIT_ACTIONS = [
   'availability.changed',
   'return.created',
   'role.changed',
+  'role.created',
+  'role.deleted',
   'permission.changed',
   'pin.reset',
   'pin.locked',

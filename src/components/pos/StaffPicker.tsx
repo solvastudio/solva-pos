@@ -45,9 +45,7 @@ export function StaffPicker({
       {staff.map((member) => {
         const isSelected = member.userId === selectedUserId
         const isLocked = lockedUserIds?.has(member.userId) ?? false
-        const roleLabel = member.roleCodes
-          .map((c) => t(`role.${c}`, { defaultValue: c }))
-          .join(', ')
+        const roleLabel = member.roleNames.join(', ')
 
         return (
           <button

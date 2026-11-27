@@ -176,11 +176,15 @@ test.describe('F1-K02 K04 K05 K08 & sync resilience (SSE, 429, lie-fi)', () => {
       // Trigger master change via Admin Roles tab (budi updates CASHIER discount limit)
       await adminPage.goto('/acme/admin/users')
       await adminPage.getByRole('tab', { name: /^Role/i }).click()
-      const discountInput = adminPage.getByLabel(/Cashier|Kasir/i).first()
-      await discountInput.fill('15')
-      await discountInput
-        .locator('xpath=ancestor::td[1]')
-        .getByRole('button', { name: /Save|Simpan/i })
+      await adminPage
+        .getByRole('list', { name: /^(Roles|Daftar role)$/ })
+        .getByRole('button', { name: /Cashier/ })
+        .click()
+      await adminPage.getByLabel(/Discount limit|Batas diskon/i).fill('15')
+      await adminPage.getByRole('button', { name: /Save role|Simpan role/i }).click()
+      await adminPage
+        .getByRole('dialog')
+        .getByRole('button', { name: /Save changes|Simpan perubahan/i })
         .click()
 
       // Expect SSE signal to advance POS cursor within 5s cleanly!

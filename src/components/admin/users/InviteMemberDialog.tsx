@@ -22,6 +22,7 @@ export interface InviteMemberDialogProps {
   roles: RoleList
   outlets: OutletList
   canTenantWide: boolean
+  isRoleAssignable?: (role: RoleList[number]) => boolean
   onCreated: (res: { code: string; expiresAt: string }) => void
 }
 
@@ -31,6 +32,7 @@ export function InviteMemberDialog({
   roles,
   outlets,
   canTenantWide,
+  isRoleAssignable,
   onCreated,
 }: InviteMemberDialogProps) {
   const { t } = useTranslation()
@@ -41,7 +43,9 @@ export function InviteMemberDialog({
 
   const [invEmail, setInvEmail] = useState('')
   const [invDisplayName, setInvDisplayName] = useState('')
-  const [invRoleId, setInvRoleId] = useState(roles[0]?.id ?? '')
+  const [invRoleId, setInvRoleId] = useState(
+    (roles.find((r) => !isRoleAssignable || isRoleAssignable(r)) ?? roles[0])?.id ?? '',
+  )
   const [invAllOutlets, setInvAllOutlets] = useState(false)
   const [invOutletIds, setInvOutletIds] = useState<string[]>(outlets[0]?.id ? [outlets[0].id] : [])
   const [inviteFieldErrors, setInviteFieldErrors] = useState<Record<string, string>>({})
@@ -190,10 +194,9 @@ export function InviteMemberDialog({
               clearInviteFieldError('roleId')
             }}
             invalid={Boolean(inviteFieldErrors.roleId)}
-            options={roles.map((r) => ({
-              value: r.id,
-              label: t(`role.${r.code}`, { defaultValue: r.name }),
-            }))}
+            options={roles
+              .filter((r) => !isRoleAssignable || isRoleAssignable(r))
+              .map((r) => ({ value: r.id, label: r.name }))}
             placeholder={t('admin.users.invite.rolePlaceholder')}
             size="md"
           />

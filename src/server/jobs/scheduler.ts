@@ -1,5 +1,5 @@
 import '@tanstack/react-start/server-only'
-import { purgeMemberCodes } from '~/modules/identity/public'
+import { ensureOwnerHasAllPermissions, purgeMemberCodes } from '~/modules/identity/public'
 import { blankOldIdempotencyResults, cleanTombstoneFloors } from '~/modules/sync/public'
 import { getBackgroundPool } from '~/server/db'
 import { createLogger } from '~/server/log'
@@ -66,6 +66,14 @@ export function startBackgroundJobs(): void {
     intervalMs: ONE_HOUR_MS,
     run: async () => {
       await purgeMemberCodes()
+    },
+  })
+
+  registerJob({
+    name: 'identity.ensure_owner_permissions',
+    intervalMs: SIX_HOURS_MS,
+    run: async () => {
+      await ensureOwnerHasAllPermissions()
     },
   })
 

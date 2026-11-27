@@ -38,6 +38,7 @@ export const ROLE_DEFAULTS: readonly RoleDefault[] = [
       'catalog.manage',
       'inventory.manage',
       'user.manage',
+      'role.manage',
       'report.view',
       'audit.view',
       'customer.view_phone',

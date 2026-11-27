@@ -31,6 +31,7 @@ import {
   revokeActiveMemberCodes,
   softDeleteAppUserAndOutlets,
 } from './member-code.repo'
+import { assertActorMayAssignRoles } from './role-assign-guard'
 
 const INVITE_TTL_HOURS = 72
 
@@ -182,6 +183,7 @@ export async function createInvite(
     if (!roleRow) {
       throw new AppError('VALIDATION_FAILED', 'member.add.failed')
     }
+    await assertActorMayAssignRoles(tx, actor, [roleRow.id])
 
     if (uniqueOutlets) {
       const validCount = await countValidTenantOutlets(tx, actor.tenantId, uniqueOutlets)
@@ -217,6 +219,10 @@ export async function createInvite(
       targetAppUserId = identityIdGen.newId()
       const outletTargets = uniqueOutlets ?? [null]
       await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+        // A role delete holds the master write lock; re-check now that we hold it.
+        if (!(await findTenantRoleById(tx, actor.tenantId, roleRow.id))) {
+          throw new AppError('VALIDATION_FAILED', 'member.add.failed')
+        }
         await insertPendingAppUserRow(tx, w, {
           id: targetAppUserId,
           displayName,

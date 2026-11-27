@@ -44,7 +44,8 @@ function AdminUsersPage() {
   const { slug, name } = useCurrentTenant()
   const { session } = Route.useRouteContext()
   const [activeTab, setActiveTab] = useState('users')
-  const canEditRoles = session?.outletIds === null
+  const permissions = session?.permissions ?? []
+  const canEditRoles = session?.outletIds === null && permissions.includes('role.manage')
 
   const tabItems: readonly TabItem[] = [
     {
@@ -55,8 +56,9 @@ function AdminUsersPage() {
           <UsersTab
             tenantSlug={slug}
             tenantName={name}
-            permissions={session?.permissions ?? []}
+            permissions={permissions}
             actorOutletIds={session?.outletIds ?? []}
+            actorDiscountLimitPct={session?.discountLimitPct ?? 0}
           />
         </div>
       ),
@@ -66,7 +68,13 @@ function AdminUsersPage() {
       label: t('admin.users.tabRoles'),
       content: (
         <div className="mt-6">
-          <RolesTab tenantSlug={slug} canEditRoles={canEditRoles} />
+          <RolesTab
+            tenantSlug={slug}
+            canEditRoles={canEditRoles}
+            actorPermissions={permissions}
+            actorRoleCodes={session?.roleCodes ?? []}
+            actorDiscountLimitPct={session?.discountLimitPct ?? 0}
+          />
         </div>
       ),
     },

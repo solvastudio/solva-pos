@@ -39,6 +39,12 @@ export {
 } from './server/redeem.service'
 export { purgeMemberCodes, type PurgeMemberCodesResult } from './server/member-cleanup'
 export {
+  ensureOwnerHasAllPermissions,
+  ensureOwnerHasAllPermissionsForTenant,
+  type OwnerPermissionBackfillDeps,
+  type OwnerPermissionBackfillResult,
+} from './server/owner-permission-backfill'
+export {
   createTenant,
   getTenantDetail,
   listTenants,
@@ -86,7 +92,13 @@ export {
   listMembers,
   type ListMembersFilter,
 } from './server/members-admin.service'
-export { listRolesWithPermissions, updateRole } from './server/role.service'
+export {
+  createRole,
+  deleteRole,
+  duplicateRole,
+  listRolesWithPermissions,
+  updateRole,
+} from './server/role.service'
 export {
   __clearDeviceAuthCacheForTests,
   authenticateDevice,

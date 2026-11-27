@@ -29,6 +29,7 @@ import {
 import { formatDateTime } from '~/lib/kernel'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
 import type { PendingInviteItem } from '~/modules/identity/public'
+import { roleExceedsActor } from '~/modules/identity/shared'
 import type { MemberDirectoryView, PermissionCode } from '~/modules/identity/shared'
 import {
   membersQueryOptions,
@@ -50,6 +51,8 @@ export interface UsersTabProps {
   tenantName: string
   permissions: readonly PermissionCode[]
   actorOutletIds: readonly string[] | null
+  /** Highest discount limit of the signed-in member; when set, roles above it are not assignable. */
+  actorDiscountLimitPct?: number
 }
 
 function addSevenDaysIso(expiresAtIso: string): string {
@@ -62,11 +65,21 @@ export function UsersTab({
   tenantName,
   permissions,
   actorOutletIds,
+  actorDiscountLimitPct,
 }: UsersTabProps) {
   const { t, i18n } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const permSet = useMemo(() => new Set(permissions), [permissions])
+  // Undefined limit means "unknown": do not filter (tests and callers that do not pass it).
+  const isRoleAssignable = useMemo(
+    () =>
+      actorDiscountLimitPct === undefined
+        ? undefined
+        : (r: { permissions: readonly string[]; discountLimitPct: number }) =>
+            !roleExceedsActor(r, { permissions: permSet, discountLimitPct: actorDiscountLimitPct }),
+    [actorDiscountLimitPct, permSet],
+  )
   const canInvite = permSet.has('user.invite')
   const canReset = permSet.has('user.reset_password')
   const canRemove = permSet.has('user.remove')
@@ -95,8 +108,8 @@ export function UsersTab({
     enabled: canInvite,
   })
 
-  const roleCodeById = useMemo(
-    () => new Map(roles.map((r) => [r.id, r.code])),
+  const roleNameById = useMemo(
+    () => new Map(roles.map((r) => [r.id, r.name])),
     [roles],
   )
 
@@ -214,7 +227,7 @@ export function UsersTab({
 
   const roleOptions = [
     { value: FILTER_ALL, label: t('admin.users.filterRoleAll') },
-    ...roles.map((r) => ({ value: r.id, label: t(`role.${r.code}`, { defaultValue: r.name }) })),
+    ...roles.map((r) => ({ value: r.id, label: r.name })),
   ]
 
   const outletFilterOptions = [
@@ -246,15 +259,15 @@ export function UsersTab({
       id: 'roles',
       header: t('admin.users.colRoles'),
       cell: (row) => {
-        const uniqueCodes = Array.from(new Set(row.assignments.map((a) => a.roleCode)))
+        const uniqueRoles = Array.from(new Map(row.assignments.map((a) => [a.roleId, a.roleName])))
         return (
           <div className="flex flex-wrap gap-1">
-            {uniqueCodes.map((code) => (
+            {uniqueRoles.map(([roleId, roleName]) => (
               <span
-                key={code}
+                key={roleId}
                 className="inline-flex items-center rounded-md border border-line bg-surface-subtle px-2 py-0.5 text-label-sm font-medium text-ink"
               >
-                {t(`role.${code}`, { defaultValue: code })}
+                {roleName}
               </span>
             ))}
           </div>
@@ -393,8 +406,8 @@ export function UsersTab({
       id: 'role',
       header: t('admin.users.pending.colRole'),
       cell: (row) => {
-        const code = row.roleId ? roleCodeById.get(row.roleId) : undefined
-        return code ? t(`role.${code}`, { defaultValue: code }) : t('common.dash')
+        const roleName = row.roleId ? roleNameById.get(row.roleId) : undefined
+        return roleName ?? t('common.dash')
       },
     },
     {
@@ -575,6 +588,7 @@ export function UsersTab({
         roles={roles}
         outlets={outlets}
         canTenantWide={canTenantWide}
+        isRoleAssignable={isRoleAssignable}
         onCreated={handleInviteCreated}
       />
 
@@ -585,6 +599,7 @@ export function UsersTab({
           roles={roles}
           outlets={outlets}
           canTenantWide={canTenantWide}
+          isRoleAssignable={isRoleAssignable}
           onClose={() => setEditingMember(null)}
           onSaved={() => {
             invalidateMemberQueries()

@@ -21,6 +21,7 @@ export interface EditMemberAccessDialogProps {
   roles: RoleList
   outlets: OutletList
   canTenantWide: boolean
+  isRoleAssignable?: (role: RoleList[number]) => boolean
   onClose: () => void
   onSaved: () => void
 }
@@ -30,18 +31,21 @@ export function EditMemberAccessDialog({
   roles,
   outlets,
   canTenantWide,
+  isRoleAssignable,
   onClose,
   onSaved,
 }: EditMemberAccessDialogProps) {
   const { t } = useTranslation()
   const formIdPrefix = useId()
   const editWideRoleId = `${formIdPrefix}-edit-wide-role`
+  const canAssign = (r: RoleList[number]) => !isRoleAssignable || isRoleAssignable(r)
+  const defaultRoleId = (roles.find(canAssign) ?? roles[0])?.id ?? ''
 
   const wide = member.assignments.find((a) => a.outletId === null)
   const startsWide = Boolean(wide) && canTenantWide
   const [accessAllOutlets, setAccessAllOutlets] = useState(startsWide)
   const [accessTenantWideRoleId, setAccessTenantWideRoleId] = useState(
-    startsWide ? wide!.roleId : (roles[0]?.id ?? ''),
+    startsWide ? wide!.roleId : defaultRoleId,
   )
   const [accessOutletRoles, setAccessOutletRoles] = useState<Record<string, string>>(() => {
     if (startsWide) return {}
@@ -83,7 +87,7 @@ export function EditMemberAccessDialog({
     setAccessOutletRoles((prev) => {
       const next = { ...prev }
       if (checked) {
-        next[outletId] = next[outletId] ?? roles[0]?.id ?? ''
+        next[outletId] = next[outletId] ?? defaultRoleId
         setAccessOutletsError(null)
       } else {
         delete next[outletId]
@@ -140,10 +144,9 @@ export function EditMemberAccessDialog({
               id={editWideRoleId}
               value={accessTenantWideRoleId}
               onValueChange={setAccessTenantWideRoleId}
-              options={roles.map((r) => ({
-                value: r.id,
-                label: t(`role.${r.code}`, { defaultValue: r.name }),
-              }))}
+              options={roles
+                .filter((r) => r.id === accessTenantWideRoleId || canAssign(r))
+                .map((r) => ({ value: r.id, label: r.name }))}
               size="md"
             />
           </Field>
@@ -178,10 +181,8 @@ export function EditMemberAccessDialog({
                         }
                         options={roles
                           .filter((r) => canTenantWide || r.code !== 'OWNER')
-                          .map((r) => ({
-                            value: r.id,
-                            label: t(`role.${r.code}`, { defaultValue: r.name }),
-                          }))}
+                          .filter((r) => r.id === assignedRoleId || canAssign(r))
+                          .map((r) => ({ value: r.id, label: r.name }))}
                         ariaLabel={t('admin.users.editAccess.roleForOutlet', { outlet: o.code })}
                         size="md"
                       />

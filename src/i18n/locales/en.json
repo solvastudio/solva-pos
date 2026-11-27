@@ -202,15 +202,6 @@
       "notYours": "Not {{tenant}}? Check the address."
     }
   },
-  "role": {
-    "OWNER": "Owner",
-    "MANAGER": "Manager",
-    "CASHIER": "Cashier",
-    "SUPERVISOR": "Supervisor",
-    "WAITER": "Waiter",
-    "INVENTORY": "Inventory",
-    "ACCOUNTANT": "Accountant"
-  },
   "permission": {
     "sale": {
       "create": "Create sales",
@@ -254,6 +245,9 @@
       "invite": "Invite members",
       "remove": "Remove members",
       "reset_password": "Issue password reset codes"
+    },
+    "role": {
+      "manage": "Manage roles and permissions"
     },
     "flag": {
       "manage": "Manage tenant feature flags"

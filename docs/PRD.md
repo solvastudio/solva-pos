@@ -1409,6 +1409,7 @@ Kas diharapkan = 500.000 + 1.250.000 + 200.000 − 150.000 − 17.900 = **1.782.
 | Kelola master & harga (online) | Y | Y | — | — | — | — | — |
 | GR, transfer, opname (online) | Y | Y | — | — | — | Y | — |
 | Kelola anggota (peran, penugasan outlet, nonaktifkan), reset PIN, device | Y | Y* | — | — | — | — | — |
+| Kelola role: buat, ubah izin dan batas diskon, ganti nama, duplikasi, hapus role kustom (`role.manage`, BR-AUT-012) | Y | Y* | — | — | — | — | — |
 | Undang anggota, kelola undangan tertunda (batalkan/terbitkan ulang), keluarkan anggota, terbitkan kode reset password akun tenant (BR-IDN-004/005/006/015) | Y | — | — | — | — | — | — |
 | Lihat laporan | Y | Y | — | — | — | Y | Y |
 | Lihat audit log | Y | Y | — | — | — | — | Y |
@@ -1419,7 +1420,7 @@ Kas diharapkan = 500.000 + 1.250.000 + 200.000 − 150.000 − 17.900 = **1.782.
 
 **BR-AUT-011 — Enkripsi IndexedDB (`DISEPAKATI`).** Tidak termasuk MVP; dicatat sebagai risiko tablet dicuri (RSK-05).
 
-**BR-AUT-012 — Permission dapat dikonfigurasi (`DISEPAKATI`).** Role dan permission (termasuk batas diskon per role) dikonfigurasi per tenant; perubahan tercatat di audit dan disinkron ke device (efektif saat device sync).
+**BR-AUT-012 — Permission dapat dikonfigurasi (`DISEPAKATI`).** Role dan permission (termasuk batas diskon per role) dikonfigurasi per tenant; perubahan tercatat di audit dan disinkron ke device (efektif saat device sync). **Manajemen role (keputusan user 2026-11-27):** (1) Izin `role.manage` melindungi buat, ubah, ganti nama, duplikasi, dan hapus role; bawaan Owner dan Manager (Manager hanya bila akses seluruh outlet); daftar role dapat dibaca pemegang `user.manage` atau `role.manage`. (2) Katalog izin tetap di kode; tenant hanya memilih kombinasi izin per role. (3) Role kustom memakai kode otomatis dari nama (huruf kapital dan `_`, tanpa angka, tidak berubah setelah dibuat); nama unik per tenant tanpa membedakan huruf besar/kecil; minimal satu izin per role. (4) Role `OWNER` terkunci penuh (izin, batas diskon, nama, hapus); role sistem lain boleh diubah izin, batas diskon, dan namanya tetapi tidak boleh dihapus. (5) Role yang masih dipakai anggota aktif tidak dapat dihapus. (6) Pencegahan eskalasi: aktor hanya boleh memberi atau mencabut izin yang ia pegang, tidak boleh menetapkan batas diskon di atas batas miliknya, tidak boleh mengubah role yang ia pegang sendiri, dan hanya boleh menugaskan atau mengundang anggota ke role yang izinnya himpunan bagian dari izinnya dengan batas diskon tidak melebihi miliknya; duplikasi role ditolak bila ada izin di luar milik aktor. (7) Pembaruan role memakai kunci optimistis (`expectedVersion`). (8) Perubahan tercatat di audit (`role.created`, `role.changed`, `permission.changed`, `role.deleted`). (9) Tenant yang sudah ada: job latar idempoten memberi Owner semua izin katalog; Manager lama tidak diubah otomatis.
 
 **BR-AUT-013 — Deteksi jam mundur (`DIUSULKAN`).** Device menyimpan waktu tertinggi yang pernah teramati (`max_seen_time`). Bila jam device < `max_seen_time` − 5 menit, device dianggap dimanipulasi dan **dikunci sampai sync** (BR-TIM-006). Lease 7 hari diukur dengan waktu terkoreksi (server time terakhir + waktu berjalan monotonik).
 
@@ -2180,7 +2181,7 @@ Prinsip umum: **fakta yang sudah terjadi diterima (AP-02)**; hanya masalah **str
 | ID | Requirement | Pri | Fase | Kriteria Penerimaan | Rujukan |
 |---|---|---|---|---|---|
 | FR-AUT-001 | Login back-office **hanya email** + password (Better Auth, identitas global + keanggotaan; tanpa username) | P0 | F1 | Kredensial salah → ditolak; sesi SSR hanya dapat mengakses tenant tempat akun menjadi anggota; email unik se-sistem (BR-TEN-003, BR-IDN-001) | BR-AUT-001 |
-| FR-AUT-002 | Kelola anggota, role, permission, batas diskon per role, penugasan outlet | P0 | F1 | Perubahan batas diskon tersinkron ke device pada sync berikutnya dan tercatat di audit | BR-AUT-009/012 |
+| FR-AUT-002 | Kelola anggota, role (buat, duplikasi, ganti nama, hapus role kustom), permission, batas diskon per role, penugasan outlet | P0 | F1 | Perubahan batas diskon tersinkron ke device pada sync berikutnya dan tercatat di audit | BR-AUT-009/012 |
 | FR-AUT-003 | Login PIN 4–6 digit di terminal (offline) | P0 | F3 | PIN benar → sesi terbuka tanpa jaringan; salah 5× berturut → terkunci 5 menit | BR-AUT-003..005 |
 | FR-AUT-004 | Hash PIN lambat + salt per device; hash & permission disinkron | P0 | F3 | Hash PIN yang sama menghasilkan nilai berbeda di dua device | BR-AUT-004 |
 | FR-AUT-005 | Persetujuan PIN supervisor (diverifikasi lokal) untuk void, diskon > batas, retur | P0 | F3 | Diskon Rp7.000 pada bill 130.500 (Kasir 5%) memicu PIN; audit memuat peminta & penyetuju; peminta ≠ penyetuju | BR-DSC-003, BR-AUT-006/007 |

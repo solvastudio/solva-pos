@@ -201,7 +201,7 @@ describe('members-admin & role integration (tenant_member_emails, scopes, role l
       tenantSlug: tA.slug,
       authOrgId: tA.actor.authOrgId,
       appUserId: invMgr.appUserId,
-      permissions: new Set(['user.manage']),
+      permissions: new Set(managerRole.permissions),
       outletIds: [out01.id],
       roleCodes: ['MANAGER'],
     }
@@ -240,7 +240,11 @@ describe('members-admin & role integration (tenant_member_emails, scopes, role l
 
     // updateRole: OWNER permissions locked; updating non-OWNER role bumps version & supports revoke+regrant.
     await expect(
-      updateRole(tA.actor, { roleId: ownerRole.id, permissions: ['sale.create'] }),
+      updateRole(tA.actor, {
+        roleId: ownerRole.id,
+        expectedVersion: ownerRole.version,
+        permissions: ['sale.create'],
+      }),
     ).rejects.toMatchObject({
       code: 'VALIDATION_FAILED',
       message: 'admin.users.role.ownerPermissionsLocked',
@@ -249,6 +253,7 @@ describe('members-admin & role integration (tenant_member_emails, scopes, role l
     const reducedPerms = cashierRole.permissions.filter((p) => p !== 'discount.manual')
     const roleAfterRevoke = await updateRole(tA.actor, {
       roleId: cashierRole.id,
+      expectedVersion: cashierRole.version,
       discountLimitPct: 15,
       permissions: reducedPerms,
     })
@@ -258,6 +263,7 @@ describe('members-admin & role integration (tenant_member_emails, scopes, role l
     // Re-granting previously deleted permission succeeds (handles uq_role_permission__role_perm).
     const roleAfterRegrant = await updateRole(tA.actor, {
       roleId: cashierRole.id,
+      expectedVersion: roleAfterRevoke.version,
       permissions: [...reducedPerms, 'discount.manual'],
     })
     expect(roleAfterRegrant.permissions).toContain('discount.manual')

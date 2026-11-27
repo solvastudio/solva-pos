@@ -4,6 +4,7 @@ import { isPermissionCode, type PermissionCode } from './domain/permissions'
 
 export * from './domain/permissions'
 export * from './domain/default-roles'
+export * from './domain/role-rules'
 export * from './domain/invoice-prefix'
 export * from './domain/pin-policy'
 
@@ -161,11 +162,34 @@ export const changeMemberRoleAndOutletsSchema = z.object({
   assignments: z.array(memberOutletAssignmentSchema).min(1),
 })
 
+const roleNameSchema = z.string().trim().min(1).max(60)
+const roleDiscountSchema = z.number().min(0).max(100)
+const rolePermissionsSchema = z
+  .array(z.string().refine(isPermissionCode))
+  .min(1, 'admin.users.role.permissionsRequired')
+
+export const createRoleSchema = z.object({
+  name: roleNameSchema,
+  discountLimitPct: roleDiscountSchema,
+  permissions: rolePermissionsSchema,
+})
+
+export const duplicateRoleSchema = z.object({
+  sourceRoleId: z.string().uuid(),
+  name: roleNameSchema,
+})
+
 export const updateRoleSchema = z.object({
   roleId: z.string().uuid(),
-  name: z.string().trim().min(1).max(60).optional(),
-  discountLimitPct: z.number().min(0).max(100).optional(),
-  permissions: z.array(z.string().refine(isPermissionCode)).optional(),
+  expectedVersion: z.number().int().positive(),
+  name: roleNameSchema.optional(),
+  discountLimitPct: roleDiscountSchema.optional(),
+  permissions: rolePermissionsSchema.optional(),
+})
+
+export const deleteRoleSchema = z.object({
+  roleId: z.string().uuid(),
+  expectedVersion: z.number().int().positive(),
 })
 
 export type CreateLegalEntityInput = z.infer<typeof legalEntityFormSchema>
@@ -177,6 +201,9 @@ export type UpdateRegisterInput = z.infer<typeof updateRegisterSchema>
 export type ChangeInvoicePrefixInput = z.infer<typeof changeInvoicePrefixSchema>
 export type ChangeMemberRoleAndOutletsInput = z.infer<typeof changeMemberRoleAndOutletsSchema>
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>
+export type CreateRoleInput = z.infer<typeof createRoleSchema>
+export type DuplicateRoleInput = z.infer<typeof duplicateRoleSchema>
+export type DeleteRoleInput = z.infer<typeof deleteRoleSchema>
 
 export interface LegalEntityView {
   id: string
@@ -255,6 +282,8 @@ export interface RoleMatrixView {
   isSystem: boolean
   discountLimitPct: number
   permissions: readonly PermissionCode[]
+  /** Distinct active members holding this role at any outlet. */
+  memberCount: number
   version: number
 }
 

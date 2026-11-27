@@ -31,6 +31,7 @@ import {
 } from './member-directory.repo'
 import { listPinStatusesForTenant } from './pin.repo'
 import { deriveStaffPinsForUser } from './pin.service'
+import { assertActorMayAssignRoles } from './role-assign-guard'
 
 export interface ListMembersFilter {
   search?: string
@@ -201,10 +202,27 @@ export async function changeMemberRoleAndOutlets(
       }
     }
 
+    // Only newly granted (outlet, role) pairs are checked; unchanged assignments stay allowed.
+    const currentPairs = new Set(
+      currentAssignments.map((a) => `${a.outletId ?? '__ALL__'}:${a.roleId}`),
+    )
+    await assertActorMayAssignRoles(
+      tx,
+      actor,
+      parsed.assignments
+        .filter((a) => !currentPairs.has(`${a.outletId ?? '__ALL__'}:${a.roleId}`))
+        .map((a) => a.roleId),
+    )
+
     const { result: diff } = await writeMaster(
       tx,
       { actorUserId: actor.appUserId },
       async (w) => {
+        // A role delete holds the master write lock; re-check now that we hold it.
+        const activeRoles = await listRolesByIds(tx, actor.tenantId, requestedRoleIds)
+        if (activeRoles.length !== requestedRoleIds.length) {
+          throw new AppError('VALIDATION_FAILED', 'Invalid role id')
+        }
         const res = await replaceUserOutlets(tx, w, {
           appUserId: parsed.appUserId,
           assignments: parsed.assignments,

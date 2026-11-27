@@ -288,6 +288,13 @@
       "when": 1795539473504,
       "tag": "0040_check_drift",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795747629029,
+      "tag": "0041_permission_role_manage",
+      "breakpoints": true
     }
   ]
 }

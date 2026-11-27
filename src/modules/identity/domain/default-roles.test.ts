@@ -38,6 +38,10 @@ describe('identity/domain default roles and permission matrix', () => {
     expect(manager.discountLimitPct).toBe('50.0000')
     expect(manager.permissions).not.toContain('user.invite')
     expect(manager.permissions).not.toContain('flag.manage')
+    expect(manager.permissions).toContain('role.manage')
+
+    const supervisor = byCode.get('SUPERVISOR')!
+    expect(supervisor.permissions).not.toContain('role.manage')
 
     const cashier = byCode.get('CASHIER')!
     expect(cashier.discountLimitPct).toBe('5.0000')
