@@ -2,6 +2,7 @@ import '@tanstack/react-start/server-only'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
+import { assignmentOutletKey } from '../domain/assignment-key'
 import { appUser, memberCode, outlet, role, userOutlet } from './schema'
 
 export interface MemberAppUserRow {
@@ -81,6 +82,7 @@ export async function listPendingInviteEmailsForUsers(
 export async function listMemberOutletAssignments(
   tx: TenantTx,
   tenantId: string,
+  userId?: string,
 ): Promise<MemberAssignmentDbRow[]> {
   return tx
     .select({
@@ -106,6 +108,7 @@ export async function listMemberOutletAssignments(
     .where(
       and(
         eq(userOutlet.tenantId, tenantId),
+        userId ? eq(userOutlet.userId, userId) : undefined,
         isNull(userOutlet.deletedAt),
         isNull(role.deletedAt),
       ),
@@ -113,24 +116,99 @@ export async function listMemberOutletAssignments(
     .orderBy(asc(outlet.code), asc(role.code))
 }
 
-export async function listActorRoleCodes(
+export interface ActiveUserRole {
+  roleId: string
+  roleCode: string
+  discountLimitPct: number
+}
+
+/** Distinct active roles assigned to a member at any outlet. */
+export async function listActiveRolesOfUser(
   tx: TenantTx,
   tenantId: string,
   appUserId: string,
-): Promise<string[]> {
+): Promise<ActiveUserRole[]> {
   const rows = await tx
-    .select({ roleCode: role.code })
+    .select({
+      roleId: role.id,
+      roleCode: role.code,
+      discountLimitPct: role.discountLimitPct,
+    })
     .from(userOutlet)
-    .innerJoin(role, and(eq(role.tenantId, userOutlet.tenantId), eq(role.id, userOutlet.roleId)))
+    .innerJoin(
+      role,
+      and(
+        eq(role.tenantId, userOutlet.tenantId),
+        eq(role.id, userOutlet.roleId),
+        isNull(role.deletedAt),
+      ),
+    )
     .where(
       and(
         eq(userOutlet.tenantId, tenantId),
         eq(userOutlet.userId, appUserId),
         isNull(userOutlet.deletedAt),
-        isNull(role.deletedAt),
       ),
     )
-  return Array.from(new Set(rows.map((r) => r.roleCode)))
+  const byId = new Map<string, ActiveUserRole>()
+  for (const r of rows) {
+    byId.set(r.roleId, {
+      roleId: r.roleId,
+      roleCode: r.roleCode,
+      discountLimitPct: Number(r.discountLimitPct),
+    })
+  }
+  return [...byId.values()]
+}
+
+/** Distinct active members per role id (members removed from the tenant are not counted). */
+export async function countActiveMembersByRole(
+  tx: TenantTx,
+  tenantId: string,
+): Promise<Map<string, number>> {
+  const rows = await tx
+    .select({
+      roleId: userOutlet.roleId,
+      members: sql<number>`count(distinct ${userOutlet.userId})::int`,
+    })
+    .from(userOutlet)
+    .innerJoin(
+      appUser,
+      and(
+        eq(appUser.tenantId, userOutlet.tenantId),
+        eq(appUser.id, userOutlet.userId),
+        isNull(appUser.deletedAt),
+      ),
+    )
+    .where(and(eq(userOutlet.tenantId, tenantId), isNull(userOutlet.deletedAt)))
+    .groupBy(userOutlet.roleId)
+  return new Map(rows.map((r) => [r.roleId, Number(r.members)]))
+}
+
+export async function countActiveMembersForRole(
+  tx: TenantTx,
+  tenantId: string,
+  roleId: string,
+): Promise<number> {
+  const rows = await tx
+    .select({ members: sql<number>`count(distinct ${userOutlet.userId})::int` })
+    .from(userOutlet)
+    .innerJoin(
+      appUser,
+      and(
+        eq(appUser.tenantId, userOutlet.tenantId),
+        eq(appUser.id, userOutlet.userId),
+        isNull(appUser.deletedAt),
+      ),
+    )
+    .where(
+      and(
+        eq(userOutlet.tenantId, tenantId),
+        eq(userOutlet.roleId, roleId),
+        isNull(userOutlet.deletedAt),
+      ),
+    )
+  return Number(rows[0]?.members ?? 0)
 }
 
 export async function listRolesByIds(
@@ -169,10 +247,16 @@ export async function findActiveMemberTarget(
   tx: TenantTx,
   tenantId: string,
   appUserId: string,
-): Promise<{ id: string; membershipStatus: string; isActive: boolean } | null> {
+): Promise<{
+  id: string
+  displayName: string
+  membershipStatus: string
+  isActive: boolean
+} | null> {
   const rows = await tx
     .select({
       id: appUser.id,
+      displayName: appUser.displayName,
       membershipStatus: appUser.membershipStatus,
       isActive: appUser.isActive,
     })
@@ -217,43 +301,33 @@ export async function replaceUserOutlets(
     )
 
   const before = existing.map((e) => ({ outletId: e.outletId, roleId: e.roleId }))
-  const existingByOutletKey = new Map(existing.map((e) => [e.outletId ?? '__ALL__', e]))
+  const existingByOutletKey = new Map(existing.map((e) => [assignmentOutletKey(e.outletId), e]))
   const desiredByOutletKey = new Map(
-    params.assignments.map((a) => [a.outletId ?? '__ALL__', a]),
+    params.assignments.map((a) => [assignmentOutletKey(a.outletId), a]),
   )
 
-  for (const row of existing) {
-    const key = row.outletId ?? '__ALL__'
-    if (!desiredByOutletKey.has(key)) {
-      await tx
-        .update(userOutlet)
-        .set({
-          deletedAt: params.nowIso,
-          version: writer.version,
-          updatedAt: params.nowIso,
-          updatedBy: writer.actorUserId,
-        })
-        .where(and(eq(userOutlet.tenantId, writer.tenantId), eq(userOutlet.id, row.id)))
-    }
+  const removeIds = existing
+    .filter((row) => !desiredByOutletKey.has(assignmentOutletKey(row.outletId)))
+    .map((row) => row.id)
+  if (removeIds.length > 0) {
+    await tx
+      .update(userOutlet)
+      .set({
+        deletedAt: params.nowIso,
+        version: writer.version,
+        updatedAt: params.nowIso,
+        updatedBy: writer.actorUserId,
+      })
+      .where(and(eq(userOutlet.tenantId, writer.tenantId), inArray(userOutlet.id, removeIds)))
   }
 
+  // Rows that only change role are grouped per target role: one UPDATE per distinct role.
+  const reassignIdsByRole = new Map<string, string[]>()
+  const newRows: Array<typeof userOutlet.$inferInsert> = []
   for (const target of desiredByOutletKey.values()) {
-    const key = target.outletId ?? '__ALL__'
-    const prev = existingByOutletKey.get(key)
-    if (prev) {
-      if (prev.roleId !== target.roleId) {
-        await tx
-          .update(userOutlet)
-          .set({
-            roleId: target.roleId,
-            version: writer.version,
-            updatedAt: params.nowIso,
-            updatedBy: writer.actorUserId,
-          })
-          .where(and(eq(userOutlet.tenantId, writer.tenantId), eq(userOutlet.id, prev.id)))
-      }
-    } else {
-      await tx.insert(userOutlet).values({
+    const prev = existingByOutletKey.get(assignmentOutletKey(target.outletId))
+    if (!prev) {
+      newRows.push({
         id: params.newId(),
         tenantId: writer.tenantId,
         userId: params.appUserId,
@@ -265,7 +339,23 @@ export async function replaceUserOutlets(
         createdBy: writer.actorUserId,
         updatedBy: writer.actorUserId,
       })
+    } else if (prev.roleId !== target.roleId) {
+      reassignIdsByRole.set(target.roleId, [...(reassignIdsByRole.get(target.roleId) ?? []), prev.id])
     }
+  }
+  for (const [roleId, ids] of reassignIdsByRole) {
+    await tx
+      .update(userOutlet)
+      .set({
+        roleId,
+        version: writer.version,
+        updatedAt: params.nowIso,
+        updatedBy: writer.actorUserId,
+      })
+      .where(and(eq(userOutlet.tenantId, writer.tenantId), inArray(userOutlet.id, ids)))
+  }
+  if (newRows.length > 0) {
+    await tx.insert(userOutlet).values(newRows)
   }
 
   await tx
@@ -281,4 +371,36 @@ export async function replaceUserOutlets(
     before,
     after: Array.from(desiredByOutletKey.values()),
   }
+}
+
+/** Distinct active members holding `roleId`; `outletIds` limits to assignments at those outlets (`null` = every outlet). */
+export async function listRoleMemberRows(
+  tx: TenantTx,
+  tenantId: string,
+  roleId: string,
+  outletIds: readonly string[] | null,
+): Promise<Array<{ appUserId: string; displayName: string }>> {
+  if (outletIds !== null && outletIds.length === 0) {
+    return []
+  }
+  return tx
+    .selectDistinct({ appUserId: appUser.id, displayName: appUser.displayName })
+    .from(userOutlet)
+    .innerJoin(
+      appUser,
+      and(
+        eq(appUser.tenantId, userOutlet.tenantId),
+        eq(appUser.id, userOutlet.userId),
+        isNull(appUser.deletedAt),
+      ),
+    )
+    .where(
+      and(
+        eq(userOutlet.tenantId, tenantId),
+        eq(userOutlet.roleId, roleId),
+        isNull(userOutlet.deletedAt),
+        outletIds === null ? undefined : inArray(userOutlet.outletId, [...outletIds]),
+      ),
+    )
+    .orderBy(asc(appUser.displayName))
 }

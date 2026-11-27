@@ -3,7 +3,8 @@ import type { TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { roleExceedsActor } from '../domain/role-rules'
 import type { IdentityAuthActor } from './code-crypto'
-import { listActorRoleRows, listRolePermissionRows, listRolesRows } from './role.repo'
+import { listActiveRolesOfUser } from './member-directory.repo'
+import { listRoleLimitsByIds, listRolePermissionRowsForRoles } from './role.repo'
 
 /**
  * Rejects (`FORBIDDEN`) when any of `roleIds` grants more than the actor holds: a permission the actor
@@ -19,20 +20,27 @@ export async function assertActorMayAssignRoles(
     return
   }
 
-  const roles = await listRolesRows(tx, actor.tenantId)
-  const permRows = await listRolePermissionRows(tx, actor.tenantId)
-  const actorRoles = await listActorRoleRows(tx, actor.tenantId, actor.appUserId)
+  const targetList = [...targetIds]
+  const limits = await listRoleLimitsByIds(tx, actor.tenantId, targetList)
+  const permRows = await listRolePermissionRowsForRoles(tx, actor.tenantId, targetList)
+  const actorRoles = await listActiveRolesOfUser(tx, actor.tenantId, actor.appUserId)
   const actorDiscountLimitPct = Math.max(0, ...actorRoles.map((r) => r.discountLimitPct))
 
-  for (const targetId of targetIds) {
-    const target = roles.find((r) => r.id === targetId)
-    if (!target) {
-      continue
-    }
-    const permissions = permRows.filter((p) => p.roleId === targetId).map((p) => p.permissionCode)
+  const permsByRole = new Map<string, string[]>()
+  for (const p of permRows) {
+    const list = permsByRole.get(p.roleId) ?? []
+    list.push(p.permissionCode)
+    permsByRole.set(p.roleId, list)
+  }
+
+  // Roles that no longer exist are skipped: callers validate existence separately.
+  for (const target of limits) {
     if (
       roleExceedsActor(
-        { permissions, discountLimitPct: Number(target.discountLimitPct) },
+        {
+          permissions: permsByRole.get(target.id) ?? [],
+          discountLimitPct: Number(target.discountLimitPct),
+        },
         { permissions: actor.permissions, discountLimitPct: actorDiscountLimitPct },
       )
     ) {

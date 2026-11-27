@@ -472,6 +472,10 @@
         "outletsLabel": "Outlet",
         "roleForOutlet": "Peran di {{outlet}}",
         "needOneOutlet": "Pilih minimal satu outlet.",
+        "invalidInput": "Data akses tidak valid. Periksa isian lalu coba lagi.",
+        "duplicateOutlet": "Satu outlet tidak boleh diberi dua peran.",
+        "memberNotFound": "Anggota tidak ditemukan.",
+        "invalidOutlet": "Outlet tidak ditemukan.",
         "submit": "Simpan perubahan"
       },
       "reset": {
@@ -530,7 +534,7 @@
         "deleteDesc": "Role dihapus dari daftar. Riwayat transaksi dan audit tetap tersimpan.",
         "deleteInUse": "Role ini masih dipakai {{members}} anggota. Pindahkan anggota ke role lain sebelum menghapus.",
         "deleted": "Role dihapus.",
-        "membersHeading": "Anggota pemakai",
+        "membersHeading": "Penggunanya",
         "membersEmpty": "Belum ada anggota yang memakai role ini.",
         "ownerLocked": "Role Owner tidak dapat diubah atau dihapus.",
         "systemUndeletable": "Role sistem tidak dapat dihapus.",

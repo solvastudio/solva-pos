@@ -71,7 +71,7 @@ export function startBackgroundJobs(): void {
 
   registerJob({
     name: 'identity.ensure_owner_permissions',
-    intervalMs: SIX_HOURS_MS,
+    intervalMs: ONE_DAY_MS,
     run: async () => {
       await ensureOwnerHasAllPermissions()
     },

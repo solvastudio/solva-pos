@@ -20,6 +20,7 @@ const { rolesData, rolesFetches, updateRoleMock } = vi.hoisted(() => ({
       discountLimitPct: 100,
       permissions: ['sale.create', 'bill.edit', 'role.manage'],
       memberCount: 1,
+      heldByActor: false,
       version: 1,
     },
     {
@@ -30,6 +31,7 @@ const { rolesData, rolesFetches, updateRoleMock } = vi.hoisted(() => ({
       discountLimitPct: 5,
       permissions: ['sale.create'],
       memberCount: 2,
+      heldByActor: false,
       version: 3,
     },
     {
@@ -40,6 +42,7 @@ const { rolesData, rolesFetches, updateRoleMock } = vi.hoisted(() => ({
       discountLimitPct: 0,
       permissions: ['bill.edit'],
       memberCount: 0,
+      heldByActor: false,
       version: 2,
     },
     {
@@ -50,6 +53,7 @@ const { rolesData, rolesFetches, updateRoleMock } = vi.hoisted(() => ({
       discountLimitPct: 0,
       permissions: ['bill.edit'],
       memberCount: 2,
+      heldByActor: false,
       version: 4,
     },
   ],
@@ -63,8 +67,8 @@ vi.mock('~/queries/identity.queries', () => ({
       return rolesData
     },
   }),
-  membersQueryOptions: () => ({
-    queryKey: ['identity', 'acme', 'members', {}],
+  roleMembersQueryOptions: (_slug: string, roleId: string) => ({
+    queryKey: ['identity', 'acme', 'role-members', roleId],
     queryFn: async () => [],
   }),
 }))
@@ -87,7 +91,6 @@ function renderTab(overrides: Partial<ComponentProps<typeof RolesTab>> = {}) {
           tenantSlug="acme"
           canEditRoles
           actorPermissions={['role.manage', 'sale.create', 'bill.edit']}
-          actorRoleCodes={['MANAGER']}
           actorDiscountLimitPct={50}
           {...overrides}
         />
@@ -99,6 +102,7 @@ function renderTab(overrides: Partial<ComponentProps<typeof RolesTab>> = {}) {
 beforeEach(async () => {
   rolesFetches.count = 0
   updateRoleMock.mockReset()
+  for (const r of rolesData) r.heldByActor = false
   await changeLocale('en-US')
 })
 
@@ -141,7 +145,8 @@ describe('RolesTab', () => {
 
   it('treats a role assigned to the actor as read-only', async () => {
     const user = userEvent.setup()
-    renderTab({ actorRoleCodes: ['CASHIER'] })
+    rolesData.find((r) => r.code === 'CASHIER')!.heldByActor = true
+    renderTab()
     await user.click(await screen.findByRole('button', { name: /Cashier/ }))
     const nameInput = (await screen.findByLabelText('Role name')) as HTMLInputElement
     expect(nameInput.disabled).toBe(true)
@@ -168,5 +173,17 @@ describe('RolesTab', () => {
       data: { roleId: 'r-kitchen', expectedVersion: 2, name: 'Kepala Dapur Baru' },
     })
     await vi.waitFor(() => expect(rolesFetches.count).toBeGreaterThan(fetchesBefore))
+  })
+
+  it('shows a required-name error instead of saving when the name is cleared', async () => {
+    const user = userEvent.setup()
+    renderTab()
+    await user.click(await screen.findByRole('button', { name: /Kepala Dapur/ }))
+    const nameInput = (await screen.findByLabelText('Role name')) as HTMLInputElement
+    await user.clear(nameInput)
+    await user.click(screen.getByRole('button', { name: /^Save role$/i }))
+
+    expect(await screen.findByText(/Role name is required/i)).toBeTruthy()
+    expect(updateRoleMock).not.toHaveBeenCalled()
   })
 })

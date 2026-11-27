@@ -38,6 +38,8 @@ export const qk = {
     ['identity', tenantSlug, 'members', filter ?? {}] as const,
   pendingInvites: (tenantSlug: string) => ['identity', tenantSlug, 'pending-invites'] as const,
   roles: (tenantSlug: string) => ['identity', tenantSlug, 'roles'] as const,
+  roleMembers: (tenantSlug: string, roleId: string) =>
+    ['identity', tenantSlug, 'role-members', roleId] as const,
   devices: (tenantSlug: string) => ['identity', tenantSlug, 'devices'] as const,
   products: (tenantSlug: string, filter?: ProductListQueryFilter) =>
     ['catalog', tenantSlug, 'products', filter ?? {}] as const,

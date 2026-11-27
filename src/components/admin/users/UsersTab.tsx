@@ -4,11 +4,8 @@ import { useTranslation } from 'react-i18next'
 import {
   Button,
   Chip,
-  CircleAlert,
   DataTable,
-  Dialog,
   IconButton,
-  Inbox,
   Input,
   KeyRound,
   Lock,
@@ -21,15 +18,9 @@ import {
   useToast,
   type DataTableColumn,
 } from '~/components/ui'
-import {
-  cancelInviteFn,
-  issueResetCodeFn,
-  reissueInviteFn,
-  removeMemberFn,
-} from '~/functions/identity/members.fn'
+import { cancelInviteFn, reissueInviteFn } from '~/functions/identity/members.fn'
 import { formatDateTime } from '~/lib/kernel'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
-import type { PendingInviteItem } from '~/modules/identity/public'
 import { roleExceedsActor } from '~/modules/identity/shared'
 import type { MemberDirectoryView, PermissionCode } from '~/modules/identity/shared'
 import {
@@ -41,11 +32,13 @@ import {
 import { qk } from '~/queries/keys'
 import { EditMemberAccessDialog } from './EditMemberAccessDialog'
 import { InviteMemberDialog } from './InviteMemberDialog'
+import { MemberRemoveDialog } from './MemberRemoveDialog'
+import { MemberResetDialog } from './MemberResetDialog'
 import { OneTimeCodeDialog } from './OneTimeCodeDialog'
+import { PendingInvitesSection } from './PendingInvitesSection'
 import { PinDialog } from './PinDialog'
 
 const FILTER_ALL = '__ALL__'
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface UsersTabProps {
   tenantSlug: string
@@ -54,11 +47,6 @@ export interface UsersTabProps {
   actorOutletIds: readonly string[] | null
   /** Highest discount limit of the signed-in member; when set, roles above it are not assignable. */
   actorDiscountLimitPct?: number
-}
-
-function addSevenDaysIso(expiresAtIso: string): string {
-  const ms = Date.parse(expiresAtIso)
-  return Number.isFinite(ms) ? new Date(ms + SEVEN_DAYS_MS).toISOString() : expiresAtIso
 }
 
 export function UsersTab({
@@ -128,10 +116,7 @@ export function UsersTab({
   const [editingMember, setEditingMember] = useState<MemberDirectoryView | null>(null)
 
   const [resetTarget, setResetTarget] = useState<MemberDirectoryView | null>(null)
-  const [resetError, setResetError] = useState<string | null>(null)
-
   const [removeTarget, setRemoveTarget] = useState<MemberDirectoryView | null>(null)
-  const [removeError, setRemoveError] = useState<string | null>(null)
   const [pinTarget, setPinTarget] = useState<MemberDirectoryView | null>(null)
 
   const originPrefix = typeof window !== 'undefined' ? window.location.origin : ''
@@ -139,7 +124,28 @@ export function UsersTab({
 
   function invalidateMemberQueries() {
     void queryClient.invalidateQueries({ queryKey: ['identity', tenantSlug, 'members'] })
+    void queryClient.invalidateQueries({ queryKey: ['identity', tenantSlug, 'role-members'] })
+    void queryClient.invalidateQueries({ queryKey: qk.roles(tenantSlug) })
     void queryClient.invalidateQueries({ queryKey: qk.pendingInvites(tenantSlug) })
+  }
+
+  /** Opens the one-time code dialog for an invite or reset code. */
+  function showCode(
+    kind: 'invite' | 'reset',
+    title: string,
+    path: '/join' | '/reset',
+    res: { code: string; expiresAt: string },
+  ) {
+    setCodeModal({
+      kind,
+      title,
+      code: res.code,
+      url: `${originPrefix}${tenantHref(tenantSlug, path)}`,
+      expiryNotice: t(
+        kind === 'invite' ? 'admin.users.invite.expiryNotice' : 'admin.users.reset.expiryNotice',
+        { expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate) },
+      ),
+    })
   }
 
   const reissueMutation = useMutation({
@@ -147,15 +153,7 @@ export function UsersTab({
     mutationFn: (appUserId: string) => reissueInviteFn({ data: { appUserId } }),
     onSuccess: (res) => {
       invalidateMemberQueries()
-      setCodeModal({
-        kind: 'invite',
-        title: t('admin.users.pending.reissuedTitle'),
-        code: res.code,
-        url: `${originPrefix}${tenantHref(tenantSlug, '/join')}`,
-        expiryNotice: t('admin.users.invite.expiryNotice', {
-          expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate),
-        }),
-      })
+      showCode('invite', t('admin.users.pending.reissuedTitle'), '/join', res)
     },
     onError: () => {
       toast.show({ tone: 'danger', message: t('admin.users.failed') })
@@ -174,39 +172,6 @@ export function UsersTab({
     },
   })
 
-  const resetMutation = useMutation({
-    retry: 0,
-    mutationFn: (appUserId: string) => issueResetCodeFn({ data: { appUserId } }),
-    onSuccess: (res) => {
-      setResetTarget(null)
-      setCodeModal({
-        kind: 'reset',
-        title: t('admin.users.reset.resultTitle'),
-        code: res.code,
-        url: `${originPrefix}${tenantHref(tenantSlug, '/reset')}`,
-        expiryNotice: t('admin.users.reset.expiryNotice', {
-          expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate),
-        }),
-      })
-    },
-    onError: () => {
-      setResetError(t('admin.users.reset.denied'))
-    },
-  })
-
-  const removeMutation = useMutation({
-    retry: 0,
-    mutationFn: (appUserId: string) => removeMemberFn({ data: { appUserId } }),
-    onSuccess: () => {
-      invalidateMemberQueries()
-      setRemoveTarget(null)
-      toast.show({ tone: 'success', message: t('admin.users.saved') })
-    },
-    onError: () => {
-      setRemoveError(t('members.remove.lastOwner'))
-    },
-  })
-
   function openInviteDialog() {
     setInviteSession((n) => n + 1)
     setInviteOpen(true)
@@ -215,15 +180,7 @@ export function UsersTab({
   function handleInviteCreated(res: { code: string; expiresAt: string }) {
     invalidateMemberQueries()
     setInviteOpen(false)
-    setCodeModal({
-      kind: 'invite',
-      title: t('admin.users.invite.codeTitle'),
-      code: res.code,
-      url: `${originPrefix}${tenantHref(tenantSlug, '/join')}`,
-      expiryNotice: t('admin.users.invite.expiryNotice', {
-        expiry: formatDateTime(res.expiresAt, 'Asia/Jakarta', localeForDate),
-      }),
-    })
+    showCode('invite', t('admin.users.invite.codeTitle'), '/join', res)
   }
 
   const roleOptions = [
@@ -285,10 +242,7 @@ export function UsersTab({
                   size="md"
                   label={t('admin.users.actionReset')}
                   icon={<KeyRound className="size-4" />}
-                  onClick={() => {
-                    setResetError(null)
-                    setResetTarget(row)
-                  }}
+                  onClick={() => setResetTarget(row)}
                 />
               </Tooltip>
             ) : null}
@@ -299,10 +253,7 @@ export function UsersTab({
                   size="md"
                   label={t('admin.users.actionRemove', { tenant: tenantName })}
                   icon={<Trash2 className="size-4" />}
-                  onClick={() => {
-                    setRemoveError(null)
-                    setRemoveTarget(row)
-                  }}
+                  onClick={() => setRemoveTarget(row)}
                 />
               </Tooltip>
             ) : null}
@@ -400,82 +351,6 @@ export function UsersTab({
     },
   ]
 
-  const pendingColumns: readonly DataTableColumn<PendingInviteItem>[] = [
-    {
-      id: 'email',
-      header: t('admin.users.pending.colEmail'),
-      stickyFirst: true,
-      cell: (row) => row.email,
-    },
-    {
-      id: 'role',
-      header: t('admin.users.pending.colRole'),
-      cell: (row) => {
-        const roleName = row.roleId ? roleNameById.get(row.roleId) : undefined
-        return roleName ?? t('common.dash')
-      },
-    },
-    {
-      id: 'expires',
-      header: t('admin.users.pending.colExpires'),
-      cell: (row) => (
-        <div className="flex flex-col">
-          <span>{formatDateTime(row.expiresAt, 'Asia/Jakarta', localeForDate)}</span>
-          {row.status === 'EXPIRED' ? (
-            <span className="text-caption text-ink-soft">
-              {t('admin.users.pending.reissuableUntil', {
-                date: formatDateTime(addSevenDaysIso(row.expiresAt), 'Asia/Jakarta', localeForDate),
-              })}
-            </span>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      id: 'status',
-      header: t('admin.users.pending.colStatus'),
-      cell: (row) => (
-        <Chip
-          status={row.status === 'PENDING' ? 'invite_pending' : 'invite_expired'}
-          label={
-            row.status === 'PENDING'
-              ? t('admin.users.pending.statusWaiting')
-              : t('admin.users.pending.statusExpired')
-          }
-          size="sm"
-        />
-      ),
-    },
-    {
-      id: 'action',
-      header: t('admin.users.pending.colAction'),
-      align: 'right',
-      hideOnMobileCard: true,
-      cell: (row) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            size="md"
-            loading={reissueMutation.isPending}
-            onClick={() => reissueMutation.mutate(row.id)}
-          >
-            {t('admin.users.pending.reissue')}
-          </Button>
-          {row.status === 'PENDING' ? (
-            <Button
-              variant="ghost"
-              size="md"
-              loading={cancelInviteMutation.isPending}
-              onClick={() => cancelInviteMutation.mutate(row.id)}
-            >
-              {t('admin.users.pending.cancel')}
-            </Button>
-          ) : null}
-        </div>
-      ),
-    },
-  ]
-
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4">
@@ -534,39 +409,14 @@ export function UsersTab({
       </section>
 
       {canInvite ? (
-        <section aria-labelledby="pending-invites-heading" className="flex flex-col gap-3">
-          <h2 id="pending-invites-heading" className="text-h2 font-semibold text-ink">
-            {t('admin.users.pending.title', { count: pendingInvites.length })}
-          </h2>
-          <DataTable
-            caption={t('admin.users.pending.title', { count: pendingInvites.length })}
-            columns={pendingColumns}
-            rows={pendingInvites}
-            getRowKey={(r) => r.id}
-            emptyIcon={<Inbox className="size-8" aria-hidden="true" />}
-            emptyTitle={t('admin.users.pending.empty')}
-            mobileActions={(row) => (
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => reissueMutation.mutate(row.id)}
-                >
-                  {t('admin.users.pending.reissue')}
-                </Button>
-                {row.status === 'PENDING' ? (
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    onClick={() => cancelInviteMutation.mutate(row.id)}
-                  >
-                    {t('admin.users.pending.cancel')}
-                  </Button>
-                ) : null}
-              </div>
-            )}
-          />
-        </section>
+        <PendingInvitesSection
+          invites={pendingInvites}
+          roleNameById={roleNameById}
+          reissuing={reissueMutation.isPending}
+          canceling={cancelInviteMutation.isPending}
+          onReissue={(inviteId) => reissueMutation.mutate(inviteId)}
+          onCancel={(inviteId) => cancelInviteMutation.mutate(inviteId)}
+        />
       ) : null}
 
       <InviteMemberDialog
@@ -597,81 +447,28 @@ export function UsersTab({
         />
       ) : null}
 
-      <Dialog
-        open={Boolean(resetTarget)}
-        onOpenChange={(open) => !open && setResetTarget(null)}
-        title={t('admin.users.reset.confirmTitle', { name: resetTarget?.displayName ?? '' })}
-        description={t('admin.users.reset.confirmDesc')}
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" size="md" onClick={() => setResetTarget(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              loading={resetMutation.isPending}
-              onClick={() => resetTarget && resetMutation.mutate(resetTarget.appUserId)}
-            >
-              {t('admin.users.reset.confirmAction')}
-            </Button>
-          </>
-        }
-      >
-        {resetError ? (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-          >
-            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{resetError}</span>
-          </div>
-        ) : (
-          <div />
-        )}
-      </Dialog>
+      {resetTarget ? (
+        <MemberResetDialog
+          key={resetTarget.appUserId}
+          target={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onIssued={(res) => showCode('reset', t('admin.users.reset.resultTitle'), '/reset', res)}
+        />
+      ) : null}
 
-      <Dialog
-        open={Boolean(removeTarget)}
-        onOpenChange={(open) => !open && setRemoveTarget(null)}
-        title={t('admin.users.remove.confirmTitle', {
-          name: removeTarget?.displayName ?? '',
-          tenant: tenantName,
-        })}
-        description={t('admin.users.remove.confirmDesc', {
-          name: removeTarget?.displayName ?? '',
-          tenant: tenantName,
-        })}
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" size="md" onClick={() => setRemoveTarget(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              loading={removeMutation.isPending}
-              onClick={() => removeTarget && removeMutation.mutate(removeTarget.appUserId)}
-            >
-              {t('admin.users.remove.confirmAction')}
-            </Button>
-          </>
-        }
-      >
-        {removeError ? (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-control border border-danger-solid bg-danger-soft p-3 text-body-sm text-danger-ink"
-          >
-            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>{removeError}</span>
-          </div>
-        ) : (
-          <div />
-        )}
-      </Dialog>
+      {removeTarget ? (
+        <MemberRemoveDialog
+          key={removeTarget.appUserId}
+          target={removeTarget}
+          tenantName={tenantName}
+          onClose={() => setRemoveTarget(null)}
+          onRemoved={() => {
+            invalidateMemberQueries()
+            setRemoveTarget(null)
+            toast.show({ tone: 'success', message: t('admin.users.saved') })
+          }}
+        />
+      ) : null}
 
       {pinTarget ? (
         <PinDialog

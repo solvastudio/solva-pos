@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { and, asc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { TenantTx } from '~/server/db'
-import { appUser, role, rolePermission, userOutlet } from './schema'
+import { role, rolePermission } from './schema'
 
 export interface RoleDbRow {
   id: string
@@ -288,94 +288,58 @@ export async function findRoleNameConflict(
   return rows.length > 0
 }
 
-/** Distinct active members per role id (members removed from the tenant are not counted). */
-export async function countActiveMembersByRole(
-  tx: TenantTx,
-  tenantId: string,
-): Promise<Map<string, number>> {
-  const rows = await tx
-    .select({
-      roleId: userOutlet.roleId,
-      members: sql<number>`count(distinct ${userOutlet.userId})::int`,
-    })
-    .from(userOutlet)
-    .innerJoin(
-      appUser,
-      and(
-        eq(appUser.tenantId, userOutlet.tenantId),
-        eq(appUser.id, userOutlet.userId),
-        isNull(appUser.deletedAt),
-      ),
-    )
-    .where(and(eq(userOutlet.tenantId, tenantId), isNull(userOutlet.deletedAt)))
-    .groupBy(userOutlet.roleId)
-  return new Map(rows.map((r) => [r.roleId, Number(r.members)]))
-}
-
-export async function countActiveMembersForRole(
+/** Active permission codes of one role. */
+export async function listRolePermissionCodes(
   tx: TenantTx,
   tenantId: string,
   roleId: string,
-): Promise<number> {
+): Promise<Set<string>> {
   const rows = await tx
-    .select({ members: sql<number>`count(distinct ${userOutlet.userId})::int` })
-    .from(userOutlet)
-    .innerJoin(
-      appUser,
-      and(
-        eq(appUser.tenantId, userOutlet.tenantId),
-        eq(appUser.id, userOutlet.userId),
-        isNull(appUser.deletedAt),
-      ),
-    )
+    .select({ permissionCode: rolePermission.permissionCode })
+    .from(rolePermission)
     .where(
       and(
-        eq(userOutlet.tenantId, tenantId),
-        eq(userOutlet.roleId, roleId),
-        isNull(userOutlet.deletedAt),
+        eq(rolePermission.tenantId, tenantId),
+        eq(rolePermission.roleId, roleId),
+        isNull(rolePermission.deletedAt),
       ),
     )
-  return Number(rows[0]?.members ?? 0)
+  return new Set(rows.map((r) => r.permissionCode))
 }
 
-export interface ActorRoleRow {
-  roleId: string
-  discountLimitPct: number
-}
-
-/** Distinct active roles assigned to a member (any outlet). */
-export async function listActorRoleRows(
+/** Active permission rows of the given roles only (empty input returns no rows). */
+export async function listRolePermissionRowsForRoles(
   tx: TenantTx,
   tenantId: string,
-  appUserId: string,
-): Promise<ActorRoleRow[]> {
-  const rows = await tx
+  roleIds: readonly string[],
+): Promise<RolePermissionDbRow[]> {
+  if (roleIds.length === 0) return []
+  return tx
     .select({
-      roleId: role.id,
-      discountLimitPct: role.discountLimitPct,
+      id: rolePermission.id,
+      roleId: rolePermission.roleId,
+      permissionCode: rolePermission.permissionCode,
+      deletedAt: rolePermission.deletedAt,
     })
-    .from(userOutlet)
-    .innerJoin(
-      role,
-      and(
-        eq(role.tenantId, userOutlet.tenantId),
-        eq(role.id, userOutlet.roleId),
-        isNull(role.deletedAt),
-      ),
-    )
+    .from(rolePermission)
     .where(
       and(
-        eq(userOutlet.tenantId, tenantId),
-        eq(userOutlet.userId, appUserId),
-        isNull(userOutlet.deletedAt),
+        eq(rolePermission.tenantId, tenantId),
+        inArray(rolePermission.roleId, [...roleIds]),
+        isNull(rolePermission.deletedAt),
       ),
     )
-  const byId = new Map<string, ActorRoleRow>()
-  for (const r of rows) {
-    byId.set(r.roleId, {
-      roleId: r.roleId,
-      discountLimitPct: Number(r.discountLimitPct),
-    })
-  }
-  return [...byId.values()]
+}
+
+/** Discount limits (as stored) of the given active roles only. */
+export async function listRoleLimitsByIds(
+  tx: TenantTx,
+  tenantId: string,
+  roleIds: readonly string[],
+): Promise<Array<{ id: string; discountLimitPct: string }>> {
+  if (roleIds.length === 0) return []
+  return tx
+    .select({ id: role.id, discountLimitPct: role.discountLimitPct })
+    .from(role)
+    .where(and(eq(role.tenantId, tenantId), inArray(role.id, [...roleIds]), isNull(role.deletedAt)))
 }

@@ -4,7 +4,7 @@ import { listMembersFn } from '~/functions/identity/members-admin.fn'
 import { listPendingInvitesFn } from '~/functions/identity/members.fn'
 import { listLegalEntitiesFn, listOutletsFn } from '~/functions/identity/org.fn'
 import { listRegistersFn } from '~/functions/identity/register.fn'
-import { listRolesWithPermissionsFn } from '~/functions/identity/role.fn'
+import { listRoleMembersFn, listRolesWithPermissionsFn } from '~/functions/identity/role.fn'
 import { qk, type MembersQueryFilter } from './keys'
 
 export function legalEntitiesQueryOptions(tenantSlug: string) {
@@ -46,6 +46,13 @@ export function rolesQueryOptions(tenantSlug: string) {
   return queryOptions({
     queryKey: qk.roles(tenantSlug),
     queryFn: () => listRolesWithPermissionsFn(),
+  })
+}
+
+export function roleMembersQueryOptions(tenantSlug: string, roleId: string) {
+  return queryOptions({
+    queryKey: qk.roleMembers(tenantSlug, roleId),
+    queryFn: () => listRoleMembersFn({ data: { roleId } }),
   })
 }
 

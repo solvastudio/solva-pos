@@ -472,6 +472,10 @@
         "outletsLabel": "Outlets",
         "roleForOutlet": "Role for {{outlet}}",
         "needOneOutlet": "Select at least one outlet.",
+        "invalidInput": "Invalid access data. Check your input and try again.",
+        "duplicateOutlet": "An outlet cannot be given two roles.",
+        "memberNotFound": "Member not found.",
+        "invalidOutlet": "Outlet not found.",
         "submit": "Save changes"
       },
       "reset": {

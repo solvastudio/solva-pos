@@ -10,6 +10,7 @@ import {
   recordLoginSuccess,
 } from '~/server/auth/rate-limit/login-limiter'
 import { withTenant, type TenantTx } from '~/server/db'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import {
   deleteAllSessionsForUser,
   ensureOrgMemberRow,
@@ -29,9 +30,9 @@ import {
   callAuthAccountMembershipCount,
   findAppUserById,
   findNonDeletedAppUserByAuthUserId,
-  listUserRoleCodesForAppUser,
   updateMemberCodeRedeemedAuthUser,
 } from './member-code.repo'
+import { listActiveRolesOfUser } from './member-directory.repo'
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254)
 
@@ -270,8 +271,8 @@ export async function redeemReset(
       // Tenant-issued reset codes require R1-R3 (single tenant, non-OWNER);
       // platform operator reset codes (`issuedBy === null`) apply to multi-tenant/OWNER accounts too.
       if (claimed.issuedBy !== null) {
-        const roles = await listUserRoleCodesForAppUser(tx, input.tenantId, profile.id)
-        if (roles.includes('OWNER')) {
+        const roles = await listActiveRolesOfUser(tx, input.tenantId, profile.id)
+        if (roles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {
           throw new InvalidRedeemError()
         }
 

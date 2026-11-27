@@ -7,9 +7,12 @@ export interface RoleDefault {
   permissions: readonly PermissionCode[]
 }
 
+/** Code of the system role that holds every permission and cannot be edited or deleted. */
+export const OWNER_ROLE_CODE = 'OWNER'
+
 export const ROLE_DEFAULTS: readonly RoleDefault[] = [
   {
-    code: 'OWNER',
+    code: OWNER_ROLE_CODE,
     name: 'Owner',
     discountLimitPct: '100.0000',
     permissions: [...PERMISSION_CODES],

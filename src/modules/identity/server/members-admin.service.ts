@@ -5,6 +5,8 @@ import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { parseOrThrow } from '~/server/parse-or-throw'
 import { nowIsoFrom } from '~/server/service-deps'
+import { assignmentOutletKey } from '../domain/assignment-key'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import {
   changeMemberRoleAndOutletsSchema,
   type ChangeMemberRoleAndOutletsInput,
@@ -19,7 +21,7 @@ import {
 import { bumpAppUserVersion, countActiveOwnersExcluding } from './member-code.repo'
 import {
   findActiveMemberTarget,
-  listActorRoleCodes,
+  listActiveRolesOfUser,
   listMemberAppUsers,
   listMemberEmailsViaDefiner,
   listMemberOutletAssignments,
@@ -133,15 +135,19 @@ export async function changeMemberRoleAndOutlets(
   deps?: IdentityServiceDeps,
 ): Promise<MemberDirectoryView> {
   requireActorPermission(actor, 'user.manage')
-  const parsed = parseOrThrow(changeMemberRoleAndOutletsSchema, rawInput, 'Invalid member assignment input')
+  const parsed = parseOrThrow(
+    changeMemberRoleAndOutletsSchema,
+    rawInput,
+    'admin.users.editAccess.invalidInput',
+  )
   const nowIso = nowIsoFrom(deps)
 
   // Reject duplicate outlet keys so intent is unambiguous.
   const seenOutletKeys = new Set<string>()
   for (const a of parsed.assignments) {
-    const key = a.outletId ?? '__ALL__'
+    const key = assignmentOutletKey(a.outletId)
     if (seenOutletKeys.has(key)) {
-      throw new AppError('VALIDATION_FAILED', 'Duplicate outlet assignment')
+      throw new AppError('VALIDATION_FAILED', 'admin.users.editAccess.duplicateOutlet')
     }
     seenOutletKeys.add(key)
   }
@@ -149,11 +155,14 @@ export async function changeMemberRoleAndOutlets(
   return withTenant(actor.tenantId, async (tx) => {
     const target = await findActiveMemberTarget(tx, actor.tenantId, parsed.appUserId)
     if (!target) {
-      throw new AppError('VALIDATION_FAILED', 'Member not found')
+      throw new AppError('VALIDATION_FAILED', 'admin.users.editAccess.memberNotFound')
     }
 
-    const allAssignments = await listMemberOutletAssignments(tx, actor.tenantId)
-    const currentAssignments = allAssignments.filter((a) => a.userId === parsed.appUserId)
+    const currentAssignments = await listMemberOutletAssignments(
+      tx,
+      actor.tenantId,
+      parsed.appUserId,
+    )
 
     if (!isMemberWithinActorScope(currentAssignments, actor.outletIds)) {
       throw new AppError('FORBIDDEN', 'Target member is outside your outlet scope')
@@ -165,7 +174,7 @@ export async function changeMemberRoleAndOutlets(
     const requestedRoleIds = Array.from(new Set(parsed.assignments.map((a) => a.roleId)))
     const roleRows = await listRolesByIds(tx, actor.tenantId, requestedRoleIds)
     if (roleRows.length !== requestedRoleIds.length) {
-      throw new AppError('VALIDATION_FAILED', 'Invalid role id')
+      throw new AppError('VALIDATION_FAILED', 'admin.users.role.notFound')
     }
     const roleCodeById = new Map(roleRows.map((r) => [r.id, r.code]))
 
@@ -175,18 +184,20 @@ export async function changeMemberRoleAndOutlets(
     if (requestedOutletIds.length > 0) {
       const outletRows = await listOutletsByIds(tx, actor.tenantId, requestedOutletIds)
       if (outletRows.length !== requestedOutletIds.length) {
-        throw new AppError('VALIDATION_FAILED', 'Invalid outlet id')
+        throw new AppError('VALIDATION_FAILED', 'admin.users.editAccess.invalidOutlet')
       }
     }
 
-    const targetCurrentlyHasOwner = currentAssignments.some((a) => a.roleCode === 'OWNER')
+    const targetCurrentlyHasOwner = currentAssignments.some(
+      (a) => a.roleCode === OWNER_ROLE_CODE,
+    )
     const targetWillHaveOwner = parsed.assignments.some(
-      (a) => roleCodeById.get(a.roleId) === 'OWNER',
+      (a) => roleCodeById.get(a.roleId) === OWNER_ROLE_CODE,
     )
 
     if (targetCurrentlyHasOwner || targetWillHaveOwner) {
-      const actorRoles = await listActorRoleCodes(tx, actor.tenantId, actor.appUserId)
-      if (!actorRoles.includes('OWNER')) {
+      const actorRoles = await listActiveRolesOfUser(tx, actor.tenantId, actor.appUserId)
+      if (!actorRoles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {
         throw new AppError('FORBIDDEN', 'Only Owner can assign or modify the Owner role')
       }
     }
@@ -203,14 +214,14 @@ export async function changeMemberRoleAndOutlets(
     }
 
     // Only newly granted (outlet, role) pairs are checked; unchanged assignments stay allowed.
-    const currentPairs = new Set(
-      currentAssignments.map((a) => `${a.outletId ?? '__ALL__'}:${a.roleId}`),
-    )
+    const pairKey = (outletId: string | null, roleId: string) =>
+      `${assignmentOutletKey(outletId)}:${roleId}`
+    const currentPairs = new Set(currentAssignments.map((a) => pairKey(a.outletId, a.roleId)))
     await assertActorMayAssignRoles(
       tx,
       actor,
       parsed.assignments
-        .filter((a) => !currentPairs.has(`${a.outletId ?? '__ALL__'}:${a.roleId}`))
+        .filter((a) => !currentPairs.has(pairKey(a.outletId, a.roleId)))
         .map((a) => a.roleId),
     )
 
@@ -221,7 +232,7 @@ export async function changeMemberRoleAndOutlets(
         // A role delete holds the master write lock; re-check now that we hold it.
         const activeRoles = await listRolesByIds(tx, actor.tenantId, requestedRoleIds)
         if (activeRoles.length !== requestedRoleIds.length) {
-          throw new AppError('VALIDATION_FAILED', 'Invalid role id')
+          throw new AppError('VALIDATION_FAILED', 'admin.users.role.notFound')
         }
         const res = await replaceUserOutlets(tx, w, {
           appUserId: parsed.appUserId,
@@ -253,28 +264,26 @@ export async function changeMemberRoleAndOutlets(
       { newId: () => identityIdGen.newId(), nowIso: () => nowIso },
     )
 
-    const updatedUsers = await listMemberAppUsers(tx, actor.tenantId)
-    const updatedUser = updatedUsers.find((u) => u.id === parsed.appUserId)
-    const updatedAssignments = (await listMemberOutletAssignments(tx, actor.tenantId)).filter(
-      (a) => a.userId === parsed.appUserId,
+    const updatedAssignments = await listMemberOutletAssignments(
+      tx,
+      actor.tenantId,
+      parsed.appUserId,
     )
-    const activeEmails = await listMemberEmailsViaDefiner(tx)
-    const pendingEmails =
-      updatedUser?.membershipStatus === 'PENDING'
-        ? await listPendingInviteEmailsForUsers(tx, actor.tenantId, [parsed.appUserId])
-        : new Map<string, string>()
-
-    const pinStatuses = await listPinStatusesForTenant(tx, actor.tenantId)
+    // The write above never changes name, status, or activity, so the target read earlier is current.
+    const isPending = target.membershipStatus === 'PENDING'
+    const email = isPending
+      ? ((await listPendingInviteEmailsForUsers(tx, actor.tenantId, [parsed.appUserId])).get(
+          parsed.appUserId,
+        ) ?? null)
+      : ((await listMemberEmailsViaDefiner(tx)).get(parsed.appUserId) ?? null)
+    const pinStatuses = await listPinStatusesForTenant(tx, actor.tenantId, parsed.appUserId)
 
     return {
       appUserId: parsed.appUserId,
-      displayName: updatedUser?.displayName ?? '',
-      email:
-        updatedUser?.membershipStatus === 'PENDING'
-          ? (pendingEmails.get(parsed.appUserId) ?? null)
-          : (activeEmails.get(parsed.appUserId) ?? null),
-      membershipStatus: updatedUser?.membershipStatus === 'PENDING' ? 'PENDING' : 'ACTIVE',
-      isActive: updatedUser?.isActive ?? true,
+      displayName: target.displayName,
+      email,
+      membershipStatus: isPending ? 'PENDING' : 'ACTIVE',
+      isActive: target.isActive,
       pinStatus: pinStatuses.get(parsed.appUserId) ?? 'unset',
       assignments: updatedAssignments.map((a) => ({
         outletId: a.outletId,

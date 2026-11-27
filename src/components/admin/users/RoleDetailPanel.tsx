@@ -1,197 +1,103 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button, Card, CircleAlert, Copy, Field, Info, Input, Trash2 } from '~/components/ui'
 import {
-  Button,
-  Card,
-  CircleAlert,
-  Copy,
-  Dialog,
-  Field,
-  Info,
-  Input,
-  Trash2,
-  useToast,
-} from '~/components/ui'
-import { deleteRoleFn, updateRoleFn } from '~/functions/identity/role.fn'
-import {
-  diffPermissionCodes,
+  OWNER_ROLE_CODE,
+  ROLE_DISCOUNT_MAX,
+  ROLE_DISCOUNT_MIN,
+  ROLE_NAME_MAX_LENGTH,
   roleExceedsActor,
-  type PermissionCode,
+  validateRoleDraft,
   type RoleMatrixView,
 } from '~/modules/identity/shared'
-import { membersQueryOptions } from '~/queries/identity.queries'
-import { qk } from '~/queries/keys'
+import { RoleDeleteDialog } from './RoleDeleteDialog'
+import { RoleMembersSection } from './RoleMembersSection'
 import { RolePermissionChecklist } from './RolePermissionChecklist'
+import { RoleSaveConfirmDialog } from './RoleSaveConfirmDialog'
+import { roleDraftIssueMessage } from './roleDraftMessage'
+import { useRoleActor } from './role-actor-context'
+import { useRoleChangeMutations } from './useRoleChangeMutations'
+import { useRoleDraft } from './useRoleDraft'
 
 export interface RoleDetailPanelProps {
   tenantSlug: string
   role: RoleMatrixView
-  canEditRoles: boolean
-  actorPermissions: ReadonlySet<PermissionCode>
-  actorRoleCodes: readonly string[]
-  actorDiscountLimitPct: number
-  canViewMembers: boolean
   onDuplicate: (role: RoleMatrixView) => void
   onDeleted: () => void
 }
 
-export function RoleDetailPanel({
-  tenantSlug,
-  role,
-  canEditRoles,
-  actorPermissions,
-  actorRoleCodes,
-  actorDiscountLimitPct,
-  canViewMembers,
-  onDuplicate,
-  onDeleted,
-}: RoleDetailPanelProps) {
+type LockHintKey =
+  | 'admin.users.role.ownerLockedHint'
+  | 'admin.users.role.readOnlyHint'
+  | 'admin.users.role.selfEditHint'
+
+/** i18n key of the hint explaining why a role cannot be edited, or null when it can. */
+function lockHintKey(role: RoleMatrixView, canEditRoles: boolean): LockHintKey | null {
+  if (role.code === OWNER_ROLE_CODE) {
+    return 'admin.users.role.ownerLockedHint'
+  }
+  if (!canEditRoles) {
+    return 'admin.users.role.readOnlyHint'
+  }
+  if (role.heldByActor) {
+    return 'admin.users.role.selfEditHint'
+  }
+  return null
+}
+
+export function RoleDetailPanel({ tenantSlug, role, onDuplicate, onDeleted }: RoleDetailPanelProps) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const queryClient = useQueryClient()
+  const actor = useRoleActor()
   const formIdPrefix = useId()
   const nameId = `${formIdPrefix}-role-name`
   const discountId = `${formIdPrefix}-role-discount`
 
-  const isOwner = role.code === 'OWNER'
-  const isOwnRole = actorRoleCodes.includes(role.code)
-  const locked = !canEditRoles || isOwner || isOwnRole
-
-  const [name, setName] = useState(role.name)
-  const [discount, setDiscount] = useState(String(role.discountLimitPct))
-  const [permissions, setPermissions] = useState<Set<PermissionCode>>(
-    () => new Set(role.permissions),
-  )
-  const [error, setError] = useState<string | null>(null)
+  const draft = useRoleDraft(role)
+  const { error, setError, save, remove } = useRoleChangeMutations({
+    tenantSlug,
+    role,
+    changes: draft.changes,
+    onDeleted,
+  })
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
-  const { data: members = [] } = useQuery({
-    ...membersQueryOptions(tenantSlug, { roleId: role.id }),
-    enabled: canViewMembers,
-  })
-
-  const trimmedName = name.trim()
-  const discountNumber = Number(discount)
-  const discountValid =
-    discount.trim() !== '' &&
-    Number.isFinite(discountNumber) &&
-    discountNumber >= 0 &&
-    discountNumber <= 100
-  const nameChanged = trimmedName !== role.name
-  const discountChanged = discountValid && discountNumber !== role.discountLimitPct
-  const diff = diffPermissionCodes(new Set(role.permissions), permissions)
-  const permsChanged = diff.added.length > 0 || diff.removed.length > 0
-  const dirty = nameChanged || discountChanged || permsChanged
-
+  const locked =
+    !actor.canEditRoles || role.code === OWNER_ROLE_CODE || role.heldByActor
   const exceedsActor = roleExceedsActor(
     { permissions: role.permissions, discountLimitPct: role.discountLimitPct },
-    { permissions: actorPermissions, discountLimitPct: actorDiscountLimitPct },
+    { permissions: actor.permissions, discountLimitPct: actor.discountLimitPct },
   )
-  const canDuplicate = canEditRoles && !exceedsActor
-  const hasUnheldPermission = role.permissions.some((code) => !actorPermissions.has(code))
+  const canDuplicate = actor.canEditRoles && !exceedsActor
+  const hasUnheldPermission = role.permissions.some((code) => !actor.permissions.has(code))
+  const hintKey = lockHintKey(role, actor.canEditRoles)
 
-  function handleFailure(errorKey: string) {
-    const message = t(errorKey, { defaultValue: t('admin.users.failed') })
-    setError(message)
-    if (errorKey === 'admin.users.role.versionConflict') {
-      // The refetch remounts the panel with the fresh version and drops local state, so also toast the reason.
-      void queryClient.invalidateQueries({ queryKey: qk.roles(tenantSlug) })
-      toast.show({ tone: 'danger', message })
-    }
-  }
-
-  const saveMutation = useMutation({
-    retry: 0,
-    mutationFn: () =>
-      updateRoleFn({
-        data: {
-          roleId: role.id,
-          expectedVersion: role.version,
-          ...(nameChanged ? { name: trimmedName } : {}),
-          ...(discountChanged ? { discountLimitPct: discountNumber } : {}),
-          ...(permsChanged ? { permissions: Array.from(permissions) } : {}),
-        },
-      }),
-    onSuccess: (res) => {
-      setConfirmOpen(false)
-      if (!res.ok) {
-        handleFailure(res.errorKey)
-        return
-      }
-      void queryClient.invalidateQueries({ queryKey: qk.roles(tenantSlug) })
-      toast.show({ tone: 'success', message: t('admin.users.role.saved') })
-    },
-    onError: () => {
-      setConfirmOpen(false)
-      setError(t('admin.users.failed'))
-    },
-  })
-
-  const deleteMutation = useMutation({
-    retry: 0,
-    mutationFn: () => deleteRoleFn({ data: { roleId: role.id, expectedVersion: role.version } }),
-    onSuccess: (res) => {
-      setDeleteOpen(false)
-      if (!res.ok) {
-        handleFailure(res.errorKey)
-        return
-      }
-      void queryClient.invalidateQueries({ queryKey: qk.roles(tenantSlug) })
-      toast.show({ tone: 'success', message: t('admin.users.role.deleted') })
-      onDeleted()
-    },
-    onError: () => {
-      setDeleteOpen(false)
-      setError(t('admin.users.failed'))
-    },
-  })
-
-  function togglePermission(code: PermissionCode, checked: boolean) {
-    setPermissions((prev) => {
-      const next = new Set(prev)
-      if (checked) {
-        next.add(code)
-      } else {
-        next.delete(code)
-      }
-      return next
-    })
+  function submitSave() {
+    save.mutate(undefined, { onSettled: () => setConfirmOpen(false) })
   }
 
   function requestSave() {
     setError(null)
-    if (!trimmedName) {
-      setError(t('validation.fieldRequired', { field: t('admin.users.role.nameLabel') }))
-      return
-    }
-    if (!discountValid) {
-      setError(t('admin.users.role.discountInvalid'))
-      return
-    }
-    if (discountChanged && discountNumber > actorDiscountLimitPct) {
-      setError(t('admin.users.role.discountAboveOwn', { limit: actorDiscountLimitPct }))
-      return
-    }
-    if (permissions.size === 0) {
-      setError(t('admin.users.role.permissionsRequired'))
+    const issues = validateRoleDraft(
+      { name: draft.name, discountInput: draft.discount, permissionCount: draft.permissions.size },
+      {
+        actorDiscountLimitPct: actor.discountLimitPct,
+        enforceActorLimit: draft.discountChanged,
+        checkDiscount: true,
+        checkPermissions: true,
+      },
+    )
+    const [firstIssue] = issues
+    if (firstIssue) {
+      setError(roleDraftIssueMessage(t, firstIssue))
       return
     }
     if (role.memberCount > 0) {
       setConfirmOpen(true)
       return
     }
-    saveMutation.mutate()
+    submitSave()
   }
-
-  const hint = isOwner
-    ? t('admin.users.role.ownerLockedHint')
-    : !canEditRoles
-      ? t('admin.users.role.readOnlyHint')
-      : isOwnRole
-        ? t('admin.users.role.selfEditHint')
-        : null
 
   return (
     <Card padding="admin" className="flex flex-col gap-5">
@@ -202,10 +108,10 @@ export function RoleDetailPanel({
         </span>
       </div>
 
-      {hint ? (
+      {hintKey ? (
         <div className="flex items-start gap-2 rounded-control border border-info-line bg-info-soft p-3 text-body-sm text-info-ink">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>{hint}</span>
+          <span>{t(hintKey)}</span>
         </div>
       ) : null}
 
@@ -224,10 +130,10 @@ export function RoleDetailPanel({
           <Input
             id={nameId}
             controlSize="md"
-            value={name}
-            maxLength={60}
+            value={draft.name}
+            maxLength={ROLE_NAME_MAX_LENGTH}
             disabled={locked}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => draft.setName(e.target.value)}
           />
         </Field>
 
@@ -235,13 +141,13 @@ export function RoleDetailPanel({
           <Input
             id={discountId}
             type="number"
-            min={0}
-            max={100}
+            min={ROLE_DISCOUNT_MIN}
+            max={ROLE_DISCOUNT_MAX}
             controlSize="md"
             className="text-right tabular-nums"
-            value={discount}
+            value={draft.discount}
             disabled={locked}
-            onChange={(e) => setDiscount(e.target.value)}
+            onChange={(e) => draft.setDiscount(e.target.value)}
           />
         </Field>
       </div>
@@ -252,34 +158,15 @@ export function RoleDetailPanel({
           <p className="text-body-sm text-ink-soft">{t('admin.users.role.lockedPermissionHint')}</p>
         ) : null}
         <RolePermissionChecklist
-          selected={permissions}
-          onToggle={togglePermission}
-          isDisabled={(code) => locked || !actorPermissions.has(code)}
+          selected={draft.permissions}
+          onToggle={draft.togglePermission}
+          isDisabled={(code) => locked || !actor.permissions.has(code)}
         />
       </div>
 
-      <section className="flex flex-col gap-2 border-t border-line-subtle pt-4">
-        <h4 className="text-label font-semibold text-ink">
-          {t('admin.users.role.membersHeading')}
-        </h4>
-        {canViewMembers && members.length > 0 ? (
-          <ul className="flex flex-wrap gap-1.5">
-            {members.map((m) => (
-              <li
-                key={m.appUserId}
-                className="inline-flex items-center rounded-md border border-line bg-surface-subtle px-2.5 py-1 text-body-sm text-ink"
-              >
-                {m.displayName}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {role.memberCount === 0 ? (
-          <p className="text-body-sm text-ink-soft">{t('admin.users.role.membersEmpty')}</p>
-        ) : null}
-      </section>
+      <RoleMembersSection tenantSlug={tenantSlug} roleId={role.id} memberCount={role.memberCount} />
 
-      {canEditRoles ? (
+      {actor.canEditRoles ? (
         <div className="flex flex-col gap-3 border-t border-line-subtle pt-4">
           {!canDuplicate ? (
             <p className="text-body-sm text-ink-soft">{t('admin.users.role.duplicateBlocked')}</p>
@@ -293,8 +180,8 @@ export function RoleDetailPanel({
             <Button
               variant="primary"
               size="md"
-              disabled={locked || !dirty}
-              loading={saveMutation.isPending && !confirmOpen}
+              disabled={locked || !draft.dirty}
+              loading={save.isPending && !confirmOpen}
               onClick={requestSave}
             >
               {t('admin.users.role.save')}
@@ -324,81 +211,22 @@ export function RoleDetailPanel({
         </div>
       ) : null}
 
-      <Dialog
+      <RoleSaveConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={t('admin.users.role.confirmSaveTitle', { name: role.name })}
-        description={t('admin.users.role.confirmSaveDesc', { members: role.memberCount })}
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" size="md" onClick={() => setConfirmOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              loading={saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
-            >
-              {t('admin.users.role.confirmSaveAction')}
-            </Button>
-          </>
-        }
-      >
-        <ul className="flex list-disc flex-col gap-1 pl-5 text-body-sm text-ink">
-          {nameChanged ? (
-            <li>{t('admin.users.role.changeName', { from: role.name, to: trimmedName })}</li>
-          ) : null}
-          {discountChanged ? (
-            <li>
-              {t('admin.users.role.changeDiscount', {
-                from: role.discountLimitPct,
-                to: discountNumber,
-              })}
-            </li>
-          ) : null}
-          {diff.added.length > 0 ? (
-            <li>
-              {t('admin.users.role.changeAdded', {
-                list: diff.added.map((code) => t(`permission.${code}`)).join(', '),
-              })}
-            </li>
-          ) : null}
-          {diff.removed.length > 0 ? (
-            <li>
-              {t('admin.users.role.changeRemoved', {
-                list: diff.removed.map((code) => t(`permission.${code}`)).join(', '),
-              })}
-            </li>
-          ) : null}
-        </ul>
-      </Dialog>
+        role={role}
+        draft={draft}
+        loading={save.isPending}
+        onConfirm={submitSave}
+      />
 
-      <Dialog
+      <RoleDeleteDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title={t('admin.users.role.deleteTitle', { name: role.name })}
-        description={t('admin.users.role.deleteDesc')}
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" size="md" onClick={() => setDeleteOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              loading={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate()}
-            >
-              {t('admin.users.role.deleteAction')}
-            </Button>
-          </>
-        }
-      >
-        <div />
-      </Dialog>
+        roleName={role.name}
+        loading={remove.isPending}
+        onConfirm={() => remove.mutate(undefined, { onSettled: () => setDeleteOpen(false) })}
+      />
     </Card>
   )
 }

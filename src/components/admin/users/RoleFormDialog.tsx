@@ -3,9 +3,18 @@ import { useId, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, CircleAlert, Dialog, Field, Input } from '~/components/ui'
 import { createRoleFn, duplicateRoleFn } from '~/functions/identity/role.fn'
-import type { PermissionCode, RoleMatrixView } from '~/modules/identity/shared'
+import {
+  ROLE_DISCOUNT_MAX,
+  ROLE_DISCOUNT_MIN,
+  ROLE_NAME_MAX_LENGTH,
+  validateRoleDraft,
+  type PermissionCode,
+  type RoleMatrixView,
+} from '~/modules/identity/shared'
 import { qk } from '~/queries/keys'
 import { RolePermissionChecklist } from './RolePermissionChecklist'
+import { roleDraftIssueMessage } from './roleDraftMessage'
+import { useRoleActor } from './role-actor-context'
 
 interface FormErrors {
   name?: string
@@ -19,8 +28,6 @@ export interface RoleFormDialogProps {
   tenantSlug: string
   mode: 'create' | 'duplicate'
   source: RoleMatrixView | null
-  actorPermissions: ReadonlySet<PermissionCode>
-  actorDiscountLimitPct: number
   onCreated: (role: RoleMatrixView) => void
 }
 
@@ -30,11 +37,10 @@ export function RoleFormDialog({
   tenantSlug,
   mode,
   source,
-  actorPermissions,
-  actorDiscountLimitPct,
   onCreated,
 }: RoleFormDialogProps) {
   const { t } = useTranslation()
+  const actor = useRoleActor()
   const queryClient = useQueryClient()
   const formIdPrefix = useId()
   const nameId = `${formIdPrefix}-role-name`
@@ -42,7 +48,7 @@ export function RoleFormDialog({
 
   const [name, setName] = useState(
     mode === 'duplicate' && source
-      ? t('admin.users.role.duplicateDefaultName', { name: source.name }).slice(0, 60)
+      ? t('admin.users.role.duplicateDefaultName', { name: source.name }).slice(0, ROLE_NAME_MAX_LENGTH)
       : '',
   )
   const [discount, setDiscount] = useState('0')
@@ -91,20 +97,18 @@ export function RoleFormDialog({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setServerError(null)
+    const issues = validateRoleDraft(
+      { name, discountInput: discount, permissionCount: permissions.size },
+      {
+        actorDiscountLimitPct: actor.discountLimitPct,
+        enforceActorLimit: true,
+        checkDiscount: mode === 'create',
+        checkPermissions: mode === 'create',
+      },
+    )
     const next: FormErrors = {}
-    if (!name.trim()) {
-      next.name = t('validation.fieldRequired', { field: t('admin.users.role.nameLabel') })
-    }
-    if (mode === 'create') {
-      const numeric = Number(discount)
-      if (discount.trim() === '' || !Number.isFinite(numeric) || numeric < 0 || numeric > 100) {
-        next.discount = t('admin.users.role.discountInvalid')
-      } else if (numeric > actorDiscountLimitPct) {
-        next.discount = t('admin.users.role.discountAboveOwn', { limit: actorDiscountLimitPct })
-      }
-      if (permissions.size === 0) {
-        next.permissions = t('admin.users.role.permissionsRequired')
-      }
+    for (const issue of issues) {
+      next[issue.field] = roleDraftIssueMessage(t, issue)
     }
     setErrors(next)
     if (Object.keys(next).length > 0) {
@@ -147,7 +151,7 @@ export function RoleFormDialog({
               id={nameId}
               controlSize="md"
               value={name}
-              maxLength={60}
+              maxLength={ROLE_NAME_MAX_LENGTH}
               invalid={Boolean(errors.name)}
               onChange={(e) => {
                 setName(e.target.value)
@@ -165,8 +169,8 @@ export function RoleFormDialog({
               <Input
                 id={discountId}
                 type="number"
-                min={0}
-                max={100}
+                min={ROLE_DISCOUNT_MIN}
+                max={ROLE_DISCOUNT_MAX}
                 controlSize="md"
                 className="text-right tabular-nums"
                 value={discount}
@@ -189,7 +193,7 @@ export function RoleFormDialog({
               <RolePermissionChecklist
                 selected={permissions}
                 onToggle={togglePermission}
-                isDisabled={(code) => !actorPermissions.has(code)}
+                isDisabled={(code) => !actor.permissions.has(code)}
               />
             </div>
             {errors.permissions ? (

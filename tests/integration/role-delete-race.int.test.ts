@@ -115,7 +115,7 @@ describe('deleting a role while a member is being assigned to it', () => {
     )
 
     expect(result).toMatchObject({
-      error: { code: 'VALIDATION_FAILED', message: 'Invalid role id' },
+      error: { code: 'VALIDATION_FAILED', message: 'admin.users.role.notFound' },
     })
   })
 })

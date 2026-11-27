@@ -99,6 +99,7 @@ export {
   listRolesWithPermissions,
   updateRole,
 } from './server/role.service'
+export { listRoleMembers } from './server/role-members.service'
 export {
   __clearDeviceAuthCacheForTests,
   authenticateDevice,

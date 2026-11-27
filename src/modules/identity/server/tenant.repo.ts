@@ -2,7 +2,7 @@ import '@tanstack/react-start/server-only'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { NoTenantTx, TenantTx } from '~/server/db'
-import { ROLE_DEFAULTS } from '../domain/default-roles'
+import { OWNER_ROLE_CODE, ROLE_DEFAULTS } from '../domain/default-roles'
 import { organization, session } from './auth-schema'
 import {
   appUser,
@@ -101,7 +101,7 @@ export async function seedDefaultTenantMasterRows(
 
   for (const def of ROLE_DEFAULTS) {
     const roleId = params.newId()
-    if (def.code === 'OWNER') {
+    if (def.code === OWNER_ROLE_CODE) {
       ownerRoleId = roleId
     }
     roleRows.push({

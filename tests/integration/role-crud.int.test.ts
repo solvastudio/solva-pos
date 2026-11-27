@@ -411,4 +411,15 @@ describe('role CRUD (create, duplicate, update, delete, escalation guards, audit
       'OUT02:WAITER',
     ])
   })
+
+  it('marks the roles held by the signed-in member', async () => {
+    const t = await bootstrapIdentityTenant(uniqueSlug('rheld'))
+    const manager = await managerActorFor(t)
+
+    const asManager = await listRolesWithPermissions(manager)
+    expect(asManager.filter((r) => r.heldByActor).map((r) => r.code)).toEqual(['MANAGER'])
+
+    const asOwner = await listRolesWithPermissions(t.actor)
+    expect(asOwner.filter((r) => r.heldByActor).map((r) => r.code)).toEqual(['OWNER'])
+  })
 })

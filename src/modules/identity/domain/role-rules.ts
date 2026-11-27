@@ -32,3 +32,44 @@ export function roleExceedsActor(
     role.discountLimitPct > actor.discountLimitPct
   )
 }
+
+export interface RoleChangeInput {
+  name?: string
+  discountLimitPct?: number
+  permissions?: readonly string[]
+}
+
+export interface RoleChange {
+  nextName: string
+  nextDiscount: number
+  desiredCodes: Set<string>
+  nameChanged: boolean
+  discountChanged: boolean
+  metadataChanged: boolean
+  permsChanged: boolean
+  permDiff: { added: string[]; removed: string[] }
+}
+
+/** Describes what an update request would change on a role. Pure: no I/O. */
+export function computeRoleChange(
+  current: { name: string; discountLimitPct: number },
+  currentCodes: ReadonlySet<string>,
+  input: RoleChangeInput,
+): RoleChange {
+  const nextName = input.name ?? current.name
+  const nextDiscount = input.discountLimitPct ?? current.discountLimitPct
+  const desiredCodes = new Set<string>(input.permissions ?? currentCodes)
+  const permDiff = diffPermissionCodes(currentCodes, desiredCodes)
+  const nameChanged = nextName !== current.name
+  const discountChanged = nextDiscount !== current.discountLimitPct
+  return {
+    nextName,
+    nextDiscount,
+    desiredCodes,
+    nameChanged,
+    discountChanged,
+    metadataChanged: nameChanged || discountChanged,
+    permsChanged: permDiff.added.length > 0 || permDiff.removed.length > 0,
+    permDiff,
+  }
+}

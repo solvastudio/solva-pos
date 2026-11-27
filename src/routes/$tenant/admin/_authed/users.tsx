@@ -72,7 +72,6 @@ function AdminUsersPage() {
             tenantSlug={slug}
             canEditRoles={canEditRoles}
             actorPermissions={permissions}
-            actorRoleCodes={session?.roleCodes ?? []}
             actorDiscountLimitPct={session?.discountLimitPct ?? 0}
           />
         </div>

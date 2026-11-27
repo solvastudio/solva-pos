@@ -5,9 +5,15 @@ import { withTenant, withTenantReadOnly, type TenantTx } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { parseOrThrow } from '~/server/parse-or-throw'
 import { nowIsoFrom } from '~/server/service-deps'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import type { PermissionCode } from '../domain/permissions'
 import { deriveRoleCode } from '../domain/role-code'
-import { diffPermissionCodes, permissionsActorLacks, roleExceedsActor } from '../domain/role-rules'
+import {
+  computeRoleChange,
+  permissionsActorLacks,
+  roleExceedsActor,
+  type RoleChange,
+} from '../domain/role-rules'
 import {
   createRoleSchema,
   deleteRoleSchema,
@@ -28,10 +34,13 @@ import {
 import {
   countActiveMembersByRole,
   countActiveMembersForRole,
+  listActiveRolesOfUser,
+} from './member-directory.repo'
+import {
   findRoleById,
   findRoleNameConflict,
   insertRoleRow,
-  listActorRoleRows,
+  listRolePermissionCodes,
   listRolePermissionRows,
   listRolesRows,
   softDeleteRoleRows,
@@ -48,7 +57,12 @@ function requireRoleManager(actor: IdentityAuthActor): void {
   requireActorPermission(actor, 'role.manage', { requireTenantWide: true })
 }
 
-function toView(row: RoleDbRow, permissions: Iterable<string>, memberCount: number): RoleMatrixView {
+function toView(
+  row: RoleDbRow,
+  permissions: Iterable<string>,
+  memberCount: number,
+  heldByActor: boolean,
+): RoleMatrixView {
   return {
     id: row.id,
     code: row.code,
@@ -57,22 +71,14 @@ function toView(row: RoleDbRow, permissions: Iterable<string>, memberCount: numb
     discountLimitPct: Number(row.discountLimitPct),
     permissions: Array.from(permissions).sort() as PermissionCode[],
     memberCount,
+    heldByActor,
     version: row.version,
   }
 }
 
-async function loadRolePermissionCodes(
-  tx: TenantTx,
-  tenantId: string,
-  roleId: string,
-): Promise<Set<string>> {
-  const rows = await listRolePermissionRows(tx, tenantId)
-  return new Set(rows.filter((p) => p.roleId === roleId).map((p) => p.permissionCode))
-}
-
 /** The actor's own active role ids and highest discount limit (0 when the actor has no role). */
 async function loadActorLimits(tx: TenantTx, actor: IdentityAuthActor) {
-  const actorRoles = await listActorRoleRows(tx, actor.tenantId, actor.appUserId)
+  const actorRoles = await listActiveRolesOfUser(tx, actor.tenantId, actor.appUserId)
   return {
     roleIds: new Set(actorRoles.map((r) => r.roleId)),
     discountLimitPct: Math.max(0, ...actorRoles.map((r) => r.discountLimitPct)),
@@ -89,14 +95,134 @@ export async function listRolesWithPermissions(
     const roles = await listRolesRows(tx, actor.tenantId)
     const perms = await listRolePermissionRows(tx, actor.tenantId)
     const counts = await countActiveMembersByRole(tx, actor.tenantId)
+    const heldRoleIds = new Set(
+      (await listActiveRolesOfUser(tx, actor.tenantId, actor.appUserId)).map((r) => r.roleId),
+    )
     const permsByRole = new Map<string, string[]>()
     for (const p of perms) {
       const list = permsByRole.get(p.roleId) ?? []
       list.push(p.permissionCode)
       permsByRole.set(p.roleId, list)
     }
-    return roles.map((r) => toView(r, permsByRole.get(r.id) ?? [], counts.get(r.id) ?? 0))
+    return roles.map((r) =>
+      toView(r, permsByRole.get(r.id) ?? [], counts.get(r.id) ?? 0, heldRoleIds.has(r.id)),
+    )
   })
+}
+
+type ActorLimits = Awaited<ReturnType<typeof loadActorLimits>>
+
+/** OWNER is locked completely: permissions first (kept error key), then name and discount. */
+function assertOwnerRoleUnchanged(change: RoleChange): void {
+  if (change.permsChanged) {
+    throw new AppError('VALIDATION_FAILED', 'admin.users.role.ownerPermissionsLocked')
+  }
+  if (change.metadataChanged) {
+    throw new AppError('VALIDATION_FAILED', 'admin.users.role.ownerLocked')
+  }
+}
+
+/** Escalation guards: an actor may only change what the actor itself holds. */
+function assertActorMayApplyChange(
+  actor: IdentityAuthActor,
+  limits: ActorLimits,
+  roleId: string,
+  change: RoleChange,
+): void {
+  if (limits.roleIds.has(roleId)) {
+    throw new AppError('FORBIDDEN', 'You cannot modify a role assigned to yourself')
+  }
+  const touched = [...change.permDiff.added, ...change.permDiff.removed]
+  if (permissionsActorLacks(touched, actor.permissions).length > 0) {
+    throw new AppError('FORBIDDEN', 'You cannot grant or revoke permissions you do not hold')
+  }
+  if (change.discountChanged && change.nextDiscount > limits.discountLimitPct) {
+    throw new AppError('FORBIDDEN', 'Discount limit exceeds your own limit')
+  }
+}
+
+/** Applies the change inside one master write and returns the new master version. */
+async function writeRoleChange(
+  tx: TenantTx,
+  actor: IdentityAuthActor,
+  existing: RoleDbRow,
+  change: RoleChange,
+  nowIso: string,
+): Promise<number> {
+  const { version } = await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
+    // The name check runs after the master write lock so concurrent renames cannot collide.
+    if (
+      change.nameChanged &&
+      (await findRoleNameConflict(tx, actor.tenantId, change.nextName, existing.id))
+    ) {
+      throw new AppError('VALIDATION_FAILED', 'admin.users.role.nameTaken')
+    }
+    await updateRoleRow(tx, w, {
+      roleId: existing.id,
+      name: change.nextName,
+      discountLimitPct: String(change.nextDiscount),
+      nowIso,
+    })
+    if (change.permsChanged) {
+      await syncRolePermissionsRows(tx, w, {
+        roleId: existing.id,
+        desiredCodes: change.desiredCodes,
+        newId: () => identityIdGen.newId(),
+        nowIso,
+      })
+    }
+  })
+  return version
+}
+
+async function auditRoleChange(
+  tx: TenantTx,
+  actor: IdentityAuthActor,
+  existing: RoleDbRow,
+  change: RoleChange,
+  nowIso: string,
+): Promise<void> {
+  if (change.metadataChanged) {
+    await appendAudit(
+      tx,
+      {
+        action: 'role.changed',
+        entityType: 'role',
+        entityId: existing.id,
+        beforeData: {
+          roleCode: existing.code,
+          name: existing.name,
+          discountLimitPct: Number(existing.discountLimitPct),
+        },
+        afterData: {
+          roleCode: existing.code,
+          name: change.nextName,
+          discountLimitPct: change.nextDiscount,
+        },
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      auditDeps(nowIso),
+    )
+  }
+  if (change.permsChanged) {
+    await appendAudit(
+      tx,
+      {
+        action: 'permission.changed',
+        entityType: 'role',
+        entityId: existing.id,
+        afterData: {
+          roleCode: existing.code,
+          added: change.permDiff.added,
+          removed: change.permDiff.removed,
+        },
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      auditDeps(nowIso),
+    )
+  }
 }
 
 export async function updateRole(
@@ -117,109 +243,37 @@ export async function updateRole(
       throw new AppError('VALIDATION_FAILED', 'admin.users.role.versionConflict')
     }
 
-    const currentCodes = await loadRolePermissionCodes(tx, actor.tenantId, existing.id)
-    const prevDiscount = Number(existing.discountLimitPct)
-    const nextName = parsed.name ?? existing.name
-    const nextDiscount = parsed.discountLimitPct ?? prevDiscount
-    const desiredCodes = new Set<string>(parsed.permissions ?? currentCodes)
-    const nameChanged = nextName !== existing.name
-    const discountChanged = nextDiscount !== prevDiscount
-    const metadataChanged = nameChanged || discountChanged
-    const permDiff = diffPermissionCodes(currentCodes, desiredCodes)
-    const permsChanged = permDiff.added.length > 0 || permDiff.removed.length > 0
-
-    if (existing.code === 'OWNER') {
-      if (permsChanged) {
-        throw new AppError('VALIDATION_FAILED', 'admin.users.role.ownerPermissionsLocked')
-      }
-      if (metadataChanged) {
-        throw new AppError('VALIDATION_FAILED', 'admin.users.role.ownerLocked')
-      }
+    const currentCodes = await listRolePermissionCodes(tx, actor.tenantId, existing.id)
+    const change = computeRoleChange(
+      { name: existing.name, discountLimitPct: Number(existing.discountLimitPct) },
+      currentCodes,
+      parsed,
+    )
+    if (existing.code === OWNER_ROLE_CODE) {
+      assertOwnerRoleUnchanged(change)
     }
 
     const memberCount = await countActiveMembersForRole(tx, actor.tenantId, existing.id)
-    if (!metadataChanged && !permsChanged) {
-      return toView(existing, currentCodes, memberCount)
-    }
-
     const limits = await loadActorLimits(tx, actor)
-    if (limits.roleIds.has(existing.id)) {
-      throw new AppError('FORBIDDEN', 'You cannot modify a role assigned to yourself')
-    }
-    if (permissionsActorLacks([...permDiff.added, ...permDiff.removed], actor.permissions).length > 0) {
-      throw new AppError('FORBIDDEN', 'You cannot grant or revoke permissions you do not hold')
-    }
-    if (discountChanged && nextDiscount > limits.discountLimitPct) {
-      throw new AppError('FORBIDDEN', 'Discount limit exceeds your own limit')
+    if (!change.metadataChanged && !change.permsChanged) {
+      return toView(existing, currentCodes, memberCount, limits.roleIds.has(existing.id))
     }
 
-    const { version } = await writeMaster(tx, { actorUserId: actor.appUserId }, async (w) => {
-      if (nameChanged && (await findRoleNameConflict(tx, actor.tenantId, nextName, existing.id))) {
-        throw new AppError('VALIDATION_FAILED', 'admin.users.role.nameTaken')
-      }
-      await updateRoleRow(tx, w, {
-        roleId: existing.id,
-        name: nextName,
-        discountLimitPct: String(nextDiscount),
-        nowIso,
-      })
-      if (permsChanged) {
-        await syncRolePermissionsRows(tx, w, {
-          roleId: existing.id,
-          desiredCodes,
-          newId: () => identityIdGen.newId(),
-          nowIso,
-        })
-      }
-    })
+    assertActorMayApplyChange(actor, limits, existing.id, change)
+    const version = await writeRoleChange(tx, actor, existing, change, nowIso)
+    await auditRoleChange(tx, actor, existing, change, nowIso)
 
-    if (metadataChanged) {
-      await appendAudit(
-        tx,
-        {
-          action: 'role.changed',
-          entityType: 'role',
-          entityId: existing.id,
-          beforeData: {
-            roleCode: existing.code,
-            name: existing.name,
-            discountLimitPct: prevDiscount,
-          },
-          afterData: {
-            roleCode: existing.code,
-            name: nextName,
-            discountLimitPct: nextDiscount,
-          },
-          actorUserId: actor.appUserId,
-          occurredAt: nowIso,
-        },
-        auditDeps(nowIso),
-      )
-    }
-
-    if (permsChanged) {
-      await appendAudit(
-        tx,
-        {
-          action: 'permission.changed',
-          entityType: 'role',
-          entityId: existing.id,
-          afterData: {
-            roleCode: existing.code,
-            added: permDiff.added,
-            removed: permDiff.removed,
-          },
-          actorUserId: actor.appUserId,
-          occurredAt: nowIso,
-        },
-        auditDeps(nowIso),
-      )
-    }
-
+    // Applying a change to a role the actor holds was rejected above, so it is never held here.
     return toView(
-      { ...existing, name: nextName, discountLimitPct: String(nextDiscount), version },
-      desiredCodes,
+      {
+        ...existing,
+        name: change.nextName,
+        discountLimitPct: String(change.nextDiscount),
+        version,
+      },
+      change.desiredCodes,
       memberCount,
+      false,
     )
   })
 }
@@ -291,6 +345,7 @@ async function insertCustomRole(
     discountLimitPct: params.discountLimitPct,
     permissions,
     memberCount: 0,
+    heldByActor: false,
     version,
   }
 }
@@ -338,7 +393,7 @@ export async function duplicateRole(
     if (!source) {
       throw new AppError('VALIDATION_FAILED', 'admin.users.role.notFound')
     }
-    const sourceCodes = await loadRolePermissionCodes(tx, actor.tenantId, source.id)
+    const sourceCodes = await listRolePermissionCodes(tx, actor.tenantId, source.id)
     if (sourceCodes.size === 0) {
       throw new AppError('VALIDATION_FAILED', 'admin.users.role.permissionsRequired')
     }
@@ -376,7 +431,7 @@ export async function deleteRole(
     if (!existing) {
       throw new AppError('VALIDATION_FAILED', 'admin.users.role.notFound')
     }
-    if (existing.code === 'OWNER') {
+    if (existing.code === OWNER_ROLE_CODE) {
       throw new AppError('VALIDATION_FAILED', 'admin.users.role.ownerLocked')
     }
     if (existing.isSystem) {

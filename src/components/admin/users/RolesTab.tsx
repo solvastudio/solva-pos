@@ -7,12 +7,12 @@ import type { PermissionCode, RoleMatrixView } from '~/modules/identity/shared'
 import { rolesQueryOptions } from '~/queries/identity.queries'
 import { RoleDetailPanel } from './RoleDetailPanel'
 import { RoleFormDialog } from './RoleFormDialog'
+import { RoleActorProvider, useRoleActor, type RoleActor } from './role-actor-context'
 
 export interface RolesTabProps {
   tenantSlug: string
   canEditRoles: boolean
   actorPermissions: readonly PermissionCode[]
-  actorRoleCodes: readonly string[]
   actorDiscountLimitPct: number
 }
 
@@ -21,17 +21,35 @@ interface FormDialogState {
   source: RoleMatrixView | null
 }
 
+/** Provides the signed-in member's role-management capabilities to the whole tab. */
 export function RolesTab({
   tenantSlug,
   canEditRoles,
   actorPermissions,
-  actorRoleCodes,
   actorDiscountLimitPct,
 }: RolesTabProps) {
+  const actor = useMemo<RoleActor>(() => {
+    const permissions = new Set(actorPermissions)
+    return {
+      permissions,
+      discountLimitPct: actorDiscountLimitPct,
+      canEditRoles,
+      canViewMembers: permissions.has('user.manage'),
+    }
+  }, [actorPermissions, actorDiscountLimitPct, canEditRoles])
+
+  return (
+    <RoleActorProvider value={actor}>
+      <RolesTabContent tenantSlug={tenantSlug} />
+    </RoleActorProvider>
+  )
+}
+
+function RolesTabContent({ tenantSlug }: { tenantSlug: string }) {
   const { t } = useTranslation()
   const toast = useToast()
+  const { canEditRoles } = useRoleActor()
   const { data: roles = [], isLoading } = useQuery(rolesQueryOptions(tenantSlug))
-  const permissionSet = useMemo(() => new Set(actorPermissions), [actorPermissions])
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<FormDialogState | null>(null)
@@ -118,11 +136,6 @@ export function RolesTab({
             key={`${selected.id}:${selected.version}`}
             tenantSlug={tenantSlug}
             role={selected}
-            canEditRoles={canEditRoles}
-            actorPermissions={permissionSet}
-            actorRoleCodes={actorRoleCodes}
-            actorDiscountLimitPct={actorDiscountLimitPct}
-            canViewMembers={permissionSet.has('user.manage')}
             onDuplicate={(source) => openDialog({ mode: 'duplicate', source })}
             onDeleted={() => setSelectedId(null)}
           />
@@ -139,8 +152,6 @@ export function RolesTab({
           tenantSlug={tenantSlug}
           mode={dialog.mode}
           source={dialog.source}
-          actorPermissions={permissionSet}
-          actorDiscountLimitPct={actorDiscountLimitPct}
           onCreated={(role) => {
             toast.show({
               tone: 'success',

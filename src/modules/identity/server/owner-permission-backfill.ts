@@ -4,8 +4,9 @@ import { runtimeIdGenerator } from '~/lib/runtime-id'
 import { writeMaster } from '~/modules/sync/public'
 import { withNoTenant, withTenant } from '~/server/db'
 import { createLogger } from '~/server/log'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import { PERMISSION_CODES } from '../domain/permissions'
-import { findRoleByCode, listRolePermissionRows, syncRolePermissionsRows } from './role.repo'
+import { findRoleByCode, listRolePermissionCodes, syncRolePermissionsRows } from './role.repo'
 
 const log = createLogger('jobs')
 
@@ -27,15 +28,11 @@ export async function ensureOwnerHasAllPermissionsForTenant(
   nowIso: string = new Date().toISOString(),
 ): Promise<boolean> {
   return withTenant(tenantId, async (tx) => {
-    const owner = await findRoleByCode(tx, tenantId, 'OWNER')
+    const owner = await findRoleByCode(tx, tenantId, OWNER_ROLE_CODE)
     if (!owner) {
       return false
     }
-    const held = new Set(
-      (await listRolePermissionRows(tx, tenantId))
-        .filter((p) => p.roleId === owner.id)
-        .map((p) => p.permissionCode),
-    )
+    const held = await listRolePermissionCodes(tx, tenantId, owner.id)
     if (PERMISSION_CODES.every((code) => held.has(code))) {
       return false
     }

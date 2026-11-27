@@ -11,7 +11,7 @@ import {
   Switch,
 } from '~/components/ui'
 import { changeMemberRoleAndOutletsFn } from '~/functions/identity/members-admin.fn'
-import type { MemberDirectoryView } from '~/modules/identity/shared'
+import { OWNER_ROLE_CODE, type MemberDirectoryView } from '~/modules/identity/shared'
 
 type RoleList = Awaited<ReturnType<typeof import('~/functions/identity/role.fn').listRolesWithPermissionsFn>>
 type OutletList = Awaited<ReturnType<typeof import('~/functions/identity/org.fn').listOutletsFn>>
@@ -180,7 +180,7 @@ export function EditMemberAccessDialog({
                           setAccessOutletRoles((prev) => ({ ...prev, [o.id]: nextRole }))
                         }
                         options={roles
-                          .filter((r) => canTenantWide || r.code !== 'OWNER')
+                          .filter((r) => canTenantWide || r.code !== OWNER_ROLE_CODE)
                           .filter((r) => r.id === assignedRoleId || canAssign(r))
                           .map((r) => ({ value: r.id, label: r.name }))}
                         ariaLabel={t('admin.users.editAccess.roleForOutlet', { outlet: o.code })}

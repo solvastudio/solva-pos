@@ -4,6 +4,7 @@ import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import { deleteOrgMemberRow, deleteTenantOrgSessions } from './auth-account.repo'
 import {
   identityIdGen,
@@ -14,10 +15,10 @@ import {
 import {
   countActiveOwnersExcluding,
   findAppUserById,
-  listUserRoleCodesForAppUser,
   revokeActiveMemberCodes,
   softDeleteAppUserAndOutlets,
 } from './member-code.repo'
+import { listActiveRolesOfUser } from './member-directory.repo'
 import { tombstoneStaffPinsByUser } from './pin.repo'
 
 export async function removeMember(
@@ -38,8 +39,8 @@ export async function removeMember(
       return
     }
 
-    const roles = await listUserRoleCodesForAppUser(tx, actor.tenantId, appUserId)
-    if (roles.includes('OWNER')) {
+    const roles = await listActiveRolesOfUser(tx, actor.tenantId, appUserId)
+    if (roles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {
       const remainingOwners = await countActiveOwnersExcluding(tx, actor.tenantId, appUserId)
       if (remainingOwners < 1) {
         throw new AppError('VALIDATION_FAILED', 'member.remove.lastOwner')

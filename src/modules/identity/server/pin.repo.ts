@@ -332,11 +332,17 @@ export async function tombstoneStaffPinsByDevice(
 export async function listPinStatusesForTenant(
   tx: TenantTx,
   tenantId: string,
+  appUserId?: string,
 ): Promise<Map<string, 'unset' | 'active' | 'locked'>> {
   const creds = await tx
     .select({ userId: userPinCredential.userId, pinEpoch: userPinCredential.pinEpoch })
     .from(userPinCredential)
-    .where(eq(userPinCredential.tenantId, tenantId))
+    .where(
+      and(
+        eq(userPinCredential.tenantId, tenantId),
+        appUserId ? eq(userPinCredential.userId, appUserId) : undefined,
+      ),
+    )
 
   const epochByUser = new Map<string, number>()
   for (const c of creds) {
@@ -349,7 +355,13 @@ export async function listPinStatusesForTenant(
       pinEpochSeen: staffPinState.pinEpochSeen,
     })
     .from(staffPinState)
-    .where(and(eq(staffPinState.tenantId, tenantId), eq(staffPinState.lockTier, 3)))
+    .where(
+      and(
+        eq(staffPinState.tenantId, tenantId),
+        eq(staffPinState.lockTier, 3),
+        appUserId ? eq(staffPinState.userId, appUserId) : undefined,
+      ),
+    )
 
   const lockedUsers = new Set<string>()
   for (const s of lockedStates) {

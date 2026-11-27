@@ -2,6 +2,7 @@ import '@tanstack/react-start/server-only'
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { MasterWriter } from '~/modules/sync/public'
 import type { NoTenantTx, TenantTx } from '~/server/db'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import { appUser, memberCode, outlet, role, userOutlet } from './schema'
 
 export type MemberCodeKind = 'INVITE' | 'RESET'
@@ -339,28 +340,6 @@ export async function listUserOutletBindings(
   }))
 }
 
-export async function listUserRoleCodesForAppUser(
-  tx: TenantTx,
-  tenantId: string,
-  appUserId: string,
-): Promise<string[]> {
-  const rows = await tx
-    .select({ code: role.code })
-    .from(userOutlet)
-    .innerJoin(
-      role,
-      and(eq(role.tenantId, userOutlet.tenantId), eq(role.id, userOutlet.roleId), isNull(role.deletedAt)),
-    )
-    .where(
-      and(
-        eq(userOutlet.tenantId, tenantId),
-        eq(userOutlet.userId, appUserId),
-        isNull(userOutlet.deletedAt),
-      ),
-    )
-  return rows.map((r) => r.code)
-}
-
 export async function countActiveOwnersExcluding(
   tx: TenantTx,
   tenantId: string,
@@ -387,7 +366,7 @@ export async function countActiveOwnersExcluding(
         eq(appUser.isActive, true),
         eq(appUser.membershipStatus, 'ACTIVE'),
         isNull(appUser.deletedAt),
-        eq(role.code, 'OWNER'),
+        eq(role.code, OWNER_ROLE_CODE),
         ne(appUser.id, excludeAppUserId),
       ),
     )

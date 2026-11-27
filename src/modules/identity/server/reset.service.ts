@@ -3,6 +3,7 @@ import { isUuid } from '~/lib/kernel'
 import { appendAudit } from '~/modules/audit/public'
 import { withTenant } from '~/server/db'
 import { AppError } from '~/server/error-classify'
+import { OWNER_ROLE_CODE } from '../domain/default-roles'
 import { findAuthUserEmailById } from './auth-account.repo'
 import {
   addHoursIso,
@@ -16,9 +17,9 @@ import {
   callAuthAccountMembershipCount,
   findAppUserById,
   insertMemberCodeRow,
-  listUserRoleCodesForAppUser,
   revokeActiveMemberCodes,
 } from './member-code.repo'
+import { listActiveRolesOfUser } from './member-directory.repo'
 
 const RESET_TTL_HOURS = 24
 
@@ -62,8 +63,8 @@ export async function issueResetCode(
       throw new AppError('FORBIDDEN', 'members.reset.unavailable')
     }
 
-    const roleCodes = await listUserRoleCodesForAppUser(tx, actor.tenantId, appUserId)
-    if (roleCodes.includes('OWNER')) {
+    const roles = await listActiveRolesOfUser(tx, actor.tenantId, appUserId)
+    if (roles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {
       throw new AppError('FORBIDDEN', 'members.reset.unavailable')
     }
 
