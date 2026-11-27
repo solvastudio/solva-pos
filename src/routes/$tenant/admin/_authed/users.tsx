@@ -57,7 +57,7 @@ function AdminUsersPage() {
             tenantSlug={slug}
             tenantName={name}
             permissions={permissions}
-            actorOutletIds={session?.outletIds ?? []}
+            actorOutletIds={session ? session.outletIds : []}
             actorDiscountLimitPct={session?.discountLimitPct ?? 0}
           />
         </div>
