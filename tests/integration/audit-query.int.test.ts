@@ -162,4 +162,33 @@ describe('audit viewer, CSV formula escaping, and hash-chain verification', () =
       reason: 'ROW_HASH',
     })
   })
+
+  it('treats an actor without an outlet scope as having no outlets, while null still means every outlet', async () => {
+    const slug = uniqueSlug('audu')
+    const created = await createTenant(testOp, {
+      name: `Aud ${slug}`,
+      slug,
+      ownerEmail: `owner-${slug}@example.test`,
+      ownerDisplayName: 'Owner Aud',
+    })
+    const base = {
+      tenantId: created.tenantId,
+      appUserId: created.ownerInvite.appUserId,
+      permissions: new Set(['audit.view']),
+    }
+    const tenantWide: AuditActorContext = { ...base, outletIds: null }
+    const unscoped: AuditActorContext = { ...base, outletIds: undefined }
+    const someOutlet = idGen.newId()
+
+    // null is tenant-wide access: tenant-level entries are visible and any outlet filter is allowed.
+    expect((await listAudit(tenantWide)).length).toBeGreaterThan(0)
+    await expect(listAudit(tenantWide, { outletId: someOutlet })).resolves.toEqual([])
+
+    // A missing scope fails closed.
+    expect(await listAudit(unscoped)).toEqual([])
+    await expect(listAudit(unscoped, { outletId: someOutlet })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(exportAuditCsv(unscoped)).resolves.toMatchObject({ count: 0 })
+  })
 })

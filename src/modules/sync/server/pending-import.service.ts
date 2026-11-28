@@ -98,7 +98,8 @@ export async function importPendingFile(
   if (!deviceInfo) {
     throw new AppError('FORBIDDEN', 'Export file device/register does not belong to this tenant')
   }
-  const allowedOutlets = actor.outletIds ?? null
+  // Only `null` grants every outlet; a missing scope (undefined) fails closed to no outlets.
+  const allowedOutlets = actor.outletIds === undefined ? [] : actor.outletIds
   if (allowedOutlets !== null && !allowedOutlets.includes(deviceInfo.outletId)) {
     throw new AppError('FORBIDDEN', 'Export file outlet is outside manager scope')
   }

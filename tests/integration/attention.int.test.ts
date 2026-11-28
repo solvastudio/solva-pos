@@ -504,4 +504,19 @@ describe('admin attention queue (list, acceptManual, dismiss, escalate)', () => 
       reason_code: 'UNKNOWN_REFERENCE',
     })
   })
+
+  it('treats an actor without an outlet scope as having no outlets, while null still means every outlet', async () => {
+    const env = await setupEnv()
+    const unscoped: SyncAdminActor = { ...env.syncOwner, outletIds: undefined }
+    const someOutlet = idGen.newId()
+
+    // null is tenant-wide access: any outlet filter is allowed.
+    await expect(listAttention(env.syncOwner, { outletId: someOutlet })).resolves.toEqual([])
+
+    // A missing scope fails closed.
+    await expect(listAttention(unscoped)).resolves.toEqual([])
+    await expect(listAttention(unscoped, { outletId: someOutlet })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+  })
 })

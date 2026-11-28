@@ -32,7 +32,8 @@ function assertAttentionPermission(actor: SyncAdminActor, outletId?: string | nu
   if (!hasSyncActorPermission(actor, 'user.manage')) {
     throw new AppError('FORBIDDEN', 'Missing permission user.manage')
   }
-  const outletIds = actor.outletIds ?? null
+  // Only `null` grants every outlet; a missing scope (undefined) fails closed to no outlets.
+  const outletIds = actor.outletIds === undefined ? [] : actor.outletIds
   if (outletId && outletIds !== null && !outletIds.includes(outletId)) {
     throw new AppError('FORBIDDEN', 'Outlet outside actor scope')
   }
@@ -113,7 +114,7 @@ export async function listAttention(
     listAttentionRows(tx, actor.tenantId, {
       statuses,
       outletId: filter?.outletId ?? null,
-      allowedOutletIds: actor.outletIds ?? null,
+      allowedOutletIds: actor.outletIds === undefined ? [] : actor.outletIds,
     }),
   )
 

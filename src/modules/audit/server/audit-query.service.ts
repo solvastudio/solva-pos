@@ -22,7 +22,8 @@ function assertAuditViewAccess(actor: AuditActorContext, outletId?: string | nul
   if (!hasAuditPermission(actor, 'audit.view')) {
     throw new AppError('FORBIDDEN', 'Missing permission audit.view')
   }
-  const outletIds = actor.outletIds ?? null
+  // Only `null` grants every outlet; a missing scope (undefined) fails closed to no outlets.
+  const outletIds = actor.outletIds === undefined ? [] : actor.outletIds
   if (outletId && outletIds !== null && !outletIds.includes(outletId)) {
     throw new AppError('FORBIDDEN', 'Outlet outside actor scope')
   }
@@ -36,7 +37,7 @@ export async function listAudit(
   return withTenantReadOnly(actor.tenantId, (tx) =>
     queryAuditRows(tx, actor.tenantId, {
       ...filter,
-      allowedOutletIds: actor.outletIds ?? null,
+      allowedOutletIds: actor.outletIds === undefined ? [] : actor.outletIds,
     }),
   )
 }
@@ -69,7 +70,7 @@ export async function exportAuditCsv(
       ...filter,
       sort: 'asc',
       limit: 500,
-      allowedOutletIds: actor.outletIds ?? null,
+      allowedOutletIds: actor.outletIds === undefined ? [] : actor.outletIds,
     }),
   )
 

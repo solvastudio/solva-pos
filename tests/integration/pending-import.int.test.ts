@@ -199,6 +199,11 @@ describe('importPendingFile (FLOW-16 offline recovery importer)', () => {
     // 2. Cross-tenant import fails ownership check
     await expect(importPendingFile(syncActorB, { fileText })).rejects.toThrow(/tenant/)
 
+    // 2b. An actor without any outlet scope is rejected before anything is processed
+    await expect(
+      importPendingFile({ ...syncActorA, outletIds: undefined }, { fileText }),
+    ).rejects.toThrow(/outside manager scope/)
+
     // 3. Valid import processes OpenShift & AppendAudit (ACK) and skips stale ReportPinState
     const res1 = await importPendingFile(syncActorA, { fileText })
     expect(res1.acked).toBe(2)
