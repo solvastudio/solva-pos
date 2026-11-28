@@ -1001,6 +1001,7 @@
       "activated": "Stock tracking enabled",
       "activateFailed": "Could not enable stock tracking",
       "chooseOutlet": "Choose outlet",
+      "otherOutlet": "Other outlet",
       "allOutlets": "All outlets",
       "filterOutlet": "Outlet",
       "filterScope": "View",

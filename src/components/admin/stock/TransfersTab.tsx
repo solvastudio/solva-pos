@@ -36,7 +36,8 @@ export function TransfersTab() {
   const [qty, setQty] = useState('')
   const [receiveId, setReceiveId] = useState<string | null>(null)
 
-  const outletLabel = (id: string) => formatOutletName([...destinations, ...outlets], id)
+  const outletLabel = (id: string) =>
+    formatOutletName([...destinations, ...outlets], id, t('admin.stock.otherOutlet'))
 
   const sendMut = useMutation({
     mutationFn: async () => {
@@ -67,8 +68,9 @@ export function TransfersTab() {
     {
       id: 'actions',
       header: '',
+      // Receiving needs access to the destination outlet, so offer it only when that outlet is one of the actor's own.
       cell: (r) =>
-        r.status === 'SENT' ? (
+        r.status === 'SENT' && outlets.some((o) => o.id === r.toOutletId) ? (
           <Button variant="secondary" size="sm" onClick={() => setReceiveId(r.id)}>
             {t('admin.stock.receiveAction')}
           </Button>

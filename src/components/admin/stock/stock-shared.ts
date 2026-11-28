@@ -3,9 +3,14 @@ import { listOutletOptionsFn } from '~/functions/identity/org.fn'
 import { listSkuOptionsFn, listTransferDestinationsFn } from '~/functions/inventory/stock-read.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 
-export function formatOutletName(outlets: readonly { id: string; code: string; name: string }[], id: string): string {
+/** Outlet display name; `fallback` is shown when the outlet is not in the list (defaults to the raw id). */
+export function formatOutletName(
+  outlets: readonly { id: string; code: string; name: string }[],
+  id: string,
+  fallback = id,
+): string {
   const outlet = outlets.find((o) => o.id === id)
-  return outlet ? outlet.name || outlet.code : id
+  return outlet ? outlet.name || outlet.code : fallback
 }
 
 export function todayIso(): string {
