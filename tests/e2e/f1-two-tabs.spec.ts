@@ -24,7 +24,7 @@ test.describe('Two-tab exclusive instance lock', () => {
       await page2.goto('/acme/pos/login')
       await page2.waitForURL(/\/acme\/pos\/system\?variant=duplicate_instance/, { timeout: 15_000 })
       await expect(page2.locator('h1')).toContainText(
-        /Already open in another tab|Sudah dibuka di tab lain/i,
+        /Already open in another tab|Sudah (dibuka|terbuka) di tab lain/i,
       )
 
       // Closing primary tab promotes page2 automatically to /acme/pos/login!
