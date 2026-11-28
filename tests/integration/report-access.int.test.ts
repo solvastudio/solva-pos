@@ -111,4 +111,22 @@ describe('Report concurrency semaphore (±2 per tenant), access scope, and CSV e
     expect(csvRes.csv.startsWith('\uFEFF')).toBe(true)
     expect(csvRes.csv).toContain('2026-11-17,OUT01,Outlet Utama,3,176700,7370,169330,0,18626,44,188000,17900,170100,1')
   })
+
+  it('treats an actor with no outlet scope at all as having no outlets, while null still means every outlet', async () => {
+    const fix = await seedV25SalesReportFixture()
+    const filter = {
+      outletIds: [],
+      from: '2026-11-17',
+      to: '2026-11-17',
+      groupBy: 'DAY' as const,
+    }
+
+    // The scope field is missing: fail closed, nothing is reported.
+    const unscoped = await getSalesReport({ ...fix.managerOut1Actor, outletIds: undefined }, filter)
+    expect(unscoped.rows).toEqual([])
+
+    // null is tenant-wide access and keeps seeing the data.
+    const tenantWide = await getSalesReport(fix.ownerActor, filter)
+    expect(tenantWide.rows.length).toBeGreaterThan(0)
+  })
 })

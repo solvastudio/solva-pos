@@ -52,7 +52,8 @@ async function resolveScopedOutletIds(
     throw new AppError('FORBIDDEN', 'Missing permission report.view')
   }
 
-  const allowedScope = actor.outletIds ?? null
+  // Only `null` grants every outlet; a missing scope (undefined) fails closed to no outlets.
+  const allowedScope = actor.outletIds === undefined ? [] : actor.outletIds
   if (allowedScope !== null) {
     const allowedSet = new Set(allowedScope.map((id) => id.toLowerCase()))
     if (requestedOutletIds.length > 0) {
