@@ -5,14 +5,12 @@ import {
   getAvailabilityMatrix,
   getPriceMatrix,
   listAdminProducts,
-  listCatalogOutlets,
   listCategories,
   listUoms,
   type AdminProductDetail,
   type AdminProductListResult,
   type AvailabilityMatrixResult,
   type CategoryRow,
-  type OutletSummary,
   type PriceMatrixResult,
   type UomRow,
 } from '~/modules/catalog/public'
@@ -91,12 +89,6 @@ export const listUomsFn = createServerFn({ method: 'GET' })
   .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ context }): Promise<UomRow[]> => {
     return listUoms(context.auth)
-  })
-
-export const listCatalogOutletsFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
-  .handler(async ({ context }): Promise<OutletSummary[]> => {
-    return listCatalogOutlets(context.auth)
   })
 
 export const listFeatureFlagsFn = createServerFn({ method: 'GET' })

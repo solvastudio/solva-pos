@@ -47,7 +47,7 @@ export const qk = {
     ['catalog', tenantSlug, 'product', productId] as const,
   categories: (tenantSlug: string) => ['catalog', tenantSlug, 'categories'] as const,
   uoms: (tenantSlug: string) => ['catalog', tenantSlug, 'uoms'] as const,
-  catalogOutlets: (tenantSlug: string) => ['catalog', tenantSlug, 'outlets'] as const,
+  outletOptions: (tenantSlug: string) => ['admin', tenantSlug, 'outlet-options'] as const,
   priceMatrix: (tenantSlug: string, filter?: PriceMatrixQueryFilter) =>
     ['catalog', tenantSlug, 'price-matrix', filter ?? {}] as const,
   availabilityMatrix: (tenantSlug: string, filter?: AvailabilityMatrixQueryFilter) =>

@@ -48,7 +48,6 @@ export {
   getTransfer,
   listStocktakes,
   getStocktake,
-  type TransferDestinationRow,
   type TransferListRow,
   type TransferDetail,
   type TransferLineView,

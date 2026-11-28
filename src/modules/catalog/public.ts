@@ -81,13 +81,11 @@ export type {
   ImportRowErrorCode,
   RowError,
 } from './server/import/types'
-export { type OutletSummary } from './server/query.repo'
 export {
   getAdminProductDetail,
   getAvailabilityMatrix,
   getPriceMatrix,
   listAdminProducts,
-  listCatalogOutlets,
   type AdminProductDetail,
   type AdminProductListItem,
   type AdminProductListResult,

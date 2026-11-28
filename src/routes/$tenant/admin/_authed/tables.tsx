@@ -9,8 +9,8 @@ import { Tabs, type TabItem } from '~/components/ui'
 import { getOpsReportFn } from '~/functions/reporting/reports.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { tenantHref } from '~/lib/tenancy/tenant-href'
-import { catalogOutletsQueryOptions } from '~/queries/catalog.queries'
 import { fnbTablesQueryOptions } from '~/queries/fnb.queries'
+import { outletOptionsQueryOptions } from '~/queries/identity.queries'
 
 export const Route = createFileRoute('/$tenant/admin/_authed/tables')({
   beforeLoad: ({ params, context }) => {
@@ -21,7 +21,7 @@ export const Route = createFileRoute('/$tenant/admin/_authed/tables')({
   loader: async ({ params, context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(fnbTablesQueryOptions(params.tenant)),
-      context.queryClient.ensureQueryData(catalogOutletsQueryOptions(params.tenant)),
+      context.queryClient.ensureQueryData(outletOptionsQueryOptions(params.tenant)),
     ])
   },
   component: TablesAdminPage,
@@ -33,7 +33,7 @@ function TablesAdminPage() {
   const { session } = Route.useRouteContext()
   const [tab, setTab] = useState<'master' | 'bills'>('master')
   const { data: tables = [], isLoading } = useQuery(fnbTablesQueryOptions(slug))
-  const { data: outlets = [] } = useQuery(catalogOutletsQueryOptions(slug))
+  const { data: outlets = [] } = useQuery(outletOptionsQueryOptions(slug))
   const canViewReports = Boolean(session?.permissions.includes('report.view'))
   const range = getDefaultReportDateRange()
   const opsQuery = useQuery({

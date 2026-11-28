@@ -146,14 +146,6 @@ function clampPageSize(rawSize?: number, fallback = 50): number {
   return Math.min(100, rawSize)
 }
 
-export async function listCatalogOutlets(actor: CatalogActor): Promise<OutletSummary[]> {
-  requireCatalogView(actor)
-  const scopeIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
-  return withTenantReadOnly(actor.tenantId, (tx) =>
-    queryScopedOutlets(tx, actor.tenantId, scopeIds),
-  )
-}
-
 export async function listAdminProducts(
   actor: CatalogActor,
   params?: {

@@ -3,7 +3,6 @@ import {
   getAvailabilityMatrixFn,
   getPriceMatrixFn,
   getProductFn,
-  listCatalogOutletsFn,
   listCategoriesFn,
   listFeatureFlagsFn,
   listProductsFn,
@@ -49,13 +48,6 @@ export function uomsQueryOptions(tenantSlug: string) {
   return queryOptions({
     queryKey: qk.uoms(tenantSlug),
     queryFn: () => listUomsFn(),
-  })
-}
-
-export function catalogOutletsQueryOptions(tenantSlug: string) {
-  return queryOptions({
-    queryKey: qk.catalogOutlets(tenantSlug),
-    queryFn: () => listCatalogOutletsFn(),
   })
 }
 

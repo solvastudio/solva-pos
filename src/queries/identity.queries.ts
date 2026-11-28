@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { listDevicesFn } from '~/functions/identity/device.fn'
 import { listMembersFn } from '~/functions/identity/members-admin.fn'
 import { listPendingInvitesFn } from '~/functions/identity/members.fn'
-import { listLegalEntitiesFn, listOutletsFn } from '~/functions/identity/org.fn'
+import { listLegalEntitiesFn, listOutletOptionsFn, listOutletsFn } from '~/functions/identity/org.fn'
 import { listRegistersFn } from '~/functions/identity/register.fn'
 import { listRoleMembersFn, listRolesWithPermissionsFn } from '~/functions/identity/role.fn'
 import { qk, type MembersQueryFilter } from './keys'
@@ -18,6 +18,14 @@ export function outletsQueryOptions(tenantSlug: string) {
   return queryOptions({
     queryKey: qk.outlets(tenantSlug),
     queryFn: () => listOutletsFn(),
+  })
+}
+
+/** Outlet id, code and name for filters; any signed-in member, limited to their own outlets. */
+export function outletOptionsQueryOptions(tenantSlug: string) {
+  return queryOptions({
+    queryKey: qk.outletOptions(tenantSlug),
+    queryFn: () => listOutletOptionsFn(),
   })
 }
 

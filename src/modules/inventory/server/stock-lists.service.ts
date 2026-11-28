@@ -1,7 +1,11 @@
 import '@tanstack/react-start/server-only'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { isUuid, normalizeQty, parseQty, subQty } from '~/lib/kernel'
-import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
+import {
+  requireActorPermission,
+  type IdentityAuthActor,
+  type OutletOptionView,
+} from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant } from '~/server/db'
 import { assertOutletInScope, outletInScopeSql, scopeOf } from './outlet-scope'
@@ -23,14 +27,8 @@ export interface TransferListRow {
   readonly businessDate: string
 }
 
-export interface TransferDestinationRow {
-  readonly id: string
-  readonly code: string
-  readonly name: string
-}
-
 /** Active outlets a transfer may be sent to. Any outlet is a valid destination, so this is not limited to the actor's scope. */
-export async function listTransferDestinations(actor: IdentityAuthActor): Promise<TransferDestinationRow[]> {
+export async function listTransferDestinations(actor: IdentityAuthActor): Promise<OutletOptionView[]> {
   requireActorPermission(actor, 'inventory.manage')
   return withTenant(actor.tenantId, async (tx) => {
     const res = await tx.execute<{ id: string; code: string; name: string }>(sql`
