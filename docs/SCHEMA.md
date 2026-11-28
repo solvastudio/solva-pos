@@ -405,7 +405,7 @@ Tidak ada migrasi turun; rollback aplikasi hanya ke versi yang masih mengenal se
    │
    └─1──* app_user                                [profil/keanggotaan per tenant: staf PIN-only (auth_user_id NULL) & akun back-office; auth_user_id → user Better Auth GLOBAL (email unik se-sistem); UQ (tenant_id, auth_user_id); membership_status PENDING|ACTIVE; member BA = cermin keanggotaan ACTIVE]
             ├─1──1 user_pin_credential            [server-saja: verifier PIN]
-            ├─*──* outlet  lewat  user_outlet (+ role_id N:1 role)       [outlet_id NULL = semua outlet]
+            ├─*──* outlet  lewat  user_outlet (+ role_id N:1 role)       [outlet_id NULL = semua outlet; satu role per user, ditegakkan aplikasi]
             └─*──* device  lewat  staff_pin       [hash PIN, salt per device; arah turun]
 ```
 
@@ -571,7 +571,7 @@ Kardinalitas: `sale 1:N sale_line`; `sale 1:N sale_payment` (multi-metode, BR-PA
 | Relasi | Tipe | Catatan |
 |---|---|---|
 | tenant → legal_entity → outlet → cash_master → device | 1:N berantai | KEP-03; device tunggal aktif per register |
-| app_user ↔ outlet | N:M (`user_outlet`) | Membawa role; `outlet_id NULL` = semua outlet |
+| app_user ↔ outlet | N:M (`user_outlet`) | Membawa role (satu role per user, ditegakkan aplikasi); `outlet_id NULL` = semua outlet |
 | app_user ↔ device | N:M (`staff_pin`) | Salt per device |
 | role ↔ permission | N:M (`role_permission`) | `permission` global |
 | product → sku → sku_uom | 1:N → 1:N | Produk tanpa varian = 1 SKU implisit |
@@ -821,7 +821,7 @@ Kelas **G** (tanpa `tenant_id`, tanpa RLS; diisi migrasi/seed; aplikasi hanya `S
 
 | Kolom | Tipe PG | TS / Lokal | Constraint | Keterangan |
 |---|---|---|---|---|
-| `code` | `text` | `string` | PK, CHK `^[a-z_.]{3,50}$` | Mis. `sale.create`, `bill.edit`, `bill.void_item`, `discount.manual`, `discount.approve`, `sale.void`, `return.approve`, `shift.open_close`, `cash.in_out`, `shift.view_variance`, `shift.force_close`, `gap.annotate`, `catalog.manage`, `inventory.manage`, `user.manage`, `report.view`, `audit.view`, `customer.view_phone`, `drawer.open`, **`bill.handover`**, **`bill.accept`**, **`screen.unlock_override`**, **`flag.manage`**, **`role.manage`** (kelola role; Owner dan Manager, BR-AUT-012). Nama yang tidak disebut eksplisit di PRD (`sale.create`, `bill.edit`, dst.) bersifat usulan yang dikunci saat seed F1 (OQ-S12 terjawab). Bawaan `customer.view_phone` (lihat nomor telepon pelanggan tanpa masking, BR-CUS-002): `OWNER` dan `MANAGER`. **PRD (BR-AUT-009):** `bill.handover` (serahkan bill ke kasir) = Owner, Manager, Supervisor, Waiter; `bill.accept` (terima bill, hanya di register `CASHIER`) = Owner, Manager, Supervisor, Kasir. `flag.manage` (ubah feature flag tenant, **hanya Owner**, keputusan user 2026-11-18); `screen.unlock_override` (buka kunci layar staf lain hanya untuk pergantian kasir/tutup shift, BR-AUT-015) = Supervisor, Manager, Owner — nama kode dikunci pada OQ-S22 (terjawab). |
+| `code` | `text` | `string` | PK, CHK `^[a-z_.]{3,50}$` | Mis. `sale.create`, `bill.edit`, `bill.void_item`, `discount.manual`, `discount.approve`, `sale.void`, `return.approve`, `shift.open_close`, `cash.in_out`, `shift.view_variance`, `shift.force_close`, `gap.annotate`, `catalog.view`, `catalog.manage`, `catalog.import`, `inventory.manage`, `supplier.manage`, `user.manage`, `org.manage`, `report.view`, `audit.view`, `customer.view_phone`, `drawer.open`, **`bill.handover`**, **`bill.accept`**, **`screen.unlock_override`**, **`flag.manage`**, **`role.manage`** (kelola role; bawaan hanya Owner, BR-AUT-012). Nama yang tidak disebut eksplisit di PRD (`sale.create`, `bill.edit`, dst.) bersifat usulan yang dikunci saat seed F1 (OQ-S12 terjawab). Bawaan `customer.view_phone` (lihat nomor telepon pelanggan tanpa masking, BR-CUS-002): `OWNER` dan `MANAGER`. **PRD (BR-AUT-009):** `bill.handover` (serahkan bill ke kasir) = Owner, Manager, Supervisor, Waiter; `bill.accept` (terima bill, hanya di register `CASHIER`) = Owner, Manager, Supervisor, Kasir. `flag.manage` (ubah feature flag tenant, **hanya Owner**, keputusan user 2026-11-18); `screen.unlock_override` (buka kunci layar staf lain hanya untuk pergantian kasir/tutup shift, BR-AUT-015) = Supervisor, Manager, Owner — nama kode dikunci pada OQ-S22 (terjawab). |
 | `module` | `text` | `string` | NN | Pengelompokan UI. |
 | `description` | `text` | `string` | NN | Penjelasan (kunci i18n, bukan teks terjemahan). |
 
@@ -3290,7 +3290,7 @@ Per lingkungan: tiap lingkungan memiliki database sendiri sehingga tidak perlu k
 
 ### A.4 Kode aksi audit (`audit_log.action`) — contoh awal (BR-AUD-001)
 
-`sale.void`, `discount.override`, `price.changed`, `availability.changed`, `return.created`, `role.changed`, `role.created`, `role.deleted`, `permission.changed`, `pin.reset`, `pin.locked`, `member.invited`, `member.invite_canceled`, `member.invite_reissued`, `member.accepted`, `member.removed`, `member.reset_issued`, `member.password_reset`, `device.enrolled`, `device.revoked`, `register.created`, `register.recovered`, `gr.posted`, `gr.reversed`, `transfer.sent`, `transfer.received`, `stocktake.posted`, `shift.force_closed`, `shift.variance`, `cash.movement`, `gap.explained`, `tax_rate.changed`, `outlet.changed`, `invoice_prefix.changed`, `feature_flag.changed`, `release_policy.changed`, `pending.exported`, `drawer.opened`, `attention.resolved`, `user.changed`, **`screen.unlock_override`** (PRD: **hanya** override supervisor dan penguncian PIN salah berulang yang diaudit; kunci/buka biasa oleh staf yang sama tidak diaudit, BR-AUT-015 butir 5).
+`sale.void`, `discount.override`, `price.changed`, `availability.changed`, `return.created`, `role.changed`, `role.created`, `role.deleted`, `permission.changed`, `pin.reset`, `pin.locked`, `member.invited`, `member.invite_canceled`, `member.invite_reissued`, `member.accepted`, `member.removed`, `member.reset_issued`, `member.password_reset`, `device.enrolled`, `device.revoked`, `register.created`, `register.recovered`, `gr.posted`, `gr.reversed`, `transfer.sent`, `transfer.received`, `stocktake.posted`, `shift.force_closed`, `shift.variance`, `cash.movement`, `gap.explained`, `tax_rate.changed`, `outlet.changed`, `invoice_prefix.changed`, `feature_flag.changed`, `release_policy.changed`, `pending.exported`, `drawer.opened`, `attention.resolved`, `user.changed`, `catalog.changed`, **`screen.unlock_override`** (PRD: **hanya** override supervisor dan penguncian PIN salah berulang yang diaudit; kunci/buka biasa oleh staf yang sama tidak diaudit, BR-AUT-015 butir 5).
 
 ---
 

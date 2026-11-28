@@ -1311,7 +1311,7 @@ Tidak ada *access token* berumur pendek di jalur `/pos`: otorisasi device adalah
 
 ### 6.7 Otorisasi (RBAC) dan titik penegakan
 
-Model: **permission = kode** (`permission` global, SCHEMA §4.1.10) → `role_permission` per tenant → `user_outlet` (peran per outlet; `outlet_id NULL` = semua outlet). Batas diskon = `role.discount_limit_pct`.
+Model: **permission = kode** (`permission` global, SCHEMA §4.1.10) → `role_permission` per tenant → `user_outlet` (satu peran per user dengan cakupan outlet, ditegakkan aplikasi; `outlet_id NULL` = semua outlet). Batas diskon = `role.discount_limit_pct`.
 
 | Tempat | Penegak | Sifat |
 |---|---|---|
