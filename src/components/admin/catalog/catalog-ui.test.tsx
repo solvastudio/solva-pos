@@ -317,6 +317,27 @@ describe('catalog admin UI components (jsdom + axe)', () => {
     }
   })
 
+  it('ProductTable offers the add action only to users who can create products', () => {
+    const readOnly = wrap(<ProductTable tenantSlug="acme" rows={[]} />)
+    expect(screen.getByText('No products yet')).toBeTruthy()
+    expect(screen.getByText('No products to show yet.')).toBeTruthy()
+    expect(screen.queryByText(/Add your first product/)).toBeNull()
+    expect(screen.queryByRole('button', { name: /Add product/i })).toBeNull()
+    readOnly.unmount()
+
+    wrap(<ProductTable tenantSlug="acme" rows={[]} onCreateAction={() => {}} />)
+    expect(screen.getByText(/Add your first product/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Add product/i })).toBeTruthy()
+  })
+
+  it('ProductTable says "no match" instead of "no products yet" when a search or filter is active', () => {
+    wrap(<ProductTable tenantSlug="acme" rows={[]} filtered onCreateAction={() => {}} />)
+    expect(screen.getByText('No products match your search')).toBeTruthy()
+    expect(screen.getByText('Change the keyword or filters and try again.')).toBeTruthy()
+    expect(screen.queryByText('No products yet')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Add product/i })).toBeNull()
+  })
+
   it('ImportWizard renders steps and passes axe checks', async () => {
     const { container } = wrap(<ImportWizard tenantSlug="acme" canImportCatalog={true} />)
     expect(screen.getByText('1. Upload & Validate')).toBeTruthy()

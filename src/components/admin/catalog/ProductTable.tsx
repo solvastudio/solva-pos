@@ -9,6 +9,8 @@ export interface ProductTableProps {
   tenantSlug: string
   rows: readonly AdminProductListItem[]
   loading?: boolean
+  /** A search or filter is active, so an empty list means "no match" rather than "no products yet". */
+  filtered?: boolean
   onCreateAction?: () => void
 }
 
@@ -25,6 +27,7 @@ export function ProductTable({
   tenantSlug,
   rows,
   loading = false,
+  filtered = false,
   onCreateAction,
 }: ProductTableProps) {
   const { t, i18n } = useTranslation()
@@ -134,10 +137,16 @@ export function ProductTable({
       loading={loading}
       pageSize={50}
       emptyIcon={<Package className="size-10" />}
-      emptyTitle={t('admin.catalog.emptyTitle')}
-      emptyDescription={t('admin.catalog.emptyDesc')}
+      emptyTitle={t(filtered ? 'admin.catalog.emptyFilteredTitle' : 'admin.catalog.emptyTitle')}
+      emptyDescription={t(
+        filtered
+          ? 'admin.catalog.emptyFilteredDesc'
+          : onCreateAction
+            ? 'admin.catalog.emptyDesc'
+            : 'admin.catalog.emptyDescReadOnly',
+      )}
       emptyAction={
-        onCreateAction ? (
+        onCreateAction && !filtered ? (
           <Button
             type="button"
             leadingIcon={<Plus className="size-4" aria-hidden="true" />}

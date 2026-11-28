@@ -193,6 +193,7 @@ function CatalogListPage() {
         tenantSlug={slug}
         rows={listData?.items ?? []}
         loading={isLoading}
+        filtered={Boolean(search.q || search.categoryId) || search.type !== 'ALL'}
         onCreateAction={
           canEditMaster
             ? () => navigate({ to: tenantHref(slug, '/admin/catalog/new') })
