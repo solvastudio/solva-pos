@@ -11,7 +11,7 @@ import { getDefaultReportDateRange } from '~/components/admin/reports/report-dow
 import { ShiftVarianceCell } from '~/components/admin/reports/ShiftVarianceCell'
 import { SpaLink } from '~/components/layout/SpaLink'
 import { Card, Chip, type DataTableColumn } from '~/components/ui'
-import { listOutletsFn } from '~/functions/identity/org.fn'
+import { listOutletOptionsFn } from '~/functions/identity/org.fn'
 import { getDashboardFn } from '~/functions/reporting/reports.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { formatDateTime, formatMoney, toMoney } from '~/lib/kernel'
@@ -56,8 +56,8 @@ function AdminDashboardPage() {
   const canViewReports = Boolean(session?.permissions.includes('report.view'))
 
   const outletsQuery = useQuery({
-    queryKey: ['admin', slug, 'outlets-list'],
-    queryFn: () => listOutletsFn(),
+    queryKey: ['admin', slug, 'outlet-options'],
+    queryFn: () => listOutletOptionsFn(),
     enabled: canViewReports,
   })
 

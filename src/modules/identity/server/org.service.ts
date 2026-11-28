@@ -282,6 +282,22 @@ export async function listOutlets(actor: IdentityAuthActor): Promise<OutletView[
   })
 }
 
+/** Minimal outlet data for filter dropdowns. */
+export interface OutletOptionView {
+  id: string
+  code: string
+  name: string
+}
+
+/** Outlets the actor may pick in filters (id, code, name only). Any signed-in member; limited to the actor's own outlets. */
+export async function listOutletOptions(actor: IdentityAuthActor): Promise<OutletOptionView[]> {
+  const allowedOutletIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
+  return withTenantReadOnly(actor.tenantId, async (tx) => {
+    const rows = await listOutletsRows(tx, actor.tenantId, allowedOutletIds)
+    return rows.map((row) => ({ id: row.id, code: row.code, name: row.name }))
+  })
+}
+
 export async function createOutlet(
   actor: IdentityAuthActor,
   rawInput: CreateOutletInput,

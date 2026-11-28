@@ -11,7 +11,7 @@ import {
 } from '~/components/admin/reports/report-download'
 import { ShiftVarianceCell } from '~/components/admin/reports/ShiftVarianceCell'
 import { Chip, useToast, type DataTableColumn } from '~/components/ui'
-import { listOutletsFn } from '~/functions/identity/org.fn'
+import { listOutletOptionsFn } from '~/functions/identity/org.fn'
 import { exportReportCsvFn, getShiftReportFn } from '~/functions/reporting/reports.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { formatDateTime, formatMoney, toMoney } from '~/lib/kernel'
@@ -44,8 +44,8 @@ function AdminShiftReportPage() {
   })
 
   const outletsQuery = useQuery({
-    queryKey: ['admin', slug, 'outlets-list'],
-    queryFn: () => listOutletsFn(),
+    queryKey: ['admin', slug, 'outlet-options'],
+    queryFn: () => listOutletOptionsFn(),
   })
 
   const reportQuery = useQuery({

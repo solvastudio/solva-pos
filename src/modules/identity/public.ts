@@ -75,11 +75,13 @@ export {
   createLegalEntity,
   createOutlet,
   listLegalEntities,
+  listOutletOptions,
   listOutlets,
   registerOutletCreatedHook,
   updateLegalEntity,
   updateOutlet,
   type OutletCreatedHook,
+  type OutletOptionView,
 } from './server/org.service'
 export {
   changeInvoicePrefix,

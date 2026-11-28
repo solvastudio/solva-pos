@@ -3,9 +3,11 @@ import {
   createLegalEntity,
   createOutlet,
   listLegalEntities,
+  listOutletOptions,
   listOutlets,
   updateLegalEntity,
   updateOutlet,
+  type OutletOptionView,
 } from '~/modules/identity/public'
 import {
   createOutletSchema,
@@ -17,7 +19,11 @@ import {
   type MutationActionResult,
   type OutletView,
 } from '~/modules/identity/shared'
-import { requireAnyPermission, requirePermission } from '~/server/auth/auth-middleware'
+import {
+  authMiddleware,
+  requireAnyPermission,
+  requirePermission,
+} from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware, runValidatedAction } from '../middleware'
 
 function parseLegalEntityCreateInput(raw: unknown) {
@@ -66,6 +72,13 @@ export const listOutletsFn = createServerFn({ method: 'GET' })
   .middleware([publicErrorMiddleware, requireAnyPermission('user.manage', 'org.manage')])
   .handler(async ({ context }): Promise<OutletView[]> => {
     return listOutlets(context.auth)
+  })
+
+/** Outlet id, code and name for filter dropdowns; any signed-in member, limited to their own outlets. */
+export const listOutletOptionsFn = createServerFn({ method: 'GET' })
+  .middleware([publicErrorMiddleware, authMiddleware])
+  .handler(async ({ context }): Promise<OutletOptionView[]> => {
+    return listOutletOptions(context.auth)
   })
 
 export const createOutletFn = createServerFn({ method: 'POST' })

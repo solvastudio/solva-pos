@@ -14,7 +14,7 @@ import {
   type DataTableColumn,
 } from '~/components/ui'
 import { SpaLink } from '~/components/layout/SpaLink'
-import { listOutletsFn } from '~/functions/identity/org.fn'
+import { listOutletOptionsFn } from '~/functions/identity/org.fn'
 import { enableOutletTrackingFn } from '~/functions/inventory/stock-write.fn'
 import { getStockReportFn } from '~/functions/inventory/stock-read.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
@@ -40,6 +40,8 @@ function AdminStockPage() {
   const { slug } = useCurrentTenant()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { session } = Route.useRouteContext()
+  const canManageStock = session?.permissions.includes('inventory.manage') ?? false
 
   const [outletId, setOutletId] = useState('')
   const [scope, setScope] = useState<Scope>('ALL')
@@ -48,8 +50,8 @@ function AdminStockPage() {
   const [activateOutletId, setActivateOutletId] = useState('')
 
   const outletsQuery = useQuery({
-    queryKey: ['admin', slug, 'outlets-list'],
-    queryFn: () => listOutletsFn(),
+    queryKey: ['admin', slug, 'outlet-options'],
+    queryFn: () => listOutletOptionsFn(),
   })
 
   const reportQuery = useQuery({
@@ -162,17 +164,19 @@ function AdminStockPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-h1 font-semibold text-ink">{t('admin.stock.title')}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="md" onClick={() => setActivateOpen(true)}>
-            {t('admin.stock.activateAction')}
-          </Button>
-          <SpaLink
-            href={tenantHref(slug, '/admin/stock/documents')}
-            className={buttonVariants({ variant: 'primary', size: 'md' })}
-          >
-            {t('admin.stock.documentsLink')}
-          </SpaLink>
-        </div>
+        {canManageStock ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="md" onClick={() => setActivateOpen(true)}>
+              {t('admin.stock.activateAction')}
+            </Button>
+            <SpaLink
+              href={tenantHref(slug, '/admin/stock/documents')}
+              className={buttonVariants({ variant: 'primary', size: 'md' })}
+            >
+              {t('admin.stock.documentsLink')}
+            </SpaLink>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

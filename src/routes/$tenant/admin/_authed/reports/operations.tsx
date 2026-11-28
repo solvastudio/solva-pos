@@ -12,7 +12,7 @@ import {
 } from '~/components/admin/reports/report-download'
 import { SpaLink } from '~/components/layout/SpaLink'
 import { Chip, Tabs, useToast, type DataTableColumn, type TabItem } from '~/components/ui'
-import { listOutletsFn } from '~/functions/identity/org.fn'
+import { listOutletOptionsFn } from '~/functions/identity/org.fn'
 import { exportReportCsvFn, getOpsReportFn } from '~/functions/reporting/reports.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import { formatMoney, toMoney } from '~/lib/kernel'
@@ -55,8 +55,8 @@ function AdminOperationsReportPage() {
   })
 
   const outletsQuery = useQuery({
-    queryKey: ['admin', slug, 'outlets-list'],
-    queryFn: () => listOutletsFn(),
+    queryKey: ['admin', slug, 'outlet-options'],
+    queryFn: () => listOutletOptionsFn(),
   })
 
   const reportQuery = useQuery({

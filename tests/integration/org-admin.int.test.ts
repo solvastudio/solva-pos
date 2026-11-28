@@ -8,6 +8,7 @@ import {
   getOutletFullSettings,
   getTenantAuthMetadataBySlug,
   listLegalEntities,
+  listOutletOptions,
   listOutlets,
   listPaymentMethods,
   redeemInvite,
@@ -379,5 +380,47 @@ describe('org-admin integration (legal entities, outlets, scopes, tenant isolati
     })
     expect((await listPaymentMethods(orgOnly)).length).toBeGreaterThan(0)
     await expect(updateReceiptSetting(orgOnly, receiptInput)).resolves.toHaveProperty('version')
+  })
+
+  it('lets any signed-in member list outlet options, limited to their own outlets', async () => {
+    const t = await setupActiveOwnerActor(uniqueSlug('orgo'), 'Org Options')
+    const ent = await createLegalEntity(t.actor, {
+      name: 'Ent Options',
+      npwp: '444444444444444',
+      isPkp: true,
+    })
+    const makeOutlet = (code: string, name: string) =>
+      createOutlet(t.actor, {
+        legalEntityId: ent.id,
+        code,
+        name,
+        timezone: 'Asia/Jakarta',
+        dayCutoffTime: '00:00',
+        priceTaxMode: 'INCLUSIVE',
+      })
+    const out1 = await makeOutlet('OUT01', 'Outlet 01')
+    await makeOutlet('OUT02', 'Outlet 02')
+
+    // report.view only: no user.manage or org.manage, like the Warehouse and Accountant roles.
+    const scoped: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['report.view']),
+      outletIds: [out1.id],
+      roleCodes: ['CUSTOM'],
+    }
+    const wide: IdentityAuthActor = { ...scoped, outletIds: null }
+    const unscoped: IdentityAuthActor = { ...scoped, outletIds: undefined }
+
+    // Only id, code and name, and only the actor's own outlets.
+    expect(await listOutletOptions(scoped)).toEqual([
+      { id: out1.id, code: 'OUT01', name: 'Outlet 01' },
+    ])
+    // Tenant-wide access sees every outlet.
+    expect((await listOutletOptions(wide)).map((o) => o.code)).toEqual(['OUT01', 'OUT02'])
+    // A missing scope fails closed.
+    expect(await listOutletOptions(unscoped)).toEqual([])
+
+    // The full outlet list still needs user.manage or org.manage.
+    await expect(listOutlets(scoped)).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 })
