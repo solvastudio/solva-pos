@@ -52,7 +52,8 @@ async function managerActorFor(t: Boot): Promise<IdentityAuthActor> {
     tenantSlug: t.slug,
     authOrgId: t.authOrgId,
     appUserId: invite.appUserId,
-    permissions: new Set<PermissionCode>(manager.permissions),
+    // MANAGER no longer holds role.manage by default; grant it here to exercise the escalation guards.
+    permissions: new Set<PermissionCode>([...manager.permissions, 'role.manage']),
     outletIds: null,
     roleCodes: ['MANAGER'],
   }
@@ -295,11 +296,11 @@ describe('role CRUD (create, duplicate, update, delete, escalation guards, audit
       duplicateRole(manager, { sourceRoleId: owner.id, name: 'Owner Copy' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
-    // Created by the Owner with a permission the Manager does not hold (user.invite).
+    // Created by the Owner with a permission the Manager does not hold (flag.manage).
     const mixed = await createRole(t.actor, {
       name: 'Campuran',
       discountLimitPct: 0,
-      permissions: ['bill.edit', 'user.invite'],
+      permissions: ['bill.edit', 'flag.manage'],
     })
     await expect(
       updateRole(manager, {
@@ -311,10 +312,10 @@ describe('role CRUD (create, duplicate, update, delete, escalation guards, audit
     const edited = await updateRole(manager, {
       roleId: mixed.id,
       expectedVersion: mixed.version,
-      permissions: ['bill.edit', 'user.invite', 'report.view'],
+      permissions: ['bill.edit', 'flag.manage', 'report.view'],
     })
     expect(edited.permissions).toContain('report.view')
-    expect(edited.permissions).toContain('user.invite')
+    expect(edited.permissions).toContain('flag.manage')
 
     const copy = await duplicateRole(manager, { sourceRoleId: within.id, name: 'Dapur Salinan' })
     expect(copy.permissions).toEqual(within.permissions)
@@ -347,11 +348,8 @@ describe('role CRUD (create, duplicate, update, delete, escalation guards, audit
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
-    // Manager lacks user.invite by default; grant it to isolate the role guard.
-    const inviter: IdentityAuthActor = {
-      ...manager,
-      permissions: new Set<PermissionCode>([...manager.permissions, 'user.invite']),
-    }
+    // Manager holds user.invite by default, so the role guard is what must reject this invite.
+    const inviter: IdentityAuthActor = manager
     await expect(
       createInvite(inviter, {
         email: `blocked-${uniqueSlug('b')}@example.test`,
@@ -398,17 +396,27 @@ describe('role CRUD (create, duplicate, update, delete, escalation guards, audit
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
-    // (OUT01, Flag Admin) is unchanged and (OUT02, Waiter) is within the Manager's limits.
+    // One role per member: a different role per outlet is rejected before any role check runs.
+    await expect(
+      changeMemberRoleAndOutlets(manager, {
+        appUserId: target.appUserId,
+        assignments: [
+          { outletId: out01.id, roleId: flagRole.id },
+          { outletId: out02.id, roleId: waiter.id },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      message: 'admin.users.editAccess.singleRole',
+    })
+
+    // (OUT01, Flag Admin) is unchanged, so the Manager may keep it even though it exceeds its own rights.
     const updated = await changeMemberRoleAndOutlets(manager, {
       appUserId: target.appUserId,
-      assignments: [
-        { outletId: out01.id, roleId: flagRole.id },
-        { outletId: out02.id, roleId: waiter.id },
-      ],
+      assignments: [{ outletId: out01.id, roleId: flagRole.id }],
     })
-    expect(updated.assignments.map((a) => `${a.outletCode}:${a.roleCode}`).sort()).toEqual([
+    expect(updated.assignments.map((a) => `${a.outletCode}:${a.roleCode}`)).toEqual([
       'OUT01:FLAG_ADMIN',
-      'OUT02:WAITER',
     ])
   })
 

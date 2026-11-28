@@ -30,7 +30,7 @@ import { qk } from '~/queries/keys'
 
 export const Route = createFileRoute('/$tenant/admin/_authed/settings')({
   beforeLoad: ({ params, context }) => {
-    if (!context.session?.permissions.includes('user.manage')) {
+    if (!context.session?.permissions.includes('org.manage')) {
       throw redirect({ href: tenantHref(params.tenant, '/admin') })
     }
   },

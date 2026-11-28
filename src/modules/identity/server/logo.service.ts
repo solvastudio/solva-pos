@@ -52,7 +52,7 @@ export async function uploadOutletLogo(
   deps?: IdentityServiceDeps & { assetsDir?: string },
 ): Promise<{ logoObjectKey: string; logoSha256: string; width: number; height: number; version: number }> {
   const input = uploadOutletLogoSchema.parse(rawInput)
-  requireActorPermission(actor, 'user.manage', { outletId: input.outletId })
+  requireActorPermission(actor, 'org.manage', { outletId: input.outletId })
 
   const bytes = decodeBase64Payload(input.base64Data)
   let sniffed

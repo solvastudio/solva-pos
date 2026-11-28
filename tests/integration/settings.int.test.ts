@@ -163,7 +163,7 @@ describe('admin full outlet settings (tax, tax_rate_history, logo upload, paymen
       authOrgId: 'org-set',
       appUserId: idGen.newId(),
       outletIds: [out2.id],
-      permissions: new Set(['user.manage']),
+      permissions: new Set(['org.manage']),
     }
     await expect(
       updateOutletTaxSettings(mgrOut2, {

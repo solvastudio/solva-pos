@@ -97,6 +97,9 @@ export function OutletsSection({ tenantSlug, canCreateOutlet }: OutletsSectionPr
       void queryClient.invalidateQueries({ queryKey: qk.outlets(tenantSlug) })
       void queryClient.invalidateQueries({ queryKey: qk.registers(tenantSlug) })
       toast.show({ tone: 'success', message: t('admin.settings.saved') })
+      if (!editing) {
+        toast.show({ tone: 'info', message: t('admin.settings.outletCreatedAccessHint') })
+      }
       setDialogOpen(false)
     },
     onError: () => {

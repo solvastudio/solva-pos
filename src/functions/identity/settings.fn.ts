@@ -30,7 +30,7 @@ const outletIdParamSchema = z.object({
 
 export const getOutletFullSettingsFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => outletIdParamSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(
     async ({
       data,
@@ -47,14 +47,14 @@ export const getOutletFullSettingsFn = createServerFn({ method: 'GET' })
 
 export const updateOutletTaxSettingsFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => updateOutletTaxSettingsSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<{ version: number }>> => {
     return runValidatedAction(() => updateOutletTaxSettings(context.auth, data))
   })
 
 export const addTaxRateFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => addTaxRateSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(
     async ({ data, context }): Promise<MutationActionResult<{ id: string; version: number }>> => {
       return runValidatedAction(() => addTaxRate(context.auth, data))
@@ -63,7 +63,7 @@ export const addTaxRateFn = createServerFn({ method: 'POST' })
 
 export const updateReceiptSettingFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => updateReceiptSettingSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(
     async ({ data, context }): Promise<MutationActionResult<{ id: string; version: number }>> => {
       return runValidatedAction(() => updateReceiptSetting(context.auth, data))
@@ -72,7 +72,7 @@ export const updateReceiptSettingFn = createServerFn({ method: 'POST' })
 
 export const uploadOutletLogoFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => uploadOutletLogoSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(
     async ({
       data,
@@ -91,14 +91,14 @@ export const uploadOutletLogoFn = createServerFn({ method: 'POST' })
   )
 
 export const listPaymentMethodsFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ context }): Promise<PaymentMethodView[]> => {
     return listPaymentMethods(context.auth)
   })
 
 export const savePaymentMethodFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => savePaymentMethodSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(
     async ({ data, context }): Promise<MutationActionResult<{ id: string; version: number }>> => {
       return runValidatedAction(() => savePaymentMethod(context.auth, data))

@@ -13,6 +13,7 @@ import {
   type IdentityAuthActor,
   type IdentityServiceDeps,
 } from './code-crypto'
+import { assertActorMayActOnMember } from './member-act-guard'
 import {
   callAuthAccountMembershipCount,
   findAppUserById,
@@ -62,6 +63,8 @@ export async function issueResetCode(
     ) {
       throw new AppError('FORBIDDEN', 'members.reset.unavailable')
     }
+
+    await assertActorMayActOnMember(tx, actor, appUserId)
 
     const roles = await listActiveRolesOfUser(tx, actor.tenantId, appUserId)
     if (roles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {

@@ -37,24 +37,18 @@ export function EditMemberAccessDialog({
 }: EditMemberAccessDialogProps) {
   const { t } = useTranslation()
   const formIdPrefix = useId()
-  const editWideRoleId = `${formIdPrefix}-edit-wide-role`
+  const roleSelectId = `${formIdPrefix}-edit-role`
   const canAssign = (r: RoleList[number]) => !isRoleAssignable || isRoleAssignable(r)
   const defaultRoleId = (roles.find(canAssign) ?? roles[0])?.id ?? ''
 
   const wide = member.assignments.find((a) => a.outletId === null)
   const startsWide = Boolean(wide) && canTenantWide
   const [accessAllOutlets, setAccessAllOutlets] = useState(startsWide)
-  const [accessTenantWideRoleId, setAccessTenantWideRoleId] = useState(
-    startsWide ? wide!.roleId : defaultRoleId,
+  // One role per member: start from the first existing assignment.
+  const [accessRoleId, setAccessRoleId] = useState(member.assignments[0]?.roleId ?? defaultRoleId)
+  const [accessOutletIds, setAccessOutletIds] = useState<readonly string[]>(() =>
+    startsWide ? [] : member.assignments.flatMap((a) => (a.outletId ? [a.outletId] : [])),
   )
-  const [accessOutletRoles, setAccessOutletRoles] = useState<Record<string, string>>(() => {
-    if (startsWide) return {}
-    const map: Record<string, string> = {}
-    for (const a of member.assignments) {
-      if (a.outletId) map[a.outletId] = a.roleId
-    }
-    return map
-  })
   const [accessOutletsError, setAccessOutletsError] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
 
@@ -62,8 +56,8 @@ export function EditMemberAccessDialog({
     retry: 0,
     mutationFn: async () => {
       const assignments = accessAllOutlets
-        ? [{ outletId: null, roleId: accessTenantWideRoleId }]
-        : Object.entries(accessOutletRoles).map(([outletId, roleId]) => ({ outletId, roleId }))
+        ? [{ outletId: null, roleId: accessRoleId }]
+        : accessOutletIds.map((outletId) => ({ outletId, roleId: accessRoleId }))
       return changeMemberRoleAndOutletsFn({
         data: {
           appUserId: member.appUserId,
@@ -84,23 +78,19 @@ export function EditMemberAccessDialog({
   })
 
   function toggleEditOutlet(outletId: string, checked: boolean) {
-    setAccessOutletRoles((prev) => {
-      const next = { ...prev }
-      if (checked) {
-        next[outletId] = next[outletId] ?? defaultRoleId
-        setAccessOutletsError(null)
-      } else {
-        delete next[outletId]
-      }
-      return next
-    })
+    setAccessOutletIds((prev) =>
+      checked ? Array.from(new Set([...prev, outletId])) : prev.filter((id) => id !== outletId),
+    )
+    if (checked) {
+      setAccessOutletsError(null)
+    }
   }
 
   function handleEditAccessSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setAccessError(null)
     setAccessOutletsError(null)
-    if (!accessAllOutlets && Object.keys(accessOutletRoles).length === 0) {
+    if (!accessAllOutlets && accessOutletIds.length === 0) {
       setAccessOutletsError(t('admin.users.editAccess.needOneOutlet'))
       return
     }
@@ -138,59 +128,40 @@ export function EditMemberAccessDialog({
           </div>
         ) : null}
 
-        {accessAllOutlets ? (
-          <Field label={t('admin.users.editAccess.roleLabel')} htmlFor={editWideRoleId}>
-            <Select
-              id={editWideRoleId}
-              value={accessTenantWideRoleId}
-              onValueChange={setAccessTenantWideRoleId}
-              options={roles
-                .filter((r) => r.id === accessTenantWideRoleId || canAssign(r))
-                .map((r) => ({ value: r.id, label: r.name }))}
-              size="md"
-            />
-          </Field>
-        ) : (
+        <Field label={t('admin.users.editAccess.roleLabel')} htmlFor={roleSelectId}>
+          <Select
+            id={roleSelectId}
+            value={accessRoleId}
+            onValueChange={setAccessRoleId}
+            options={roles
+              .filter((r) => canTenantWide || r.code !== OWNER_ROLE_CODE)
+              .filter((r) => r.id === accessRoleId || canAssign(r))
+              .map((r) => ({ value: r.id, label: r.name }))}
+            size="md"
+          />
+        </Field>
+
+        {accessAllOutlets ? null : (
           <div className="flex flex-col gap-3">
             <p className="text-label font-medium text-ink">
               {t('admin.users.editAccess.outletsLabel')}
             </p>
-            {outlets.map((o) => {
-              const assignedRoleId = accessOutletRoles[o.id]
-              const checked = Boolean(assignedRoleId)
-              return (
-                <div
-                  key={o.id}
-                  className={
-                    accessOutletsError
-                      ? 'flex flex-wrap items-center justify-between gap-3 rounded-control border-2 border-danger-solid p-3'
-                      : 'flex flex-wrap items-center justify-between gap-3 rounded-control border border-line p-3'
-                  }
-                >
-                  <Checkbox
-                    label={`${o.code} · ${o.name}`}
-                    checked={checked}
-                    onCheckedChange={(next) => toggleEditOutlet(o.id, next)}
-                  />
-                  {checked ? (
-                    <div className="w-44">
-                      <Select
-                        value={assignedRoleId}
-                        onValueChange={(nextRole) =>
-                          setAccessOutletRoles((prev) => ({ ...prev, [o.id]: nextRole }))
-                        }
-                        options={roles
-                          .filter((r) => canTenantWide || r.code !== OWNER_ROLE_CODE)
-                          .filter((r) => r.id === assignedRoleId || canAssign(r))
-                          .map((r) => ({ value: r.id, label: r.name }))}
-                        ariaLabel={t('admin.users.editAccess.roleForOutlet', { outlet: o.code })}
-                        size="md"
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              )
-            })}
+            {outlets.map((o) => (
+              <div
+                key={o.id}
+                className={
+                  accessOutletsError
+                    ? 'flex flex-wrap items-center justify-between gap-3 rounded-control border-2 border-danger-solid p-3'
+                    : 'flex flex-wrap items-center justify-between gap-3 rounded-control border border-line p-3'
+                }
+              >
+                <Checkbox
+                  label={`${o.code} · ${o.name}`}
+                  checked={accessOutletIds.includes(o.id)}
+                  onCheckedChange={(next) => toggleEditOutlet(o.id, next)}
+                />
+              </div>
+            ))}
             {accessOutletsError ? (
               <p className="flex items-center gap-1.5 text-body-sm text-danger-ink">
                 <CircleAlert className="size-4 shrink-0" aria-hidden="true" />

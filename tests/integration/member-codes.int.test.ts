@@ -127,6 +127,7 @@ async function setupTenantOwner(slug: string, name: string): Promise<{
       authOrgId,
       appUserId: ownerAppUserId,
       permissions: new Set(PERMISSION_CODES),
+      outletIds: null,
     },
   }
 }

@@ -17,7 +17,7 @@ import {
   type MutationActionResult,
   type OutletView,
 } from '~/modules/identity/shared'
-import { requirePermission } from '~/server/auth/auth-middleware'
+import { requireAnyPermission, requirePermission } from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware, runValidatedAction } from '../middleware'
 
 function parseLegalEntityCreateInput(raw: unknown) {
@@ -43,41 +43,41 @@ function parseLegalEntityUpdateInput(raw: unknown) {
 }
 
 export const listLegalEntitiesFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('user.manage', 'org.manage')])
   .handler(async ({ context }): Promise<LegalEntityView[]> => {
     return listLegalEntities(context.auth)
   })
 
 export const createLegalEntityFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => parseLegalEntityCreateInput(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<LegalEntityView>> => {
     return runValidatedAction(() => createLegalEntity(context.auth, data))
   })
 
 export const updateLegalEntityFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => parseLegalEntityUpdateInput(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<LegalEntityView>> => {
     return runValidatedAction(() => updateLegalEntity(context.auth, data))
   })
 
 export const listOutletsFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('user.manage', 'org.manage')])
   .handler(async ({ context }): Promise<OutletView[]> => {
     return listOutlets(context.auth)
   })
 
 export const createOutletFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => createOutletSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<OutletView>> => {
     return runValidatedAction(() => createOutlet(context.auth, data))
   })
 
 export const updateOutletFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => updateOutletSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('user.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('org.manage')])
   .handler(async ({ data, context }): Promise<MutationActionResult<OutletView>> => {
     return runValidatedAction(() => updateOutlet(context.auth, data))
   })

@@ -36,9 +36,11 @@ describe('identity/domain default roles and permission matrix', () => {
 
     const manager = byCode.get('MANAGER')!
     expect(manager.discountLimitPct).toBe('50.0000')
-    expect(manager.permissions).not.toContain('user.invite')
+    expect(manager.permissions).toContain('user.invite')
+    expect(manager.permissions).toContain('user.remove')
+    expect(manager.permissions).toContain('user.reset_password')
     expect(manager.permissions).not.toContain('flag.manage')
-    expect(manager.permissions).toContain('role.manage')
+    expect(manager.permissions).not.toContain('role.manage')
 
     const supervisor = byCode.get('SUPERVISOR')!
     expect(supervisor.permissions).not.toContain('role.manage')
@@ -54,5 +56,31 @@ describe('identity/domain default roles and permission matrix', () => {
     expect(waiter.permissions).not.toContain('shift.open_close')
     expect(waiter.permissions).not.toContain('cash.in_out')
     expect(waiter.permissions).toContain('bill.handover')
+  })
+
+  it('grants the catalog and supplier permissions only to the intended default roles', () => {
+    const byCode = new Map(ROLE_DEFAULTS.map((r) => [r.code, r]))
+
+    for (const code of ['MANAGER', 'SUPERVISOR', 'WAREHOUSE', 'ACCOUNTANT']) {
+      expect(byCode.get(code)!.permissions, code).toContain('catalog.view')
+    }
+    for (const code of ['CASHIER', 'WAITER']) {
+      expect(byCode.get(code)!.permissions, code).not.toContain('catalog.view')
+    }
+
+    expect(byCode.get('MANAGER')!.permissions).toContain('catalog.import')
+    expect(byCode.get('MANAGER')!.permissions).toContain('supplier.manage')
+    expect(byCode.get('MANAGER')!.permissions).toContain('org.manage')
+    expect(byCode.get('WAREHOUSE')!.permissions).toContain('supplier.manage')
+
+    for (const code of ['SUPERVISOR', 'CASHIER', 'WAITER', 'WAREHOUSE', 'ACCOUNTANT']) {
+      expect(byCode.get(code)!.permissions, code).not.toContain('org.manage')
+    }
+
+    for (const code of ['SUPERVISOR', 'CASHIER', 'WAITER', 'ACCOUNTANT']) {
+      expect(byCode.get(code)!.permissions, code).not.toContain('catalog.import')
+      expect(byCode.get(code)!.permissions, code).not.toContain('supplier.manage')
+    }
+    expect(byCode.get('WAREHOUSE')!.permissions).not.toContain('catalog.import')
   })
 })

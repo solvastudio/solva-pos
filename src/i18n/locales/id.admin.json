@@ -229,6 +229,7 @@
       "tabPaymentMethods": "Metode Bayar",
       "selectOutletLabel": "Pilih outlet",
       "saved": "Perubahan tersimpan.",
+      "outletCreatedAccessHint": "Outlet baru belum otomatis masuk ke akses anggota yang dibatasi outlet tertentu. Atur di halaman Pengguna.",
       "failed": "Tindakan gagal. Periksa isian lalu coba lagi.",
       "tax": {
         "sectionTitle": "Pajak & Biaya Outlet",
@@ -474,6 +475,8 @@
         "needOneOutlet": "Pilih minimal satu outlet.",
         "invalidInput": "Data akses tidak valid. Periksa isian lalu coba lagi.",
         "duplicateOutlet": "Satu outlet tidak boleh diberi dua peran.",
+        "singleRole": "Satu anggota hanya boleh punya satu peran. Pakai peran yang sama untuk semua outlet.",
+        "singleScope": "Akses seluruh tenant tidak boleh digabung dengan outlet tertentu.",
         "memberNotFound": "Anggota tidak ditemukan.",
         "invalidOutlet": "Outlet tidak ditemukan.",
         "submit": "Simpan perubahan"

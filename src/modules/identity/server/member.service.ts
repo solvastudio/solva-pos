@@ -12,6 +12,7 @@ import {
   type IdentityAuthActor,
   type IdentityServiceDeps,
 } from './code-crypto'
+import { assertActorMayActOnMember } from './member-act-guard'
 import {
   countActiveOwnersExcluding,
   findAppUserById,
@@ -38,6 +39,8 @@ export async function removeMember(
     if (!profile || profile.deletedAt !== null) {
       return
     }
+
+    await assertActorMayActOnMember(tx, actor, appUserId)
 
     const roles = await listActiveRolesOfUser(tx, actor.tenantId, appUserId)
     if (roles.some((r) => r.roleCode === OWNER_ROLE_CODE)) {

@@ -42,6 +42,12 @@ export function assertPermission(auth: AuthContext, code: PermissionCode): void 
   }
 }
 
+export function assertAnyPermission(auth: AuthContext, codes: readonly PermissionCode[]): void {
+  if (!codes.some((code) => auth.permissions.has(code))) {
+    throw new AppError('FORBIDDEN', `Missing required permission: ${codes.join(' or ')}`)
+  }
+}
+
 export interface AuthContext {
   tenantId: string
   tenantSlug: string

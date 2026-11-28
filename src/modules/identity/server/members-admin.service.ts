@@ -152,6 +152,14 @@ export async function changeMemberRoleAndOutlets(
     seenOutletKeys.add(key)
   }
 
+  // One role per member, and tenant-wide access cannot be mixed with specific outlets.
+  if (new Set(parsed.assignments.map((a) => a.roleId)).size > 1) {
+    throw new AppError('VALIDATION_FAILED', 'admin.users.editAccess.singleRole')
+  }
+  if (parsed.assignments.length > 1 && parsed.assignments.some((a) => a.outletId === null)) {
+    throw new AppError('VALIDATION_FAILED', 'admin.users.editAccess.singleScope')
+  }
+
   return withTenant(actor.tenantId, async (tx) => {
     const target = await findActiveMemberTarget(tx, actor.tenantId, parsed.appUserId)
     if (!target) {

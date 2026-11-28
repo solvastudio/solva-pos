@@ -5,12 +5,16 @@ import {
   createLegalEntity,
   createOutlet,
   createTenant,
+  getOutletFullSettings,
   getTenantAuthMetadataBySlug,
   listLegalEntities,
   listOutlets,
+  listPaymentMethods,
   redeemInvite,
   updateLegalEntity,
   updateOutlet,
+  updateReceiptSetting,
+  uploadOutletLogo,
   type IdentityAuthActor,
 } from '~/modules/identity/public'
 import { PERMISSION_CODES } from '~/modules/identity/shared'
@@ -216,7 +220,7 @@ describe('org-admin integration (legal entities, outlets, scopes, tenant isolati
 
     const managerActor: IdentityAuthActor = {
       ...tA.actor,
-      permissions: new Set(['user.manage']),
+      permissions: new Set(['org.manage']),
       outletIds: [out01.id],
       roleCodes: ['MANAGER'],
     }
@@ -259,5 +263,121 @@ describe('org-admin integration (legal entities, outlets, scopes, tenant isolati
     await expect(
       updateOutlet(tB.actor, { id: out01.id, name: 'Cross Tenant' }),
     ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' })
+  })
+
+  it('separates org.manage from user.manage while both can read the outlet and legal entity lists', async () => {
+    const t = await setupActiveOwnerActor(uniqueSlug('orgp'), 'Org Perm')
+    const ent = await createLegalEntity(t.actor, {
+      name: 'Ent Perm',
+      npwp: '222222222222222',
+      isPkp: true,
+    })
+    const out = await createOutlet(t.actor, {
+      legalEntityId: ent.id,
+      code: 'OUT01',
+      name: 'Outlet 01',
+      timezone: 'Asia/Jakarta',
+      dayCutoffTime: '00:00',
+      priceTaxMode: 'INCLUSIVE',
+    })
+
+    const userOnly: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['user.manage']),
+      roleCodes: ['CUSTOM'],
+    }
+    const orgOnly: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['org.manage']),
+      roleCodes: ['CUSTOM'],
+    }
+    const neither: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['report.view']),
+      roleCodes: ['CUSTOM'],
+    }
+
+    // The lists feed the Users page (user.manage) and the Settings page (org.manage).
+    expect((await listOutlets(userOnly)).map((o) => o.code)).toEqual(['OUT01'])
+    expect((await listOutlets(orgOnly)).map((o) => o.code)).toEqual(['OUT01'])
+    expect(await listLegalEntities(userOnly)).toHaveLength(1)
+    expect(await listLegalEntities(orgOnly)).toHaveLength(1)
+    await expect(listOutlets(neither)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(listLegalEntities(neither)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    // user.manage alone must not change organisation data.
+    await expect(updateOutlet(userOnly, { id: out.id, name: 'Nope' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(
+      createOutlet(userOnly, {
+        legalEntityId: ent.id,
+        code: 'OUT02',
+        name: 'Nope',
+        timezone: 'Asia/Jakarta',
+        dayCutoffTime: '00:00',
+        priceTaxMode: 'INCLUSIVE',
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      createLegalEntity(userOnly, { name: 'Nope', isPkp: false }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    // org.manage alone can.
+    const renamed = await updateOutlet(orgOnly, { id: out.id, name: 'Outlet Renamed' })
+    expect(renamed.name).toBe('Outlet Renamed')
+  })
+
+  it('requires org.manage for outlet settings, payment methods and logo upload', async () => {
+    const t = await setupActiveOwnerActor(uniqueSlug('orgs'), 'Org Settings')
+    const ent = await createLegalEntity(t.actor, {
+      name: 'Ent Settings',
+      npwp: '333333333333333',
+      isPkp: true,
+    })
+    const out = await createOutlet(t.actor, {
+      legalEntityId: ent.id,
+      code: 'OUT01',
+      name: 'Outlet 01',
+      timezone: 'Asia/Jakarta',
+      dayCutoffTime: '00:00',
+      priceTaxMode: 'INCLUSIVE',
+    })
+
+    const userOnly: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['user.manage']),
+      roleCodes: ['CUSTOM'],
+    }
+    const orgOnly: IdentityAuthActor = {
+      ...t.actor,
+      permissions: new Set(['org.manage']),
+      roleCodes: ['CUSTOM'],
+    }
+    const receiptInput = {
+      outletId: out.id,
+      receiptLocale: 'id-ID' as const,
+      headerText: null,
+      footerText: null,
+    }
+
+    // user.manage alone is rejected on every settings surface.
+    await expect(getOutletFullSettings(userOnly, out.id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(updateReceiptSetting(userOnly, receiptInput)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(listPaymentMethods(userOnly)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      uploadOutletLogo(userOnly, { outletId: out.id, base64Data: 'AAAAAAAA' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    // org.manage alone can read and write them.
+    await expect(getOutletFullSettings(orgOnly, out.id)).resolves.toMatchObject({
+      tax: expect.anything(),
+    })
+    expect((await listPaymentMethods(orgOnly)).length).toBeGreaterThan(0)
+    await expect(updateReceiptSetting(orgOnly, receiptInput)).resolves.toHaveProperty('version')
   })
 })

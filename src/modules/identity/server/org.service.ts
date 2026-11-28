@@ -23,6 +23,7 @@ import {
 } from '../shared'
 import {
   identityIdGen,
+  requireActorAnyPermission,
   requireActorPermission,
   type IdentityAuthActor,
   type IdentityServiceDeps,
@@ -118,7 +119,7 @@ function toOutletView(row: {
 }
 
 export async function listLegalEntities(actor: IdentityAuthActor): Promise<LegalEntityView[]> {
-  requireActorPermission(actor, 'user.manage')
+  requireActorAnyPermission(actor, ['user.manage', 'org.manage'])
   return withTenantReadOnly(actor.tenantId, async (tx) => {
     const entities = await listLegalEntitiesRows(tx, actor.tenantId)
     if (actor.outletIds === null) {
@@ -135,7 +136,7 @@ export async function createLegalEntity(
   rawInput: CreateLegalEntityInput,
   deps?: IdentityServiceDeps,
 ): Promise<LegalEntityView> {
-  requireActorPermission(actor, 'user.manage', { requireTenantWide: true })
+  requireActorPermission(actor, 'org.manage', { requireTenantWide: true })
   const cleanRaw: CreateLegalEntityInput = {
     ...rawInput,
     npwp: rawInput.npwp ? normalizeNpwpInput(rawInput.npwp) || null : null,
@@ -200,7 +201,7 @@ export async function updateLegalEntity(
   rawInput: UpdateLegalEntityInput,
   deps?: IdentityServiceDeps,
 ): Promise<LegalEntityView> {
-  requireActorPermission(actor, 'user.manage', { requireTenantWide: true })
+  requireActorPermission(actor, 'org.manage', { requireTenantWide: true })
   const cleanRaw: UpdateLegalEntityInput = {
     ...rawInput,
     npwp: rawInput.npwp ? normalizeNpwpInput(rawInput.npwp) || null : null,
@@ -273,7 +274,7 @@ export async function updateLegalEntity(
 }
 
 export async function listOutlets(actor: IdentityAuthActor): Promise<OutletView[]> {
-  requireActorPermission(actor, 'user.manage')
+  requireActorAnyPermission(actor, ['user.manage', 'org.manage'])
   const allowedOutletIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
   return withTenantReadOnly(actor.tenantId, async (tx) => {
     const rows = await listOutletsRows(tx, actor.tenantId, allowedOutletIds)
@@ -286,7 +287,7 @@ export async function createOutlet(
   rawInput: CreateOutletInput,
   deps?: IdentityServiceDeps,
 ): Promise<OutletView> {
-  requireActorPermission(actor, 'user.manage', { requireTenantWide: true })
+  requireActorPermission(actor, 'org.manage', { requireTenantWide: true })
   const parsed = parseOrThrow(createOutletSchema, rawInput, 'Invalid outlet input')
   const nowIso = nowIsoFrom(deps)
   const outletId = identityIdGen.newId()
@@ -387,7 +388,7 @@ export async function updateOutlet(
   deps?: IdentityServiceDeps,
 ): Promise<OutletView> {
   const parsed = parseOrThrow(updateOutletSchema, rawInput, 'Invalid outlet input')
-  requireActorPermission(actor, 'user.manage', { outletId: parsed.id })
+  requireActorPermission(actor, 'org.manage', { outletId: parsed.id })
   const nowIso = nowIsoFrom(deps)
 
   return withTenant(actor.tenantId, async (tx) => {

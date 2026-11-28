@@ -235,16 +235,24 @@
       "annotate": "Beri anotasi selisih nomor invoice"
     },
     "catalog": {
-      "manage": "Kelola katalog produk dan harga"
+      "view": "Lihat produk dan kategori",
+      "manage": "Kelola katalog produk dan harga",
+      "import": "Impor CSV katalog"
     },
     "inventory": {
       "manage": "Kelola stok dan transfer barang"
     },
+    "supplier": {
+      "manage": "Kelola pemasok"
+    },
     "user": {
-      "manage": "Kelola pengguna, role, outlet & register",
+      "manage": "Kelola pengguna, role & register",
       "invite": "Undang anggota",
       "remove": "Keluarkan anggota",
       "reset_password": "Terbitkan kode atur ulang kata sandi"
+    },
+    "org": {
+      "manage": "Kelola outlet, badan hukum & pengaturan outlet"
     },
     "role": {
       "manage": "Kelola role dan izin"

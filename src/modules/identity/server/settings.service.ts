@@ -52,7 +52,7 @@ export async function getOutletFullSettings(
   taxRates: TaxRateHistoryView[]
   paymentMethods: PaymentMethodView[]
 }> {
-  requireActorPermission(actor, 'user.manage', { outletId })
+  requireActorPermission(actor, 'org.manage', { outletId })
   if (!isUuid(outletId)) {
     throw new AppError('VALIDATION_FAILED', 'Invalid outletId')
   }
@@ -188,7 +188,7 @@ export async function updateOutletTaxSettings(
   deps?: IdentityServiceDeps,
 ): Promise<{ version: number }> {
   const input = updateOutletTaxSettingsSchema.parse(rawInput)
-  requireActorPermission(actor, 'user.manage', { outletId: input.outletId })
+  requireActorPermission(actor, 'org.manage', { outletId: input.outletId })
 
   const rateNum = Number(input.serviceChargeRate)
   if (!Number.isFinite(rateNum) || rateNum < 0 || rateNum > 100) {
@@ -285,9 +285,9 @@ export async function addTaxRate(
 ): Promise<{ id: string; version: number }> {
   const input = addTaxRateSchema.parse(rawInput)
   if (input.outletId) {
-    requireActorPermission(actor, 'user.manage', { outletId: input.outletId })
+    requireActorPermission(actor, 'org.manage', { outletId: input.outletId })
   } else {
-    requireActorPermission(actor, 'user.manage')
+    requireActorPermission(actor, 'org.manage')
     if (actor.outletIds !== null) {
       throw new AppError('FORBIDDEN', 'Only tenant-wide owners can create global default tax rates')
     }
@@ -397,7 +397,7 @@ export async function updateReceiptSetting(
   deps?: IdentityServiceDeps,
 ): Promise<{ id: string; version: number }> {
   const input = updateReceiptSettingSchema.parse(rawInput)
-  requireActorPermission(actor, 'user.manage', { outletId: input.outletId })
+  requireActorPermission(actor, 'org.manage', { outletId: input.outletId })
 
   const headerText = input.headerText?.trim() ? input.headerText.trim() : null
   const footerText = input.footerText?.trim() ? input.footerText.trim() : null
@@ -497,7 +497,7 @@ export async function updateReceiptSetting(
 }
 
 export async function listPaymentMethods(actor: IdentityAuthActor): Promise<PaymentMethodView[]> {
-  requireActorPermission(actor, 'user.manage')
+  requireActorPermission(actor, 'org.manage')
   return withTenantReadOnly(actor.tenantId, async (tx) => {
     const rows = await tx
       .select({
@@ -526,7 +526,7 @@ export async function savePaymentMethod(
   rawInput: unknown,
   deps?: IdentityServiceDeps,
 ): Promise<{ id: string; version: number }> {
-  requireActorPermission(actor, 'user.manage')
+  requireActorPermission(actor, 'org.manage')
   if (actor.outletIds !== null) {
     throw new AppError('FORBIDDEN', 'Only tenant-wide owners can manage tenant payment methods')
   }

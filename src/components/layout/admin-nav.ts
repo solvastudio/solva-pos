@@ -49,6 +49,8 @@ export interface AdminNavItem {
     | 'admin.nav.account'
   icon: ComponentType<{ className?: string }>
   requiredPermission?: PermissionCode
+  /** Visible when the user holds at least one of these permissions. */
+  requiredAnyPermission?: readonly PermissionCode[]
   phase?: 'F1' | 'F2' | 'F3' | 'F4' | 'F5'
 }
 
@@ -89,7 +91,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     path: '/admin/catalog',
     labelKey: 'admin.nav.catalog',
     icon: Package,
-    requiredPermission: 'catalog.manage',
+    requiredAnyPermission: ['catalog.view', 'catalog.manage'],
     phase: 'F2',
   },
   {
@@ -145,7 +147,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     path: '/admin/settings',
     labelKey: 'admin.nav.settings',
     icon: Settings,
-    requiredPermission: 'user.manage',
+    requiredPermission: 'org.manage',
     phase: 'F1',
   },
   {
@@ -170,6 +172,8 @@ export function visibleAdminNavItems(
 ): readonly AdminNavItem[] {
   const permSet = new Set<PermissionCode>(permissions)
   return ADMIN_NAV_ITEMS.filter(
-    (item) => !item.requiredPermission || permSet.has(item.requiredPermission),
+    (item) =>
+      (!item.requiredPermission || permSet.has(item.requiredPermission)) &&
+      (!item.requiredAnyPermission || item.requiredAnyPermission.some((p) => permSet.has(p))),
   )
 }

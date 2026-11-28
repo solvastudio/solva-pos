@@ -154,7 +154,7 @@ export {
   type EnrollmentCounterProvider,
   type EnrollmentInvoiceCounter,
 } from './server/enrollment-counters.port'
-export { requireActorPermission } from './server/code-crypto'
+export { requireActorAnyPermission, requireActorPermission } from './server/code-crypto'
 export { resetPin, setPin } from './server/pin.service'
 export { reportPinStateCommandHandler } from './server/report-pin-state.command'
 export { uploadOutletLogo } from './server/logo.service'

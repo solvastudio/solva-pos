@@ -3,6 +3,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import type { PermissionCode } from '~/modules/identity/shared'
 import { AppError } from '~/server/error-classify'
 import {
+  assertAnyPermission,
   assertPermission,
   extractRequestTenantSlug,
   getAuthContext,
@@ -34,6 +35,18 @@ export function requirePermission(code: PermissionCode) {
     .middleware([authMiddleware])
     .server(async ({ next, context }) => {
       assertPermission(context.auth, code)
+      return next({
+        context: { auth: context.auth },
+      })
+    })
+}
+
+/** Like `requirePermission`, but passes when the caller holds at least one of `codes`. */
+export function requireAnyPermission(...codes: PermissionCode[]) {
+  return createMiddleware({ type: 'function' })
+    .middleware([authMiddleware])
+    .server(async ({ next, context }) => {
+      assertAnyPermission(context.auth, codes)
       return next({
         context: { auth: context.auth },
       })

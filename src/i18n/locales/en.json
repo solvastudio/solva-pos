@@ -235,16 +235,24 @@
       "annotate": "Annotate invoice number gaps"
     },
     "catalog": {
-      "manage": "Manage products and prices"
+      "view": "View products and categories",
+      "manage": "Manage products and prices",
+      "import": "Import catalog CSV"
     },
     "inventory": {
       "manage": "Manage stock and transfers"
     },
+    "supplier": {
+      "manage": "Manage suppliers"
+    },
     "user": {
-      "manage": "Manage users, roles, outlets & registers",
+      "manage": "Manage users, roles & registers",
       "invite": "Invite members",
       "remove": "Remove members",
       "reset_password": "Issue password reset codes"
+    },
+    "org": {
+      "manage": "Manage outlets, legal entities & outlet settings"
     },
     "role": {
       "manage": "Manage roles and permissions"

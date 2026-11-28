@@ -55,6 +55,16 @@ export function requireActorPermission(
   }
 }
 
+/** Passes when the actor holds at least one of the given permissions. */
+export function requireActorAnyPermission(
+  actor: IdentityAuthActor,
+  permissions: readonly PermissionCode[],
+): void {
+  if (!permissions.some((permission) => actor.permissions.has(permission))) {
+    throw new AppError('FORBIDDEN', `Missing required permission: ${permissions.join(' or ')}`)
+  }
+}
+
 export function hashMemberCode(normalizedCode: string): Buffer {
   return createHash('sha256').update(normalizedCode, 'utf8').digest()
 }

@@ -229,6 +229,7 @@
       "tabPaymentMethods": "Payment Methods",
       "selectOutletLabel": "Select outlet",
       "saved": "Changes saved.",
+      "outletCreatedAccessHint": "The new outlet is not added automatically to members limited to specific outlets. Update their access on the Users page.",
       "failed": "Action failed. Check your input and try again.",
       "tax": {
         "sectionTitle": "Outlet Tax & Charges",
@@ -474,6 +475,8 @@
         "needOneOutlet": "Select at least one outlet.",
         "invalidInput": "Invalid access data. Check your input and try again.",
         "duplicateOutlet": "An outlet cannot be given two roles.",
+        "singleRole": "A member can only have one role. Use the same role for every outlet.",
+        "singleScope": "Tenant-wide access cannot be combined with specific outlets.",
         "memberNotFound": "Member not found.",
         "invalidOutlet": "Outlet not found.",
         "submit": "Save changes"

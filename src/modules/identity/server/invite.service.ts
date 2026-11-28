@@ -15,6 +15,7 @@ import {
   type IdentityAuthActor,
   type IdentityServiceDeps,
 } from './code-crypto'
+import { assertActorMayActOnMember } from './member-act-guard'
 import {
   countValidTenantOutlets,
   existsActiveDisplayName,
@@ -185,6 +186,14 @@ export async function createInvite(
     }
     await assertActorMayAssignRoles(tx, actor, [roleRow.id])
 
+    // A scope-limited actor may only invite into its own outlets, never tenant-wide.
+    if (actor.outletIds !== null) {
+      const allowedOutlets = new Set(actor.outletIds ?? [])
+      if (uniqueOutlets === null || !uniqueOutlets.every((id) => allowedOutlets.has(id))) {
+        throw new AppError('FORBIDDEN', 'Requested outlet assignment is outside your scope')
+      }
+    }
+
     if (uniqueOutlets) {
       const validCount = await countValidTenantOutlets(tx, actor.tenantId, uniqueOutlets)
       if (validCount !== uniqueOutlets.length) {
@@ -210,6 +219,7 @@ export async function createInvite(
       if (!existingProfile || existingProfile.deletedAt !== null || existingProfile.authUserId !== null) {
         throw new AppError('VALIDATION_FAILED', 'member.add.failed')
       }
+      await assertActorMayActOnMember(tx, actor, existingProfile.id)
       targetAppUserId = existingProfile.id
     } else {
       const nameTaken = await existsActiveDisplayName(tx, actor.tenantId, displayName)
@@ -312,7 +322,22 @@ export async function listPendingInvites(
       }
     }
 
-    return rows.map((row) => {
+    // A scope-limited actor only sees invitations bound entirely to its own outlets.
+    const allowedOutlets = actor.outletIds === null ? null : new Set(actor.outletIds ?? [])
+    const visibleRows =
+      allowedOutlets === null
+        ? rows
+        : rows.filter((row) => {
+            const scoped = byUser.get(row.appUserId)
+            return (
+              scoped !== undefined &&
+              !scoped.all &&
+              scoped.outletIds.size > 0 &&
+              [...scoped.outletIds].every((id) => allowedOutlets.has(id))
+            )
+          })
+
+    return visibleRows.map((row) => {
       const bound = byUser.get(row.appUserId)
       const expiresMs = Date.parse(row.expiresAt)
       return {
@@ -348,6 +373,7 @@ export async function cancelInvite(
     if (!profile) {
       return
     }
+    await assertActorMayActOnMember(tx, actor, appUserId)
 
     emailForLimitReset = await findActiveInviteEmailForUser(tx, actor.tenantId, appUserId)
     await revokeActiveMemberCodes(tx, actor.tenantId, appUserId, 'CANCELED', nowIso, 'INVITE')
@@ -404,6 +430,7 @@ export async function reissueInvite(
     if (!profile || profile.deletedAt !== null || profile.authUserId !== null) {
       throw new AppError('VALIDATION_FAILED', 'member.add.failed')
     }
+    await assertActorMayActOnMember(tx, actor, appUserId)
 
     const latestInvite = await lockLatestInviteCodeForUser(tx, actor.tenantId, appUserId)
     if (!latestInvite || latestInvite.usedAt !== null || latestInvite.revokedAt !== null) {

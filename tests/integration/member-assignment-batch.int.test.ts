@@ -37,18 +37,18 @@ describe('changeMemberRoleAndOutlets batching', () => {
       outletIds: [out01.id, out02.id],
     })
 
-    // OUT01: Waiter -> Cashier (reassign), OUT02: removed, OUT03: Waiter (new).
+    // One role per member: OUT01 is reassigned Waiter -> Cashier, OUT02 is removed, OUT03 is added as Cashier.
     const updated = await changeMemberRoleAndOutlets(t.actor, {
       appUserId: invite.appUserId,
       assignments: [
         { outletId: out01.id, roleId: cashier.id },
-        { outletId: out03.id, roleId: waiter.id },
+        { outletId: out03.id, roleId: cashier.id },
       ],
     })
 
     expect(updated.assignments.map((a) => `${a.outletCode}:${a.roleCode}`).sort()).toEqual([
       'OUT01:CASHIER',
-      'OUT03:WAITER',
+      'OUT03:CASHIER',
     ])
     expect(updated.displayName).toContain('Batch')
     expect(updated.membershipStatus).toBe('PENDING')
