@@ -43,10 +43,12 @@ export { reportR02, type R02Filter, type R02Result, type R02Row, type R02OutletT
 export { listSuppliers, saveSupplier, deleteSupplier, type SupplierRow, type SupplierInput } from './server/supplier.service'
 export { listSkuOptions, readTenantSkuAverageCosts, type SkuOption } from './server/sku-options.service'
 export {
+  listTransferDestinations,
   listTransfers,
   getTransfer,
   listStocktakes,
   getStocktake,
+  type TransferDestinationRow,
   type TransferListRow,
   type TransferDetail,
   type TransferLineView,

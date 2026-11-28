@@ -13,6 +13,7 @@ import {
   useOutletOptions,
   useSkuOptions,
   useStockInvalidate,
+  useTransferDestinations,
 } from './stock-shared'
 
 export function TransfersTab() {
@@ -21,6 +22,7 @@ export function TransfersTab() {
   const toast = useToast()
   const invalidate = useStockInvalidate()
   const outlets = useOutletOptions()
+  const destinations = useTransferDestinations()
   const skus = useSkuOptions()
   const listQuery = useQuery({
     queryKey: ['admin', slug, 'stock', 'transfers'],
@@ -34,7 +36,7 @@ export function TransfersTab() {
   const [qty, setQty] = useState('')
   const [receiveId, setReceiveId] = useState<string | null>(null)
 
-  const outletLabel = (id: string) => formatOutletName(outlets, id)
+  const outletLabel = (id: string) => formatOutletName([...destinations, ...outlets], id)
 
   const sendMut = useMutation({
     mutationFn: async () => {
@@ -83,7 +85,7 @@ export function TransfersTab() {
             <Select id="tr-from" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={fromId} onValueChange={setFromId} />
           </Field>
           <Field label={t('admin.stock.colTo')} htmlFor="tr-to">
-            <Select id="tr-to" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...outlets.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={toId} onValueChange={setToId} />
+            <Select id="tr-to" options={[{ value: '', label: t('admin.stock.chooseOutlet') }, ...destinations.map((o) => ({ value: o.id, label: o.name || o.code }))]} value={toId} onValueChange={setToId} />
           </Field>
           <Field label={t('admin.stock.colDate')} htmlFor="tr-date">
             <Input id="tr-date" type="date" value={businessDate} onChange={(e) => setBusinessDate(e.target.value)} />

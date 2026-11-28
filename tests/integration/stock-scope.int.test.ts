@@ -10,6 +10,7 @@ import {
   listGr,
   listStocktakes,
   listSuppliers,
+  listTransferDestinations,
   listTransfers,
   postGr,
   reportR02,
@@ -20,6 +21,7 @@ import {
 import { closePools } from '~/server/db'
 import {
   enableOutletInventory,
+  masterUpdate,
   setupInventoryTenant,
   type InventoryTenant,
 } from './helpers/inventory'
@@ -153,5 +155,37 @@ describe('inventory outlet scope for list and detail reads, and supplier permiss
 
     // An actor whose outlets do not exist in this tenant sees nothing.
     expect(await reportR02(outsider, {})).toEqual({ rows: [], totals: [] })
+  })
+
+  it('offers every active outlet as a transfer destination to inventory.manage holders, whatever their scope', async () => {
+    const t = await setupInventoryTenant('xfer-dest')
+    await enableOutletInventory(t.tenantId, t.outletA, '2026-11-01T00:00:00.000Z')
+    await enableOutletInventory(t.tenantId, t.outletB, '2026-11-01T00:00:00.000Z')
+
+    const managerA = scopedActor(t, ['inventory.manage'], [t.outletA])
+    const reportOnly = scopedActor(t, ['report.view'], [t.outletA])
+
+    // The list is not limited to the actor's own outlets.
+    expect((await listTransferDestinations(managerA)).map((o) => o.code)).toEqual(['OUT01', 'OUT02'])
+    expect((await listTransferDestinations(t.actor)).map((o) => o.code)).toEqual(['OUT01', 'OUT02'])
+    // Without inventory.manage the list is refused.
+    await expect(listTransferDestinations(reportOnly)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    // The server accepts a destination outside the sender's scope (only the source outlet is checked).
+    const draft = await saveTransferDraft(managerA, {
+      fromOutletId: t.outletA,
+      toOutletId: t.outletB,
+      businessDate: '2026-11-20',
+      lines: [{ skuId: t.skuA, uomId: t.pcsUomId, qtyInput: '1' }],
+    })
+    expect(draft.id).toBeTruthy()
+
+    // Inactive outlets are not offered.
+    await masterUpdate(
+      t.tenantId,
+      'UPDATE outlet SET is_active = false, version = $3 WHERE tenant_id = $1 AND id = $2',
+      [t.tenantId, t.outletB],
+    )
+    expect((await listTransferDestinations(managerA)).map((o) => o.code)).toEqual(['OUT01'])
   })
 })

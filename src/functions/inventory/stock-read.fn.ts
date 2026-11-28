@@ -8,6 +8,7 @@ import {
   listSkuOptions,
   listStocktakes,
   listSuppliers,
+  listTransferDestinations,
   listTransfers,
   reportR02,
 } from '~/modules/inventory/public'
@@ -32,6 +33,10 @@ export const listTransfersFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => optionalOutlet.parse(raw))
   .middleware([publicErrorMiddleware, requirePermission('inventory.manage')])
   .handler(async ({ data, context }) => listTransfers(context.auth, data))
+
+export const listTransferDestinationsFn = createServerFn({ method: 'GET' })
+  .middleware([publicErrorMiddleware, requirePermission('inventory.manage')])
+  .handler(async ({ context }) => listTransferDestinations(context.auth))
 
 export const listStocktakesFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => optionalOutlet.parse(raw))

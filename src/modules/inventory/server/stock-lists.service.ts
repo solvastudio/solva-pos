@@ -23,6 +23,25 @@ export interface TransferListRow {
   readonly businessDate: string
 }
 
+export interface TransferDestinationRow {
+  readonly id: string
+  readonly code: string
+  readonly name: string
+}
+
+/** Active outlets a transfer may be sent to. Any outlet is a valid destination, so this is not limited to the actor's scope. */
+export async function listTransferDestinations(actor: IdentityAuthActor): Promise<TransferDestinationRow[]> {
+  requireActorPermission(actor, 'inventory.manage')
+  return withTenant(actor.tenantId, async (tx) => {
+    const res = await tx.execute<{ id: string; code: string; name: string }>(sql`
+      SELECT id, code, name FROM outlet
+      WHERE tenant_id = ${actor.tenantId}::uuid AND deleted_at IS NULL AND is_active
+      ORDER BY code, name
+    `)
+    return res.rows.map((r) => ({ id: r.id, code: r.code, name: r.name }))
+  })
+}
+
 export async function listTransfers(actor: IdentityAuthActor, filter: { outletId?: string } = {}): Promise<TransferListRow[]> {
   requireActorPermission(actor, 'inventory.manage')
   const scope = scopeOf(actor)

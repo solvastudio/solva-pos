@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { listOutletsFn } from '~/functions/identity/org.fn'
-import { listSkuOptionsFn } from '~/functions/inventory/stock-read.fn'
+import { listOutletOptionsFn } from '~/functions/identity/org.fn'
+import { listSkuOptionsFn, listTransferDestinationsFn } from '~/functions/inventory/stock-read.fn'
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 
 export function formatOutletName(outlets: readonly { id: string; code: string; name: string }[], id: string): string {
@@ -27,7 +27,17 @@ export function useStockInvalidate() {
 
 export function useOutletOptions() {
   const { slug } = useCurrentTenant()
-  const query = useQuery({ queryKey: ['admin', slug, 'outlets-list'], queryFn: () => listOutletsFn() })
+  const query = useQuery({ queryKey: ['admin', slug, 'outlet-options'], queryFn: () => listOutletOptionsFn() })
+  return query.data ?? []
+}
+
+/** Active outlets a transfer may be sent to; not limited to the actor's own outlets. */
+export function useTransferDestinations() {
+  const { slug } = useCurrentTenant()
+  const query = useQuery({
+    queryKey: ['admin', slug, 'stock', 'transfer-destinations'],
+    queryFn: () => listTransferDestinationsFn(),
+  })
   return query.data ?? []
 }
 
