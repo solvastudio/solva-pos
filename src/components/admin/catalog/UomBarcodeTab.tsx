@@ -10,14 +10,14 @@ export interface UomBarcodeTabProps {
   tenantSlug: string
   detail: AdminProductDetail
   uoms: readonly UomView[]
-  canManageTenantWide: boolean
+  canEditMaster: boolean
 }
 
 export function UomBarcodeTab({
   tenantSlug,
   detail,
   uoms,
-  canManageTenantWide,
+  canEditMaster,
 }: UomBarcodeTabProps) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -130,12 +130,12 @@ export function UomBarcodeTab({
                 <Input
                   value={draft}
                   aria-label={`${t('admin.catalog.barcodeLabel')} ${u?.code ?? ''}`}
-                  disabled={!canManageTenantWide || mut.isPending}
+                  disabled={!canEditMaster || mut.isPending}
                   onChange={(e) =>
                     setBarcodeDrafts((prev) => ({ ...prev, [su.id]: e.target.value }))
                   }
                 />
-                {canManageTenantWide && draft !== (su.barcode ?? '') ? (
+                {canEditMaster && draft !== (su.barcode ?? '') ? (
                   <Button
                     type="button"
                     size="sm"
@@ -153,7 +153,7 @@ export function UomBarcodeTab({
                     {t('common.save')}
                   </Button>
                 ) : null}
-                {canManageTenantWide && !su.isBase ? (
+                {canEditMaster && !su.isBase ? (
                   <Button
                     type="button"
                     size="sm"
@@ -171,7 +171,7 @@ export function UomBarcodeTab({
         })}
       </div>
 
-      {canManageTenantWide && availableExtraUoms.length > 0 ? (
+      {canEditMaster && availableExtraUoms.length > 0 ? (
         <form onSubmit={handleAdd} noValidate className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
           <h4 className="text-h3 font-semibold text-ink">{t('admin.catalog.addUomTitle')}</h4>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

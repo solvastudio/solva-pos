@@ -48,3 +48,17 @@ export function requireCatalogPermission(
     }
   }
 }
+
+/** Read access to catalog master data: `catalog.view` or `catalog.manage`. */
+export function requireCatalogView(actor: CatalogActor): void {
+  if (!actor.permissions.has('catalog.view') && !actor.permissions.has('catalog.manage')) {
+    throw new AppError('FORBIDDEN', 'Missing required permission: catalog.view')
+  }
+}
+
+/** Catalog CSV import requires its own permission in addition to `catalog.manage`. */
+export function requireCatalogImport(actor: CatalogActor): void {
+  if (!actor.permissions.has('catalog.import')) {
+    throw new AppError('FORBIDDEN', 'Missing required permission: catalog.import')
+  }
+}

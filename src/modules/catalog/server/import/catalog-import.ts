@@ -7,6 +7,7 @@ import { createLogger } from '~/server/log'
 import {
   newIdFrom,
   nowIsoFrom,
+  requireCatalogImport,
   requireCatalogPermission,
   type CatalogActor,
   type CatalogServiceDeps,
@@ -42,7 +43,8 @@ export async function previewCatalogImport(
   fileName: string,
   deps?: CatalogServiceDeps,
 ): Promise<ImportReport> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
+  requireCatalogImport(actor)
   const structural = parseAndValidateCatalogCsvRows(csvText)
 
   const col = createErrorCollector()
@@ -140,7 +142,8 @@ export async function commitCatalogImport(
   rawToken: string,
   deps?: CatalogServiceDeps,
 ): Promise<CommitImportResult> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
+  requireCatalogImport(actor)
   const tokenRes = z.string().min(1).safeParse(rawToken)
   if (!tokenRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid import token')

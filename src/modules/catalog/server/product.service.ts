@@ -19,6 +19,7 @@ import {
   newIdFrom,
   nowIsoFrom,
   requireCatalogPermission,
+  requireCatalogView,
   type CatalogActor,
   type CatalogServiceDeps,
 } from './auth'
@@ -88,12 +89,12 @@ function isPgUniqueViolation(err: unknown): boolean {
 }
 
 export async function listProducts(actor: CatalogActor): Promise<ProductRow[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   return withTenantReadOnly(actor.tenantId, (tx) => listProductRows(tx, actor.tenantId))
 }
 
 export async function getProductById(actor: CatalogActor, rawId: string): Promise<ProductRow | null> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const idRes = uuidSchema.safeParse(rawId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid product id')
@@ -106,7 +107,7 @@ export async function createProduct(
   rawInput: CreateProductInput,
   deps?: CatalogServiceDeps,
 ): Promise<CreateProductResult> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(createProductSchema, rawInput, 'Invalid product input')
   const nowIso = nowIsoFrom(deps)
   const productId = newIdFrom(deps)
@@ -374,7 +375,7 @@ export async function updateProduct(
   rawInput: UpdateProductInput,
   deps?: CatalogServiceDeps,
 ): Promise<ProductRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(updateProductSchema, rawInput, 'Invalid product input')
   const nowIso = nowIsoFrom(deps)
 
@@ -437,6 +438,22 @@ export async function updateProduct(
         return updated
       })
 
+      if (parsed.isActive !== undefined && parsed.isActive !== existing.isActive) {
+        await appendAudit(
+          tx,
+          {
+            action: 'catalog.changed',
+            entityType: 'product',
+            entityId: parsed.id,
+            beforeData: { isActive: existing.isActive },
+            afterData: { isActive: parsed.isActive, code: existing.code, name: existing.name },
+            actorUserId: actor.appUserId,
+            occurredAt: nowIso,
+          },
+          { newId: () => newIdFrom(deps), nowIso: () => nowIso },
+        )
+      }
+
       return result
     })
   } catch (err) {
@@ -452,7 +469,7 @@ export async function deleteProduct(
   rawId: string,
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const idRes = uuidSchema.safeParse(rawId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid product id')

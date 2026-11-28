@@ -69,7 +69,7 @@ async function setupImportFixture(prefix: string) {
   const owner: CatalogActor = {
     tenantId: created.tenantId,
     appUserId: created.ownerInvite.appUserId,
-    permissions: new Set(['catalog.manage']),
+    permissions: new Set(['catalog.manage', 'catalog.import']),
     outletIds: null,
   }
 
@@ -362,6 +362,20 @@ describe('catalog-import integration (two-stage preview/commit, single-version, 
       permissions: new Set(['catalog.manage']),
       outletIds: [fx.outletA.id],
     }
+
+    // Catalog CSV import needs catalog.import on top of catalog.manage, but no tenant-wide scope.
+    await expect(previewCatalogImport(managerA, 'x', 'mgr-catalog.csv')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    const importerA: CatalogActor = {
+      ...managerA,
+      permissions: new Set(['catalog.manage', 'catalog.import']),
+    }
+    const importerOutcome = await previewCatalogImport(importerA, 'x', 'mgr-catalog.csv').then(
+      () => 'ok',
+      (err: { code?: string }) => err.code,
+    )
+    expect(importerOutcome).not.toBe('FORBIDDEN')
 
     const mgrBadPrice = await previewPriceImport(
       managerA,

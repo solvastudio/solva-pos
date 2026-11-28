@@ -29,7 +29,8 @@ import {
 export const Route = createFileRoute('/$tenant/admin/_authed/catalog/')({
   validateSearch: (search) => productListSearchSchema.parse(search),
   beforeLoad: ({ params, context }) => {
-    if (!context.session?.permissions.includes('catalog.manage')) {
+    const permissions = context.session?.permissions ?? []
+    if (!permissions.includes('catalog.view') && !permissions.includes('catalog.manage')) {
       throw redirect({ href: tenantHref(params.tenant, '/admin') })
     }
   },
@@ -61,6 +62,7 @@ function CatalogListPage() {
   const navigate = useNavigate()
 
   const canManageTenantWide = session?.outletIds === null
+  const canEditMaster = session?.permissions.includes('catalog.manage') ?? false
   const [searchDraft, setSearchDraft] = useState(search.q ?? '')
   const [catUomOpen, setCatUomOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -117,17 +119,19 @@ function CatalogListPage() {
           <Button type="button" variant="secondary" onClick={() => setCatUomOpen(true)}>
             {t('admin.catalog.categoriesUomsButton')}
           </Button>
-          {canManageTenantWide ? (
+          {canManageTenantWide && canEditMaster ? (
+            <Button
+              type="button"
+              variant="secondary"
+              loading={exporting}
+              onClick={handleExport}
+            >
+              <Download className="size-4" />
+              {t('admin.catalog.exportButton')}
+            </Button>
+          ) : null}
+          {canEditMaster ? (
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                loading={exporting}
-                onClick={handleExport}
-              >
-                <Download className="size-4" />
-                {t('admin.catalog.exportButton')}
-              </Button>
               <Button
                 type="button"
                 variant="secondary"
@@ -190,7 +194,7 @@ function CatalogListPage() {
         rows={listData?.items ?? []}
         loading={isLoading}
         onCreateAction={
-          canManageTenantWide
+          canEditMaster
             ? () => navigate({ to: tenantHref(slug, '/admin/catalog/new') })
             : undefined
         }
@@ -235,9 +239,9 @@ function CatalogListPage() {
           <CategoryManager
             tenantSlug={slug}
             categories={categories}
-            canManage={canManageTenantWide}
+            canManage={canEditMaster}
           />
-          <UomManager tenantSlug={slug} uoms={uoms} canManage={canManageTenantWide} />
+          <UomManager tenantSlug={slug} uoms={uoms} canManage={canEditMaster} />
         </div>
       </Dialog>
     </div>

@@ -92,6 +92,7 @@ describe('catalog admin UI components (jsdom + axe)', () => {
         tenantSlug="acme"
         categories={CATEGORIES}
         uoms={UOMS}
+        canEditMaster={true}
         canManageTenantWide={true}
         scopedOutletIds={null}
       />,
@@ -151,7 +152,7 @@ describe('catalog admin UI components (jsdom + axe)', () => {
     }
 
     const { container } = wrap(
-      <VariantsTab tenantSlug="acme" detail={detail} canManageTenantWide={true} />,
+      <VariantsTab tenantSlug="acme" detail={detail} canEditMaster={true} />,
     )
     expect(screen.getByText('Size')).toBeTruthy()
     expect(screen.getByDisplayValue('KAOS-S')).toBeTruthy()
@@ -242,8 +243,82 @@ describe('catalog admin UI components (jsdom + axe)', () => {
     expect(axeRes.violations).toEqual([])
   })
 
+  it('ProductForm hides the price, availability, modifier and recipe tabs from read-only users', () => {
+    const detail: AdminProductDetail = {
+      product: {
+        id: 'p2',
+        categoryId: 'c1',
+        code: 'KOPI',
+        name: 'Kopi Susu',
+        productType: 'MENU_FNB',
+        hasVariants: false,
+        baseUomId: 'u1',
+        trackStock: false,
+        taxable: true,
+        isActive: true,
+        isOpenPrice: false,
+        sortOrder: 0,
+      },
+      attributes: [],
+      skus: [
+        {
+          id: 's2',
+          productId: 'p2',
+          skuCode: 'KOPI',
+          variantLabel: null,
+          isDefault: true,
+          isActive: true,
+          sortOrder: 0,
+        },
+      ],
+      skuAttributeLinks: [],
+      skuUoms: [
+        { id: 'su2', skuId: 's2', uomId: 'u1', conversionFactor: '1', isBase: true, barcode: null },
+      ],
+      prices: [],
+      availability: [],
+      outlets: [],
+    }
+    const alwaysVisible = ['Info', 'Variants & SKUs', 'UOMs & Barcodes']
+    const editOnly = ['Prices', 'Outlet Availability', 'Modifiers', 'Recipe']
+
+    const readOnly = wrap(
+      <ProductForm
+        tenantSlug="acme"
+        detail={detail}
+        categories={CATEGORIES}
+        uoms={UOMS}
+        canEditMaster={false}
+        canManageTenantWide={false}
+        scopedOutletIds={null}
+      />,
+    )
+    for (const name of alwaysVisible) {
+      expect(screen.getByRole('tab', { name })).toBeTruthy()
+    }
+    for (const name of editOnly) {
+      expect(screen.queryByRole('tab', { name })).toBeNull()
+    }
+    readOnly.unmount()
+
+    wrap(
+      <ProductForm
+        tenantSlug="acme"
+        detail={detail}
+        categories={CATEGORIES}
+        uoms={UOMS}
+        canEditMaster={true}
+        canManageTenantWide={true}
+        scopedOutletIds={null}
+      />,
+    )
+    for (const name of [...alwaysVisible, ...editOnly]) {
+      expect(screen.getByRole('tab', { name })).toBeTruthy()
+    }
+  })
+
   it('ImportWizard renders steps and passes axe checks', async () => {
-    const { container } = wrap(<ImportWizard tenantSlug="acme" />)
+    const { container } = wrap(<ImportWizard tenantSlug="acme" canImportCatalog={true} />)
     expect(screen.getByText('1. Upload & Validate')).toBeTruthy()
     const axeRes = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })
     expect(axeRes.violations).toEqual([])
@@ -281,6 +356,7 @@ describe('catalog admin UI components (jsdom + axe)', () => {
         tenantSlug="acme"
         categories={[]}
         uoms={[]}
+        canEditMaster={true}
         canManageTenantWide={true}
         scopedOutletIds={null}
       />,

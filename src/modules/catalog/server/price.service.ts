@@ -11,6 +11,7 @@ import {
   newIdFrom,
   nowIsoFrom,
   requireCatalogPermission,
+  requireCatalogView,
   type CatalogActor,
   type CatalogServiceDeps,
 } from './auth'
@@ -91,7 +92,7 @@ function priceSnapshot(row: PriceEntryRow | null): Record<string, unknown> | nul
 }
 
 export async function listPricesForSku(actor: CatalogActor, rawSkuId: string): Promise<PriceEntryRow[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const idRes = z.string().uuid().safeParse(rawSkuId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid SKU id')

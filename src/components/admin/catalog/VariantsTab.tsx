@@ -17,10 +17,10 @@ import { qk } from '~/queries/keys'
 export interface VariantsTabProps {
   tenantSlug: string
   detail: AdminProductDetail
-  canManageTenantWide: boolean
+  canEditMaster: boolean
 }
 
-export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: VariantsTabProps) {
+export function VariantsTab({ tenantSlug, detail, canEditMaster }: VariantsTabProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -65,7 +65,7 @@ export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: Variant
                     className="inline-flex items-center gap-1 rounded-sm border border-line bg-surface-sunken px-2 py-1 text-body text-ink"
                   >
                     {val.value}
-                    {canManageTenantWide && values.length > 1 ? (
+                    {canEditMaster && values.length > 1 ? (
                       <button
                         type="button"
                         aria-label={`${t('admin.catalog.deleteAction')} ${val.value}`}
@@ -87,7 +87,7 @@ export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: Variant
                   </span>
                 ))}
               </div>
-              {canManageTenantWide && detail.skus.length < 100 ? (
+              {canEditMaster && detail.skus.length < 100 ? (
                 <div className="flex items-center gap-2">
                   <Input
                     value={newValues[attribute.id] ?? ''}
@@ -139,7 +139,7 @@ export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: Variant
               return (
                 <tr key={s.id}>
                   <td className="px-4 py-2">
-                    {canManageTenantWide ? (
+                    {canEditMaster ? (
                       <div className="flex items-center gap-2">
                         <Input
                           value={draft}
@@ -176,7 +176,7 @@ export function VariantsTab({ tenantSlug, detail, canManageTenantWide }: Variant
                     <Switch
                       label={s.isActive ? t('common.active') : t('common.inactive')}
                       checked={s.isActive}
-                      disabled={!canManageTenantWide || mutate.isPending}
+                      disabled={!canEditMaster || mutate.isPending}
                       onCheckedChange={(checked) =>
                         mutate.mutate({
                           data: { action: 'updateSku', skuId: s.id, isActive: checked },

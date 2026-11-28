@@ -14,6 +14,7 @@ import {
   newIdFrom,
   nowIsoFrom,
   requireCatalogPermission,
+  requireCatalogView,
   type CatalogActor,
   type CatalogServiceDeps,
 } from './auth'
@@ -90,7 +91,7 @@ export async function listProductVariants(
   actor: CatalogActor,
   rawProductId: string,
 ): Promise<ProductVariantsView> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const idRes = uuidSchema.safeParse(rawProductId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid product id')
@@ -134,7 +135,7 @@ export async function addAttributeValue(
   rawInput: AddAttributeValueInput,
   deps?: CatalogServiceDeps,
 ): Promise<{ attributeValue: AttributeValueRow; createdSkus: SkuRow[]; version: number }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(addAttributeValueSchema, rawInput, 'Invalid attribute value input')
   const nowIso = nowIsoFrom(deps)
   const newValueId = newIdFrom(deps)
@@ -278,7 +279,7 @@ export async function removeAttributeValue(
   rawInput: RemoveAttributeValueInput,
   deps?: CatalogServiceDeps,
 ): Promise<{ removedSkuIds: string[]; version: number }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(removeAttributeValueSchema, rawInput, 'Invalid attribute value input')
   const nowIso = nowIsoFrom(deps)
 
@@ -345,7 +346,7 @@ export async function updateSku(
   rawInput: UpdateSkuInput,
   deps?: CatalogServiceDeps,
 ): Promise<SkuRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(updateSkuSchema, rawInput, 'Invalid SKU input')
   const nowIso = nowIsoFrom(deps)
 

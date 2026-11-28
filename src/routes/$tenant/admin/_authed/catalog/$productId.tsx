@@ -12,7 +12,8 @@ import {
 
 export const Route = createFileRoute('/$tenant/admin/_authed/catalog/$productId')({
   beforeLoad: ({ params, context }) => {
-    if (!context.session?.permissions.includes('catalog.manage')) {
+    const permissions = context.session?.permissions ?? []
+    if (!permissions.includes('catalog.view') && !permissions.includes('catalog.manage')) {
       throw redirect({ href: tenantHref(params.tenant, '/admin') })
     }
   },
@@ -62,6 +63,7 @@ function EditProductPage() {
         detail={detail}
         categories={categories}
         uoms={uoms}
+        canEditMaster={session?.permissions.includes('catalog.manage') ?? false}
         canManageTenantWide={session?.outletIds === null}
         scopedOutletIds={session?.outletIds ?? null}
       />

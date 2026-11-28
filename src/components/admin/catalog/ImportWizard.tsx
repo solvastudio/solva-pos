@@ -49,15 +49,17 @@ function triggerDownload(fileName: string, content: string): void {
 
 export interface ImportWizardProps {
   tenantSlug: string
+  /** Holds `catalog.import`: the "catalog" CSV kind is offered. */
+  canImportCatalog: boolean
 }
 
-export function ImportWizard({ tenantSlug }: ImportWizardProps) {
+export function ImportWizard({ tenantSlug, canImportCatalog }: ImportWizardProps) {
   const { t } = useTranslation()
   const idPrefix = useId()
   const toast = useToast()
   const queryClient = useQueryClient()
 
-  const [kind, setKind] = useState<ImportKind>('catalog')
+  const [kind, setKind] = useState<ImportKind>(canImportCatalog ? 'catalog' : 'price')
   const [fileName, setFileName] = useState('import.csv')
   const [csvText, setCsvText] = useState('')
   const [report, setReport] = useState<ImportReport | null>(null)
@@ -164,7 +166,9 @@ export function ImportWizard({ tenantSlug }: ImportWizardProps) {
                   value={kind}
                   onValueChange={(v) => setKind(v as ImportKind)}
                   options={[
-                    { value: 'catalog', label: t('admin.import.kindCatalog') },
+                    ...(canImportCatalog
+                      ? [{ value: 'catalog', label: t('admin.import.kindCatalog') }]
+                      : []),
                     { value: 'price', label: t('admin.import.kindPrice') },
                     { value: 'availability', label: t('admin.import.kindAvailability') },
                   ]}

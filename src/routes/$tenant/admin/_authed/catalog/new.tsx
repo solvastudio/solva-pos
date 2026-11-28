@@ -8,10 +8,7 @@ import { categoriesQueryOptions, uomsQueryOptions } from '~/queries/catalog.quer
 
 export const Route = createFileRoute('/$tenant/admin/_authed/catalog/new')({
   beforeLoad: ({ params, context }) => {
-    if (
-      !context.session?.permissions.includes('catalog.manage') ||
-      context.session.outletIds !== null
-    ) {
+    if (!context.session?.permissions.includes('catalog.manage')) {
       throw redirect({ href: tenantHref(params.tenant, '/admin/catalog') })
     }
   },
@@ -47,6 +44,7 @@ function NewProductPage() {
         tenantSlug={slug}
         categories={categories}
         uoms={uoms}
+        canEditMaster
         canManageTenantWide={session?.outletIds === null}
         scopedOutletIds={session?.outletIds ?? null}
       />

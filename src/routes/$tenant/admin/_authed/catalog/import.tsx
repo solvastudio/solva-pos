@@ -16,6 +16,7 @@ export const Route = createFileRoute('/$tenant/admin/_authed/catalog/import')({
 function CatalogImportPage() {
   const { t } = useTranslation()
   const { slug } = useCurrentTenant()
+  const { session } = Route.useRouteContext()
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,7 +30,10 @@ function CatalogImportPage() {
         </Link>
       </div>
 
-      <ImportWizard tenantSlug={slug} />
+      <ImportWizard
+        tenantSlug={slug}
+        canImportCatalog={session?.permissions.includes('catalog.import') ?? false}
+      />
     </div>
   )
 }

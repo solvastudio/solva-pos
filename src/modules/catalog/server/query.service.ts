@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { visibleSkusForOutlet, type AvailabilityStatus, type ProductType } from '../shared'
-import { requireCatalogPermission, type CatalogActor } from './auth'
+import { requireCatalogPermission, requireCatalogView, type CatalogActor } from './auth'
 import {
   listAvailabilityByProductIds,
   type AvailabilityRow,
@@ -147,7 +147,7 @@ function clampPageSize(rawSize?: number, fallback = 50): number {
 }
 
 export async function listCatalogOutlets(actor: CatalogActor): Promise<OutletSummary[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const scopeIds = actor.outletIds === null ? null : (actor.outletIds ?? [])
   return withTenantReadOnly(actor.tenantId, (tx) =>
     queryScopedOutlets(tx, actor.tenantId, scopeIds),
@@ -164,7 +164,7 @@ export async function listAdminProducts(
     pageSize?: number
   },
 ): Promise<AdminProductListResult> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const page = clampPage(params?.page)
   const pageSize = clampPageSize(params?.pageSize, 50)
   const cleanSearch = params?.search?.trim() || undefined
@@ -216,7 +216,7 @@ export async function getAdminProductDetail(
   actor: CatalogActor,
   rawProductId: string,
 ): Promise<AdminProductDetail | null> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const idRes = z.string().uuid().safeParse(rawProductId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid product id')

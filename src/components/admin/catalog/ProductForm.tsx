@@ -45,6 +45,9 @@ export interface ProductFormProps {
   detail?: AdminProductDetail | null
   categories: readonly CategoryView[]
   uoms: readonly UomView[]
+  /** Holds `catalog.manage`: may edit tenant-wide master data (product info, variants, UOMs, modifiers, recipe). */
+  canEditMaster: boolean
+  /** Tenant-wide outlet access: may edit the default price. */
   canManageTenantWide: boolean
   scopedOutletIds: readonly string[] | null
 }
@@ -60,6 +63,7 @@ export function ProductForm({
   detail,
   categories,
   uoms,
+  canEditMaster,
   canManageTenantWide,
   scopedOutletIds,
 }: ProductFormProps) {
@@ -275,7 +279,7 @@ export function ProductForm({
                 setName(e.target.value)
                 clearFieldError('name')
               }}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
             />
           </Field>
           <Field
@@ -292,7 +296,7 @@ export function ProductForm({
                 setCode(e.target.value)
                 clearFieldError('code')
               }}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
             />
           </Field>
         </div>
@@ -313,7 +317,7 @@ export function ProductForm({
               invalid={Boolean(fieldErrors.categoryId)}
               placeholder={t('admin.catalog.selectCategory')}
               options={categoryOptions}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
             />
           </Field>
           <Field
@@ -331,7 +335,7 @@ export function ProductForm({
               invalid={Boolean(fieldErrors.baseUomId)}
               placeholder={t('admin.catalog.selectUom')}
               options={uoms.map((u) => ({ value: u.id, label: `${u.code} — ${u.name}` }))}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
             />
           </Field>
         </div>
@@ -356,7 +360,7 @@ export function ProductForm({
               id={`${idPrefix}-barcode`}
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
             />
           </Field>
         ) : null}
@@ -365,25 +369,25 @@ export function ProductForm({
           <Switch
             label={t('admin.catalog.trackStockLabel')}
             checked={trackStock}
-            disabled={!canManageTenantWide || saveMut.isPending}
+            disabled={!canEditMaster || saveMut.isPending}
             onCheckedChange={setTrackStock}
           />
           <Switch
             label={t('admin.catalog.taxableLabel')}
             checked={taxable}
-            disabled={!canManageTenantWide || saveMut.isPending}
+            disabled={!canEditMaster || saveMut.isPending}
             onCheckedChange={setTaxable}
           />
           <Switch
             label={t('admin.catalog.isOpenPriceLabel')}
             checked={isOpenPrice}
-            disabled={!canManageTenantWide || saveMut.isPending}
+            disabled={!canEditMaster || saveMut.isPending}
             onCheckedChange={setIsOpenPrice}
           />
           <Switch
             label={t('admin.catalog.isActiveLabel')}
             checked={isActive}
-            disabled={!canManageTenantWide || saveMut.isPending}
+            disabled={!canEditMaster || saveMut.isPending}
             onCheckedChange={setIsActive}
           />
         </div>
@@ -393,7 +397,7 @@ export function ProductForm({
             <Switch
               label={t('admin.catalog.hasVariantsLabel')}
               checked={hasVariants}
-              disabled={!canManageTenantWide || saveMut.isPending}
+              disabled={!canEditMaster || saveMut.isPending}
               onCheckedChange={setHasVariants}
             />
             {hasVariants ? (
@@ -491,7 +495,7 @@ export function ProductForm({
           </p>
         ) : null}
 
-        {canManageTenantWide ? (
+        {canEditMaster ? (
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" loading={saveMut.isPending} disabled={Boolean(variantPreview.error)}>
               {t('admin.catalog.saveProduct')}
@@ -569,7 +573,7 @@ export function ProductForm({
           <VariantsTab
             tenantSlug={tenantSlug}
             detail={detail}
-            canManageTenantWide={canManageTenantWide}
+            canEditMaster={canEditMaster}
           />
         </div>
       ),
@@ -583,40 +587,44 @@ export function ProductForm({
             tenantSlug={tenantSlug}
             detail={detail}
             uoms={uoms}
-            canManageTenantWide={canManageTenantWide}
+            canEditMaster={canEditMaster}
           />
         </div>
       ),
     },
-    {
-      value: 'prices',
-      label: t('admin.catalog.tabPrices'),
-      content: (
-        <div className="mt-6">
-          <ProductPricesTab
-            tenantSlug={tenantSlug}
-            detail={detail}
-            uoms={uoms}
-            canEditDefault={canManageTenantWide}
-            scopedOutletIds={scopedOutletIds}
-          />
-        </div>
-      ),
-    },
-    {
-      value: 'availability',
-      label: t('admin.catalog.tabAvailability'),
-      content: (
-        <div className="mt-6">
-          <ProductAvailabilityTab
-            tenantSlug={tenantSlug}
-            detail={detail}
-            scopedOutletIds={scopedOutletIds}
-          />
-        </div>
-      ),
-    },
-    ...(detail.product.productType === 'MENU_FNB'
+    ...(canEditMaster
+      ? [
+          {
+            value: 'prices',
+            label: t('admin.catalog.tabPrices'),
+            content: (
+              <div className="mt-6">
+                <ProductPricesTab
+                  tenantSlug={tenantSlug}
+                  detail={detail}
+                  uoms={uoms}
+                  canEditDefault={canManageTenantWide}
+                  scopedOutletIds={scopedOutletIds}
+                />
+              </div>
+            ),
+          },
+          {
+            value: 'availability',
+            label: t('admin.catalog.tabAvailability'),
+            content: (
+              <div className="mt-6">
+                <ProductAvailabilityTab
+                  tenantSlug={tenantSlug}
+                  detail={detail}
+                  scopedOutletIds={scopedOutletIds}
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
+    ...(canEditMaster && detail.product.productType === 'MENU_FNB'
       ? [
           {
             value: 'modifiers',
@@ -626,7 +634,7 @@ export function ProductForm({
                 <ModifierGroupsEditor
                   tenantSlug={tenantSlug}
                   productId={detail.product.id}
-                  canEdit={canManageTenantWide}
+                  canEdit={canEditMaster}
                 />
               </div>
             ),
@@ -639,7 +647,7 @@ export function ProductForm({
                 <RecipeEditor
                   tenantSlug={tenantSlug}
                   detail={detail}
-                  canEdit={canManageTenantWide}
+                  canEdit={canEditMaster}
                 />
               </div>
             ),

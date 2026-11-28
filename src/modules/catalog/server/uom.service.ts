@@ -1,10 +1,18 @@
 import '@tanstack/react-start/server-only'
 import { z } from 'zod'
+import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
 import { createUomSchema, updateUomSchema, type CreateUomInput, type UpdateUomInput } from '../shared'
-import { newIdFrom, nowIsoFrom, requireCatalogPermission, type CatalogActor, type CatalogServiceDeps } from './auth'
+import {
+  newIdFrom,
+  nowIsoFrom,
+  requireCatalogPermission,
+  requireCatalogView,
+  type CatalogActor,
+  type CatalogServiceDeps,
+} from './auth'
 import {
   findUomById,
   insertUomRow,
@@ -29,7 +37,7 @@ function isPgUniqueViolation(err: unknown): boolean {
 }
 
 export async function listUoms(actor: CatalogActor): Promise<UomRow[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   return withTenantReadOnly(actor.tenantId, (tx) => listUomRows(tx, actor.tenantId))
 }
 
@@ -38,7 +46,7 @@ export async function createUom(
   rawInput: CreateUomInput,
   deps?: CatalogServiceDeps,
 ): Promise<UomRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsedRes = createUomSchema.safeParse(rawInput)
   if (!parsedRes.success) {
     throw new AppError('VALIDATION_FAILED', parsedRes.error.issues[0]?.message ?? 'Invalid UOM input')
@@ -73,7 +81,7 @@ export async function updateUom(
   rawInput: UpdateUomInput,
   deps?: CatalogServiceDeps,
 ): Promise<UomRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsedRes = updateUomSchema.safeParse(rawInput)
   if (!parsedRes.success) {
     throw new AppError('VALIDATION_FAILED', parsedRes.error.issues[0]?.message ?? 'Invalid UOM input')
@@ -116,7 +124,7 @@ export async function deleteUom(
   rawId: string,
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const idRes = uuidSchema.safeParse(rawId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid UOM id')
@@ -139,6 +147,19 @@ export async function deleteUom(
         throw new AppError('VALIDATION_FAILED', 'UOM not found')
       }
     })
+    await appendAudit(
+      tx,
+      {
+        action: 'catalog.changed',
+        entityType: 'uom',
+        entityId: id,
+        beforeData: { code: existing.code, name: existing.name },
+        afterData: { deleted: true },
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      { newId: () => newIdFrom(deps), nowIso: () => nowIso },
+    )
     return { id }
   })
 }

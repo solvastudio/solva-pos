@@ -46,6 +46,7 @@ export const AUDIT_ACTIONS = [
   'fnb_table.changed',
   'modifier.changed',
   'recipe.changed',
+  'catalog.changed',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

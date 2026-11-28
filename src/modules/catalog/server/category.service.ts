@@ -1,5 +1,6 @@
 import '@tanstack/react-start/server-only'
 import { z } from 'zod'
+import { appendAudit } from '~/modules/audit/public'
 import { writeMaster } from '~/modules/sync/public'
 import { withTenant, withTenantReadOnly } from '~/server/db'
 import { AppError } from '~/server/error-classify'
@@ -10,7 +11,14 @@ import {
   type CreateCategoryInput,
   type UpdateCategoryInput,
 } from '../shared'
-import { newIdFrom, nowIsoFrom, requireCatalogPermission, type CatalogActor, type CatalogServiceDeps } from './auth'
+import {
+  newIdFrom,
+  nowIsoFrom,
+  requireCatalogPermission,
+  requireCatalogView,
+  type CatalogActor,
+  type CatalogServiceDeps,
+} from './auth'
 import {
   findCategoryById,
   hasActiveChildCategories,
@@ -36,7 +44,7 @@ function isPgUniqueViolation(err: unknown): boolean {
 }
 
 export async function listCategories(actor: CatalogActor): Promise<CategoryRow[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   return withTenantReadOnly(actor.tenantId, (tx) => listCategoryRows(tx, actor.tenantId))
 }
 
@@ -45,7 +53,7 @@ export async function createCategory(
   rawInput: CreateCategoryInput,
   deps?: CatalogServiceDeps,
 ): Promise<CategoryRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(createCategorySchema, rawInput, 'Invalid category input')
   const parentId = parsed.parentId ?? null
   const id = newIdFrom(deps)
@@ -87,7 +95,7 @@ export async function updateCategory(
   rawInput: UpdateCategoryInput,
   deps?: CatalogServiceDeps,
 ): Promise<CategoryRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(updateCategorySchema, rawInput, 'Invalid category input')
   const nowIso = nowIsoFrom(deps)
 
@@ -143,7 +151,7 @@ export async function deleteCategory(
   rawId: string,
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const idRes = uuidSchema.safeParse(rawId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid category id')
@@ -169,6 +177,19 @@ export async function deleteCategory(
         throw new AppError('VALIDATION_FAILED', 'Category not found')
       }
     })
+    await appendAudit(
+      tx,
+      {
+        action: 'catalog.changed',
+        entityType: 'category',
+        entityId: id,
+        beforeData: { name: existing.name },
+        afterData: { deleted: true },
+        actorUserId: actor.appUserId,
+        occurredAt: nowIso,
+      },
+      { newId: () => newIdFrom(deps), nowIso: () => nowIso },
+    )
     return { id }
   })
 }

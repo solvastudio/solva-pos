@@ -385,7 +385,7 @@ describe('catalog-products integration (products, variants, UOM/barcodes, permis
     await deleteProduct(owner, prod2.product.id)
     await deleteUom(owner, box.id)
 
-    // Manager scoped to Outlet A cannot create master catalog or mutate Outlet B availability
+    // Manager scoped to Outlet A may manage tenant-wide master data but cannot mutate Outlet B availability
     const managerA: CatalogActor = {
       tenantId: owner.tenantId,
       appUserId: owner.appUserId,
@@ -393,17 +393,32 @@ describe('catalog-products integration (products, variants, UOM/barcodes, permis
       outletIds: [outletA.id],
     }
 
-    await expect(createCategory(managerA, { name: 'Blocked' })).rejects.toMatchObject({
+    const mgrCategory = await createCategory(managerA, { name: 'Scoped Manager Category' })
+    expect(mgrCategory.name).toBe('Scoped Manager Category')
+    const mgrProduct = await createProduct(managerA, {
+      categoryId: catL2.id,
+      code: 'MGR-OK',
+      name: 'Scoped Manager Product',
+      baseUomId: pcs.id,
+    })
+    expect(mgrProduct.product.code).toBe('MGR-OK')
+
+    // Deactivating a product is audited as catalog.changed
+    await updateProduct(managerA, { id: mgrProduct.product.id, isActive: false })
+    const catalogAudits = (await listAuditActions(owner.tenantId)).filter(
+      (a) => a.action === 'catalog.changed' && a.entity_type === 'product',
+    )
+    expect(catalogAudits).toHaveLength(1)
+    expect(catalogAudits[0]?.entity_id).toBe(mgrProduct.product.id)
+
+    // A view-only actor can read but not write; an actor without catalog permissions cannot read
+    const viewer: CatalogActor = { ...managerA, permissions: new Set(['catalog.view']) }
+    expect((await listCategories(viewer)).length).toBeGreaterThan(0)
+    await expect(createCategory(viewer, { name: 'Viewer Blocked' })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     })
-    await expect(
-      createProduct(managerA, {
-        categoryId: catL2.id,
-        code: 'MGR-NO',
-        name: 'Blocked',
-        baseUomId: pcs.id,
-      }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    const nobody: CatalogActor = { ...managerA, permissions: new Set<string>() }
+    await expect(listCategories(nobody)).rejects.toMatchObject({ code: 'FORBIDDEN' })
     await expect(
       setProductAvailability(managerA, {
         outletId: outletB.id,

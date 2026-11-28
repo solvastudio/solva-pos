@@ -9,6 +9,7 @@ import {
   newIdFrom,
   nowIsoFrom,
   requireCatalogPermission,
+  requireCatalogView,
   type CatalogActor,
   type CatalogServiceDeps,
 } from './auth'
@@ -62,7 +63,7 @@ function validatePositiveConversionFactor(rawFactor: string): Qty {
 }
 
 export async function listSkuUoms(actor: CatalogActor, rawSkuId: string): Promise<SkuUomRow[]> {
-  requireCatalogPermission(actor)
+  requireCatalogView(actor)
   const idRes = uuidSchema.safeParse(rawSkuId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid SKU id')
@@ -75,7 +76,7 @@ export async function addSkuUom(
   rawInput: AddSkuUomInput,
   deps?: CatalogServiceDeps,
 ): Promise<SkuUomRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(addSkuUomSchema, rawInput, 'Invalid SKU-UOM input')
   const normalizedFactor = validatePositiveConversionFactor(parsed.conversionFactor)
   const cleanBarcode = parsed.barcode?.trim() || null
@@ -132,7 +133,7 @@ export async function updateSkuUom(
   rawInput: UpdateSkuUomInput,
   deps?: CatalogServiceDeps,
 ): Promise<SkuUomRow> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const parsed = parseOrThrow(updateSkuUomSchema, rawInput, 'Invalid SKU-UOM input')
   const normalizedFactor =
     parsed.conversionFactor !== undefined
@@ -183,7 +184,7 @@ export async function removeSkuUom(
   rawId: string,
   deps?: CatalogServiceDeps,
 ): Promise<{ id: string }> {
-  requireCatalogPermission(actor, { requireTenantWide: true })
+  requireCatalogPermission(actor)
   const idRes = uuidSchema.safeParse(rawId)
   if (!idRes.success) {
     throw new AppError('VALIDATION_FAILED', 'Invalid SKU-UOM id')

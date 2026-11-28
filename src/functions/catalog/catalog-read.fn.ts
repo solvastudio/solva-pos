@@ -22,7 +22,7 @@ import {
   type FeatureFlagView,
 } from '~/modules/catalog/shared'
 import { listFeatureFlags } from '~/modules/identity/public'
-import { requirePermission } from '~/server/auth/auth-middleware'
+import { requireAnyPermission, requirePermission } from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware } from '../middleware'
 
 const listProductsInputSchema = z.object({
@@ -55,14 +55,14 @@ const availabilityMatrixInputSchema = z.object({
 
 export const listProductsFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => listProductsInputSchema.parse(raw ?? {}))
-  .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ data, context }): Promise<AdminProductListResult> => {
     return listAdminProducts(context.auth, data)
   })
 
 export const getProductFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => getProductInputSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ data, context }): Promise<AdminProductDetail | null> => {
     return getAdminProductDetail(context.auth, data.id)
   })
@@ -82,19 +82,19 @@ export const getAvailabilityMatrixFn = createServerFn({ method: 'GET' })
   })
 
 export const listCategoriesFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ context }): Promise<CategoryRow[]> => {
     return listCategories(context.auth)
   })
 
 export const listUomsFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ context }): Promise<UomRow[]> => {
     return listUoms(context.auth)
   })
 
 export const listCatalogOutletsFn = createServerFn({ method: 'GET' })
-  .middleware([publicErrorMiddleware, requirePermission('catalog.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('catalog.view', 'catalog.manage')])
   .handler(async ({ context }): Promise<OutletSummary[]> => {
     return listCatalogOutlets(context.auth)
   })
