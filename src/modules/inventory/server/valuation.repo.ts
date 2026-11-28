@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { sql } from 'drizzle-orm'
 import type { TenantTx } from '~/server/db'
+import { outletInScopeSql } from './outlet-scope'
 
 /** Raw R-02 rows from `v_stock_valuation`, enriched with names and effective availability. */
 export interface ValuationRawRow {
@@ -19,6 +20,8 @@ export interface ValuationRawRow {
 }
 
 export interface ValuationQuery {
+  /** Outlets the caller may see; `null` means no restriction (tenant-wide access). */
+  readonly outletIds: readonly string[] | null
   readonly outletId?: string
   readonly categoryId?: string
   readonly onlyNegative?: boolean
@@ -31,6 +34,7 @@ export interface ValuationQuery {
  */
 export async function queryValuation(tx: TenantTx, tenantId: string, q: ValuationQuery): Promise<ValuationRawRow[]> {
   const outletCond = q.outletId ? sql`AND v.outlet_id = ${q.outletId}::uuid` : sql``
+  const scopeCond = q.outletIds === null ? sql`` : sql`AND ${outletInScopeSql(sql`v.outlet_id`, q.outletIds)}`
   const categoryCond = q.categoryId ? sql`AND p.category_id = ${q.categoryId}::uuid` : sql``
   const negativeCond = q.onlyNegative ? sql`AND v.is_negative` : sql``
   const transitCond = q.onlyInTransit ? sql`AND v.qty_in_transit > 0` : sql``
@@ -69,7 +73,7 @@ export async function queryValuation(tx: TenantTx, tenantId: string, q: Valuatio
     JOIN product p ON p.tenant_id = v.tenant_id AND p.id = s.product_id
     JOIN outlet o ON o.tenant_id = v.tenant_id AND o.id = v.outlet_id
     WHERE v.tenant_id = ${tenantId}::uuid
-      ${outletCond} ${categoryCond} ${negativeCond} ${transitCond}
+      ${outletCond} ${scopeCond} ${categoryCond} ${negativeCond} ${transitCond}
     ORDER BY o.code, s.sku_code, v.sku_id
   `)
 

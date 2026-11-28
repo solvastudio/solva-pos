@@ -11,7 +11,11 @@ import { TransfersTab } from './TransfersTab'
  * Every action calls a server service; validation and figures live entirely on the server.
  */
 
-export function StockDocumentsPanel() {
+export interface StockDocumentsPanelProps {
+  canManageSuppliers: boolean
+}
+
+export function StockDocumentsPanel({ canManageSuppliers }: StockDocumentsPanelProps) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('receipts')
 
@@ -19,7 +23,11 @@ export function StockDocumentsPanel() {
     { value: 'receipts', label: t('admin.stock.tabReceipts'), content: <ReceiptsTab /> },
     { value: 'transfers', label: t('admin.stock.tabTransfers'), content: <TransfersTab /> },
     { value: 'stocktakes', label: t('admin.stock.tabStocktakes'), content: <StocktakesTab /> },
-    { value: 'suppliers', label: t('admin.stock.tabSuppliers'), content: <SuppliersTab /> },
+    {
+      value: 'suppliers',
+      label: t('admin.stock.tabSuppliers'),
+      content: <SuppliersTab canManage={canManageSuppliers} />,
+    },
   ]
 
   return (

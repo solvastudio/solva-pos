@@ -8,7 +8,11 @@ import { deleteSupplierFn, saveSupplierFn } from '~/functions/inventory/stock-wr
 import { useCurrentTenant } from '~/hooks/use-current-tenant'
 import type { SupplierView } from './stock-doc-types'
 
-export function SuppliersTab() {
+export interface SuppliersTabProps {
+  canManage: boolean
+}
+
+export function SuppliersTab({ canManage }: SuppliersTabProps) {
   const { t } = useTranslation()
   const { slug } = useCurrentTenant()
   const toast = useToast()
@@ -42,22 +46,25 @@ export function SuppliersTab() {
     onError: () => toast.show({ tone: 'danger', message: t('admin.stock.actionFailed') }),
   })
 
+  const actionsColumn: DataTableColumn<SupplierView> = {
+    id: 'actions',
+    header: '',
+    cell: (r) => (
+      <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate(r.id)}>
+        {t('admin.stock.deleteAction')}
+      </Button>
+    ),
+  }
+
   const columns: readonly DataTableColumn<SupplierView>[] = [
     { id: 'name', header: t('admin.stock.colSupplierName'), cell: (r) => r.name },
     { id: 'contact', header: t('admin.stock.colContact'), cell: (r) => r.contact ?? t('common.dash') },
-    {
-      id: 'actions',
-      header: '',
-      cell: (r) => (
-        <Button variant="ghost" size="sm" onClick={() => deleteMut.mutate(r.id)}>
-          {t('admin.stock.deleteAction')}
-        </Button>
-      ),
-    },
+    ...(canManage ? [actionsColumn] : []),
   ]
 
   return (
     <div className="flex flex-col gap-6">
+      {canManage ? (
       <section aria-labelledby="sup-form-title" className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4">
         <h2 id="sup-form-title" className="text-h3 font-semibold text-ink">{t('admin.stock.supplierFormTitle')}</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -74,6 +81,7 @@ export function SuppliersTab() {
           </div>
         </div>
       </section>
+      ) : null}
       <DataTableCmp10
         caption={t('admin.stock.supplierListCaption')}
         columns={columns}

@@ -3,6 +3,7 @@ import { normalizeQty, parseQty, toMoney } from '~/lib/kernel'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { withTenant } from '~/server/db'
 import { averageCostForDisplay } from '../domain/costing'
+import { scopeOf } from './outlet-scope'
 import { queryValuation } from './valuation.repo'
 
 /**
@@ -58,6 +59,8 @@ export async function reportR02(actor: IdentityAuthActor, filter: R02Filter = {}
   requireActorPermission(actor, 'report.view', filter.outletId ? { outletId: filter.outletId } : undefined)
   const raw = await withTenant(actor.tenantId, (tx) =>
     queryValuation(tx, actor.tenantId, {
+      // Scope-limited actors only see their own outlets, also when no outlet filter is given.
+      outletIds: scopeOf(actor),
       outletId: filter.outletId,
       categoryId: filter.categoryId,
       onlyNegative: filter.onlyNegative,

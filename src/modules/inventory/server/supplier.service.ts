@@ -2,7 +2,11 @@ import '@tanstack/react-start/server-only'
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { isUuid } from '~/lib/kernel'
 import { runtimeIdGenerator as idGen } from '~/lib/runtime-id'
-import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
+import {
+  requireActorAnyPermission,
+  requireActorPermission,
+  type IdentityAuthActor,
+} from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant } from '~/server/db'
 import { supplier as supplierTable } from './schema'
@@ -38,7 +42,7 @@ function normalize(input: SupplierInput): { name: string; contact: string | null
 }
 
 export async function listSuppliers(actor: IdentityAuthActor, opts: { includeInactive?: boolean } = {}): Promise<SupplierRow[]> {
-  requireActorPermission(actor, 'inventory.manage')
+  requireActorAnyPermission(actor, ['inventory.manage', 'supplier.manage'])
   return withTenant(actor.tenantId, async (tx) => {
     const rows = await tx
       .select({ id: supplierTable.id, name: supplierTable.name, contact: supplierTable.contact, deletedAt: supplierTable.deletedAt })
@@ -55,7 +59,7 @@ export async function listSuppliers(actor: IdentityAuthActor, opts: { includeIna
 }
 
 export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInput): Promise<{ id: string }> {
-  requireActorPermission(actor, 'inventory.manage')
+  requireActorPermission(actor, 'supplier.manage')
   const data = normalize(input)
   if (input.id !== undefined && !isUuid(input.id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierInvalid')
   return withTenant(actor.tenantId, async (tx) => {
@@ -92,7 +96,7 @@ export async function saveSupplier(actor: IdentityAuthActor, input: SupplierInpu
 }
 
 export async function deleteSupplier(actor: IdentityAuthActor, id: string): Promise<void> {
-  requireActorPermission(actor, 'inventory.manage')
+  requireActorPermission(actor, 'supplier.manage')
   if (!isUuid(id)) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.supplierInvalid')
   return withTenant(actor.tenantId, async (tx) => {
     const res = await tx

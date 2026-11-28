@@ -1,9 +1,10 @@
 import '@tanstack/react-start/server-only'
-import { asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { isUuid, normalizeQty, parseQty, subQty } from '~/lib/kernel'
 import { requireActorPermission, type IdentityAuthActor } from '~/modules/identity/public'
 import { AppError } from '~/server/error-classify'
 import { withTenant } from '~/server/db'
+import { assertOutletInScope, outletInScopeSql, scopeOf } from './outlet-scope'
 import {
   stocktake as stocktakeTable,
   stocktakeLine as stocktakeLineTable,
@@ -24,6 +25,10 @@ export interface TransferListRow {
 
 export async function listTransfers(actor: IdentityAuthActor, filter: { outletId?: string } = {}): Promise<TransferListRow[]> {
   requireActorPermission(actor, 'inventory.manage')
+  const scope = scopeOf(actor)
+  if (filter.outletId) {
+    assertOutletInScope(scope, filter.outletId)
+  }
   return withTenant(actor.tenantId, async (tx) => {
     const rows = await tx
       .select({
@@ -36,9 +41,14 @@ export async function listTransfers(actor: IdentityAuthActor, filter: { outletId
       })
       .from(transferTable)
       .where(
-        filter.outletId
-          ? sql`(${transferTable.outletId} = ${filter.outletId}::uuid OR ${transferTable.toOutletId} = ${filter.outletId}::uuid)`
-          : sql`true`,
+        and(
+          filter.outletId
+            ? sql`(${transferTable.outletId} = ${filter.outletId}::uuid OR ${transferTable.toOutletId} = ${filter.outletId}::uuid)`
+            : sql`true`,
+          scope === null
+            ? sql`true`
+            : sql`(${outletInScopeSql(sql`${transferTable.outletId}`, scope)} OR ${outletInScopeSql(sql`${transferTable.toOutletId}`, scope)})`,
+        ),
       )
       .orderBy(desc(transferTable.businessDate), asc(transferTable.docNo))
       .limit(200)
@@ -58,6 +68,10 @@ export interface StocktakeListRow {
 
 export async function listStocktakes(actor: IdentityAuthActor, filter: { outletId?: string } = {}): Promise<StocktakeListRow[]> {
   requireActorPermission(actor, 'inventory.manage')
+  const scope = scopeOf(actor)
+  if (filter.outletId) {
+    assertOutletInScope(scope, filter.outletId)
+  }
   return withTenant(actor.tenantId, async (tx) => {
     const base = tx
       .select({
@@ -70,9 +84,15 @@ export async function listStocktakes(actor: IdentityAuthActor, filter: { outletI
         postedAt: stocktakeTable.postedAt,
       })
       .from(stocktakeTable)
-    const rows = filter.outletId
-      ? await base.where(eq(stocktakeTable.outletId, filter.outletId)).orderBy(desc(stocktakeTable.businessDate)).limit(200)
-      : await base.orderBy(desc(stocktakeTable.businessDate)).limit(200)
+    const rows = await base
+      .where(
+        and(
+          filter.outletId ? eq(stocktakeTable.outletId, filter.outletId) : undefined,
+          scope === null ? undefined : outletInScopeSql(sql`${stocktakeTable.outletId}`, scope),
+        ),
+      )
+      .orderBy(desc(stocktakeTable.businessDate))
+      .limit(200)
     return rows
   })
 }
@@ -104,6 +124,7 @@ export async function getStocktake(actor: IdentityAuthActor, id: string): Promis
       .from(stocktakeTable)
       .where(eq(stocktakeTable.id, id))
     if (!head) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.stocktakeNotFound')
+    assertOutletInScope(scopeOf(actor), head.outletId)
     const lines = await tx
       .select({
         lineId: stocktakeLineTable.id,
@@ -169,6 +190,14 @@ export async function getTransfer(actor: IdentityAuthActor, id: string): Promise
       .from(transferTable)
       .where(eq(transferTable.id, id))
     if (!head) throw new AppError('VALIDATION_FAILED', 'admin.stock.err.transferNotFound')
+    const transferScope = scopeOf(actor)
+    if (
+      transferScope !== null &&
+      !transferScope.includes(head.fromOutletId) &&
+      !transferScope.includes(head.toOutletId)
+    ) {
+      throw new AppError('FORBIDDEN', 'Outlet is outside your assigned scope')
+    }
     const lines = await tx
       .select({
         lineId: transferLineTable.id,

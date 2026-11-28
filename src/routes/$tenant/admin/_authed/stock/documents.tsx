@@ -13,5 +13,10 @@ export const Route = createFileRoute('/$tenant/admin/_authed/stock/documents')({
 
 /** SCR-A06 documents tab: goods receipt, transfers, stocktake, and suppliers. */
 function AdminStockDocumentsPage() {
-  return <StockDocumentsPanel />
+  const { session } = Route.useRouteContext()
+  return (
+    <StockDocumentsPanel
+      canManageSuppliers={session?.permissions.includes('supplier.manage') ?? false}
+    />
+  )
 }

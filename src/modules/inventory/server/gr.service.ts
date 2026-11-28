@@ -8,6 +8,7 @@ import { withTenant, type TenantTx } from '~/server/db'
 import { applyMovements, type MovementIntent } from './ledger.service'
 import { auditInventoryEvent } from './audit'
 import { draftDocNo, nextDocNo } from './doc-no'
+import { assertOutletInScope, scopeOf } from './outlet-scope'
 import { findMovementIdsBySource, loadInventoryEnabledAt } from './sale-stock.repo'
 import { createStockMinusFlags, resolveStockMinus } from './stock-flags.service'
 import { goodsReceipt as grTable, goodsReceiptLine as grLineTable } from './schema'
@@ -429,6 +430,13 @@ export async function listGr(
   filter?: { outletId?: string },
 ): Promise<Array<{ id: string; docNo: string; status: string; docType: string; outletId: string; businessDate: string; totalValue: number }>> {
   requireActorPermission(actor, 'inventory.manage')
+  const scope = scopeOf(actor)
+  if (filter?.outletId) {
+    assertOutletInScope(scope, filter.outletId)
+  }
+  if (scope !== null && scope.length === 0) {
+    return []
+  }
   return withTenant(actor.tenantId, async (tx) => {
     const rows = await tx
       .select({
@@ -445,6 +453,7 @@ export async function listGr(
         and(
           eq(grTable.tenantId, actor.tenantId),
           filter?.outletId ? eq(grTable.outletId, filter.outletId) : sql`true`,
+          scope === null ? sql`true` : inArray(grTable.outletId, [...scope]),
           inArray(grTable.docType, ['RECEIPT', 'REVERSAL']),
         ),
       )

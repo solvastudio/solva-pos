@@ -11,7 +11,7 @@ import {
   listTransfers,
   reportR02,
 } from '~/modules/inventory/public'
-import { requirePermission } from '~/server/auth/auth-middleware'
+import { requireAnyPermission, requirePermission } from '~/server/auth/auth-middleware'
 import { publicErrorMiddleware } from '../middleware'
 
 /** Read inventory documents and the R-02 report (SCR-A06). */
@@ -54,5 +54,5 @@ export const listSkuOptionsFn = createServerFn({ method: 'GET' })
 
 export const listSuppliersFn = createServerFn({ method: 'GET' })
   .validator((raw: unknown) => z.object({ includeInactive: z.boolean().optional() }).parse(raw ?? {}))
-  .middleware([publicErrorMiddleware, requirePermission('inventory.manage')])
+  .middleware([publicErrorMiddleware, requireAnyPermission('inventory.manage', 'supplier.manage')])
   .handler(async ({ data, context }) => listSuppliers(context.auth, data))

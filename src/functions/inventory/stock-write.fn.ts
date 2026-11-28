@@ -99,10 +99,10 @@ export const enableOutletTrackingFn = createServerFn({ method: 'POST' })
 
 export const saveSupplierFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => supplierSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('inventory.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('supplier.manage')])
   .handler(async ({ data, context }) => saveSupplier(context.auth, data))
 
 export const deleteSupplierFn = createServerFn({ method: 'POST' })
   .validator((raw: unknown) => idSchema.parse(raw))
-  .middleware([publicErrorMiddleware, requirePermission('inventory.manage')])
+  .middleware([publicErrorMiddleware, requirePermission('supplier.manage')])
   .handler(async ({ data, context }) => deleteSupplier(context.auth, data.id))
